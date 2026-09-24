@@ -78,6 +78,13 @@ class DetectionReport:
     discourse_bonus: float = 0.0
     # v3.6: 学术诚信护栏(SQP-2)——每份报告明示工具定位与披露义务
     integrity_notice: str = ""
+    # v3.8: 混写预警——段落得分显著分化时提示文档级分数不可单独采信(混合文档 AUROC 0.38 的可操作化)
+    mixed_signal: bool = False
+    mixed_notice: str = ""
+    # v3.8: 语域提示——口语/叙事语域超出学术校准域时如实告知(能力边界矩阵的引擎侧落地)
+    register_hint: str = ""
+    # v3.8: 编码警示——大量不可解码字节时提示结果可能失真
+    encoding_warning: str = ""
 
 
 def attribute_model(text: str, topn: int = 3) -> list:
@@ -732,6 +739,43 @@ def detect(text: str, lang: str = "auto") -> DetectionReport:
         _gs = "/".join(h["group"] for h in discourse_hits)
         _line = f"篇章结构特征: {_gs}" + (f"（结构加分 {discourse_bonus:.0f}）" if discourse_bonus else "（单组命中，仅提示不加分）")
         details += "\nℹ️ " + _line
+    # v3.8: 混写预警——段落得分显著分化(混合人机文档文档级口径 AUROC 仅 0.38, 必须如实引导)
+    mixed_signal = False
+    mixed_notice = ""
+    if len(results) >= 2:
+        _ps = [r.ai_score for r in results]
+        if (max(_ps) - min(_ps) >= 40) and max(_ps) >= 60 and min(_ps) <= 35:
+            mixed_signal = True
+    if mixed_signal:
+        if lang == "zh":
+            mixed_notice = ("⚠️ 混写预警：段落得分显著分化（最高 %.0f / 最低 %.0f），文档疑似人机混写。"
+                            "文档级分数会被人类段落稀释，不可单独采信——请运行 paragraph_report.py 逐段归因。"
+                            % (max(_ps), min(_ps)))
+        else:
+            mixed_notice = ("⚠️ Mixed-register signal: paragraph scores diverge sharply (max %.0f / min %.0f); "
+                            "the document may combine human and AI writing. Document-level scores are unreliable "
+                            "here — run paragraph_report.py for per-paragraph attribution."
+                            % (max(_ps), min(_ps)))
+        details += "\n" + mixed_notice
+
+    # v3.8: 语域提示——口语/叙事语域超出学术校准域（能力边界矩阵的引擎侧落地）
+    register_hint = ""
+    if lang == "zh" and _COLLOQ_ZH.search(text):
+        register_hint = ("语域提示：检测到口语/叙事表达特征，文体与整体评分按学术语域校准，"
+                         "本场景结论仅供参考（见能力边界矩阵）。")
+        details += "\n" + ("ℹ️ " + register_hint)
+
+    # v3.8: 编码警示——大量不可解码字节（GBK/二进制按 replace 解码后 U+FFFD 密集）
+    encoding_warning = ""
+    if text.count("\ufffd") > 5:
+        if lang == "zh":
+            encoding_warning = ("编码警示：输入含大量无法解码的字节（已按替换规则解码为占位符），"
+                                "文件可能为 GBK 等非 UTF-8 编码或二进制文件，当前结果可能失真，建议先转换编码。")
+        else:
+            encoding_warning = ("Encoding warning: many undecodable bytes were replaced; the file may be "
+                                "non-UTF-8 (e.g. GBK) or binary, and results may be distorted. "
+                                "Convert the encoding first.")
+        details += "\n" + ("⚠️ " + encoding_warning)
 
     if short_text:
         details += ("\n⚠️ 文本不足100字：按铁律2不输出风险判定(risk=unknown)，分数仅供参考。"
@@ -758,6 +802,10 @@ def detect(text: str, lang: str = "auto") -> DetectionReport:
         integrity_notice=INTEG_ZH if lang == "zh" else INTEG_EN,
         discourse_hits=discourse_hits,
         discourse_bonus=discourse_bonus,
+        mixed_signal=mixed_signal,
+        mixed_notice=mixed_notice,
+        register_hint=register_hint,
+        encoding_warning=encoding_warning,
     )
 
 
@@ -775,6 +823,7 @@ _DISCOURSE_ZH = (
     ("口播收尾", re.compile(r"(?:总之|综合来看|总的来说)[，,][^。]{2,30}(?:记住|建议|别再|一定要)|最后(?:再)?(?:强调|提醒)(?:一次|一下)|就(?:聊|说|讲)到这[里儿]?|今天这[篇期个]?(?:文章|视频|内容)")),
     ("情绪渲染", re.compile(r"扎心(?:了)?|破防(?:了)?|泪目|太真实了|细思极恐|狠狠(?:共情|破防)|绷不住了|直呼(?:内行|太)|绝了[!！]|离大谱")),
 )
+_COLLOQ_ZH = re.compile(r"[嘛呗哇啦咯嘿耶哟]|说实话|讲真|搞定|挺好的|蛮好|咱们|整点|一堆|贼好|超赞|靠谱|翻车|踩坑")
 
 
 def _build_summary(results: list, lang: str, risk: str, score: float) -> str:

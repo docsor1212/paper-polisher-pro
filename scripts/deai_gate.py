@@ -119,6 +119,14 @@ def gate(text_file, json_out=False):
     term_ok, term_note = layer1_term(text_file)
 
     composite = W_L2 * ai + W_L4 * (100 - style) + W_L3 * smell
+    # v3.8: 层间分歧披露——词级与文体层方向显著矛盾时如实提示（AI 改写稿/混写常见）
+    divergence = round(abs(ai - (100 - style)), 1)
+    divergence_note = ""
+    if divergence >= 30:
+        divergence_note = (
+            f"层间分歧：词级层({ai:.0f}) 与文体层({style:.0f}) 方向显著矛盾（差 {divergence:.0f}），"
+            "常见于刻意模仿人类节奏的改写稿或语域混合，建议人工复核并参考段落级报告。")
+
     if composite < 35:
         verdict = "pass"
     elif composite < 55:
@@ -137,6 +145,8 @@ def gate(text_file, json_out=False):
         },
         "bands": "composite<35 通过 | 35-55 需复核 | >=55 疑似AI",
         "integrity_notice": "本门禁供作者自查与改进写作质量, 不用于规避机构 AIGC 检测; 请遵循所在机构 AI 使用与披露政策。",
+        "layer_divergence": divergence,
+        "divergence_note": divergence_note,
         "honesty": "文体与词级检测是概率性判断, 不构成定罪; 阈值依据2026-06 EVAL, 建议结合人工审阅",
     }
     if json_out:
@@ -149,6 +159,8 @@ def gate(text_file, json_out=False):
         print(f"  层3 翻译腔: {smell_note}  (权重{W_L3})")
         t = "✅" if term_ok else ("❌" if term_ok is False else "⚠️")
         print(f"  层1 术语:   {t} {term_note}  (建议性)")
+        if divergence_note:
+            print(f"  ℹ️ {divergence_note}")
         print(f"  判定带: {result['bands']}")
         print("  📘 " + result["integrity_notice"])
         if verdict != "pass":

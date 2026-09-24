@@ -7,13 +7,15 @@ sys.path.insert(0, os.path.join(HERE, "..", "scripts"))
 import ai_detector
 from pp_split import filter_split
 
-CORPUS = r"C:\Users\SeALove\ZCodeProject\.pp_eval\corpora_local\eval_zh.jsonl"
+CORPUS = ""  # 必填: 经 --corpus 传入本地语料路径
 fc = json.load(open(os.path.join(HERE, "..", "references", "fusion_config.json"), encoding="utf-8"))
 TM = float(fc["thresholds"]["medium"]) * 100
 TH = float(fc["thresholds"]["high"]) * 100
 print("阈值: medium=%.1f high=%.1f" % (TM, TH))
 
 # ── ① 医学人类 @med/@high 单独测 (用文档级缓存分数) ──
+if not CORPUS:
+    raise SystemExit("缺少语料路径: 请在脚本顶部 CORPUS 常量填入本地语料 jsonl 路径")
 recs = [json.loads(l) for l in open(CORPUS, encoding="utf-8") if l.strip()]
 recs = [r for r in recs if r.get("attack") == "none"]
 test = filter_split(recs, "test")

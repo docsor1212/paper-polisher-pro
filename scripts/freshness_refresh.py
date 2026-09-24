@@ -3,7 +3,7 @@
 """
 freshness_refresh — 指纹保鲜流水线（月度执行，防"检测器永远慢一代"）。
 
-在 82 服务器按月执行（或新模型发布当天手动触发）:
+由使用者在本地按月执行（或新模型发布当天手动触发）:
   1. 活体采样   各模型通道生成新语料（通道配置 freshness_channels.json, 缺通道则跳过）
   2. 频谱重建   build_spectrum.py (calib 半)
   3. 权重校准   calibrate_v3.py  (calib 半)

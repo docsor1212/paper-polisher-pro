@@ -95,10 +95,10 @@ chk("版本三处一致(SKILL.md=SKILL_ZH=skill.json)",
     f"md={ver_md} json={skill_json['version']}")
 chk("英文 frontmatter 无 CJK", not has_cjk(fm_md))
 chk("中文 frontmatter 含 CJK", has_cjk(fm_zh))
-desc_md = " ".join(x.strip() for x in re.search(r"description: >\n((?:  .+\n)+)", skill_md).group(1).splitlines())
+desc_md = " ".join(x.strip() for x in re.search(r"description: >-?\n((?:  .+\n)+)", skill_md).group(1).splitlines())
 chk("EN description ≤1024 字符", len(desc_md) <= 1024, f"{len(desc_md)}")
 chk("ZH description ≤1024 字符",
-    len(" ".join(x.strip() for x in re.search(r"description: >\n((?:  .+\n)+)", skill_zh).group(1).splitlines())) <= 1024)
+    len(" ".join(x.strip() for x in re.search(r"description: >-?\n((?:  .+\n)+)", skill_zh).group(1).splitlines())) <= 1024)
 chk("frontmatter 键数 ≤5", all(len(re.findall(r"^(\w+):", fm, re.M)) <= 5 for fm in (fm_md, fm_zh)))
 _BANNED = ["全部100%检出", "10个模型测试", "100% detection rate", "detection rate: 100"]
 def _banned_outside_quote(doc):
@@ -134,7 +134,25 @@ _disc_groups = sorted(h.get("group") for h in (rd or {}).get("discourse_hits", [
 chk("篇章三件套检出+加分(LES-021)", rcd == 0 and rd and rd.get("discourse_bonus", 0) >= 12
     and set(_disc_groups) >= {"钩子", "反转", "口号"}, f"groups={_disc_groups} bonus={rd and rd.get('discourse_bonus')}")
 rcn, rn, _ = detect_json(ZH_HUMAN)
-chk("学术样本篇章层零扰动", rcn == 0 and rn and not rn.get("discourse_hits") and rn.get("discourse_bonus", 0) == 0)
+# v3.8: YAML 冒烟自检（doc-holmes 大忌: 行内值含"冒号+空格"致平台判"无有效 skill"）
+for _nm, _fm in (("EN", fm_md), ("ZH", fm_zh)):
+    _bad = [ln for ln in _fm.splitlines()
+            if re.match(r"^\w+: .+", ln) and re.search(r":\s", ln.split(":", 1)[1])]
+    chk(f"YAML 冒烟: {_nm} frontmatter 无行内冒号+空格", not _bad, "; ".join(_bad[:2]))
+try:
+    import yaml as _yaml
+    for _nm, _fm in (("EN", fm_md), ("ZH", fm_zh)):
+        try:
+            _parsed = _yaml.safe_load(_fm)
+            _ok = isinstance(_parsed, dict) and isinstance(_parsed.get("description"), str) and len(_parsed["description"]) > 20
+            chk(f"YAML 解析: {_nm} frontmatter 可解析且 description 有效", _ok)
+        except Exception as _e:
+            chk(f"YAML 解析: {_nm} frontmatter 可解析且 description 有效", False, str(_e)[:80])
+except ImportError:
+    chk("YAML 解析(pyyaml 未装, 跳过)", True)
+chk("安全与行为声明节在位(双语)", "安全与行为声明" in skill_zh and "Safety and behavior statement" in skill_md)
+
+# v3.7.0: L12 篇章结构启发层探针（LES-20260923-021 回归防护）, rcn == 0 and rn and not rn.get("discourse_hits") and rn.get("discourse_bonus", 0) == 0)
 
 rc1, r1, _ = detect_json(ZH_HUMAN)
 rc2, r2, _ = detect_json(ZH_HUMAN)
@@ -144,6 +162,45 @@ chk("确定性(两次同分)", rc1 == rc2 == 0 and r1["overall_ai_score"] == r2[
 chk("降级披露字段在位", r1 and r1.get("degraded_mode") is True and bool(r1.get("degraded_notice")))
 chk("降级警示含医学语域数字", r1 and "59" in r1["degraded_notice"])
 chk("学术诚信护栏(integrity_notice)", bool(r1.get("integrity_notice")) and "披露" in r1["integrity_notice"] + r1.get("details", ""))
+
+# v3.8: 混写预警/语域提示/编码警示探针
+_MIXED = ("值得注意的是，本研究具有重要的理论意义与实践价值。首先，我们系统性地梳理了相关领域的研究脉络；"
+          "其次，我们提出了一个创新性的分析框架；最后，我们的研究结论为后续研究奠定了坚实的基础。综上所述，"
+          "这项研究不仅拓展了学科边界，也为实际应用提供了有力支撑。与此同时，方法的严谨性与数据的可靠性"
+          "进一步增强了结论的说服力。\n\n"
+          "说实话这个方案我们组里吵了三天。老张觉得采样太少，我倒觉得先跑起来再说，"
+          "反正数据在那儿摆着，不行再改呗。昨天跑完第一版，效果一般般吧，但至少能看。")
+rcm, rm, _ = detect_json(_MIXED)
+chk("混写预警触发(mixed_signal)", rcm == 0 and rm and rm.get("mixed_signal") is True and "混写" in (rm.get("mixed_notice") or ""))
+_COLLOQ = ("今天这事儿整得挺离谱的哈。早上跟老王说了这事儿，他说你咋不早讲呢，嘛呀这是。"
+           "中午吃饭的时候大家又开始聊，说实话搞了半天就这么点事，挺好的结果算是落地了呗。")
+rcg, rg, _ = detect_json(_COLLOQ)
+chk("语域提示触发(register_hint)", rcg == 0 and rg and "口语" in (rg.get("register_hint") or ""))
+rcn, rn, _ = detect_json(ZH_HUMAN)
+chk("正常学术样本无误报", rcn == 0 and rn and not rn.get("mixed_signal") and not rn.get("register_hint") and not rn.get("encoding_warning"))
+_gbk2 = Path(tempfile.gettempdir()) / f"pp_gbk_warn_{os.getpid()}.txt"
+_gbk2.write_bytes(ZH_HUMAN.encode("utf-8", errors="replace").decode("utf-8", errors="ignore").encode("utf-8"))
+try:
+    _raw = (ZH_HUMAN[:40] + "\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd") * 6
+    _f2 = tmpfile(_raw)
+    try:
+        rcw, rw, _ = detect_json(_raw)
+        chk("编码警示触发(encoding_warning)", rcw == 0 and rw and bool(rw.get("encoding_warning")))
+    finally:
+        Path(_f2).unlink(missing_ok=True)
+finally:
+    _gbk2.unlink(missing_ok=True)
+rcg8, rg8, _ = detect_json(ZH_HUMAN)
+_g8 = tmpfile(ZH_HUMAN)
+try:
+    rcgj, sog, _ = run_py("deai_gate.py", [_g8, "--json"])
+    okg = rcgj == 0
+    if okg:
+        gj = json.loads(sog)
+        okg = "layer_divergence" in gj
+    chk("门禁层间分歧字段在位", okg, f"rc={rcgj}")
+finally:
+    Path(_g8).unlink(missing_ok=True)
 
 # v3.6 补: CH 读取面(EN SKILL.md + skill.json)平台政策禁词表——campaign 教训固化为机器检查
 # (negated integrity statements 中的 evade/evasion 属声明性用法, 刻意不在禁词表——见 SKILL.md Academic integrity 节)

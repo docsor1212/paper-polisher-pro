@@ -1,13 +1,13 @@
 ---
 name: paper-polisher
-version: 3.7.0
+version: 3.8.0
 author: DoctorQ Lab
-description: >
-  AI writing detection (AI-rate self-check for authors), academic polishing
+description: >-
+  AI-rate self-check for academic writing, polish guidance (style, terminology,
   guidance (style, terminology, translation-smell),
   metaphor audit, quality report, AIGC compliance label check (China 2025-09
   labeling rules), paragraph-level attribution, journal precheck. Bilingual
-  CN/EN, 100% local, zero upload, zero credentials. v3: 11-layer recalibrated
+  CN/EN, 100% local, zero upload, zero credentials. v3 delivers an 11-layer recalibrated
   rule engine + token-spectrum layer + length-routed fusion + optional
   supervised Qwen3-0.6B ONNX layer (AUROC 1.0 on held-out test) + LLM
   fingerprint attribution (GLM / DeepSeek / Qwen / Kimi / MiniMax / GPT /
@@ -30,7 +30,7 @@ AI writing detection (AI-rate self-check for authors) · academic polishing guid
 
 ## Academic integrity
 
-This tool is for **authors self-reviewing and improving their own writing quality** — clearer sentences, consistent terminology, natural style. It is not designed to evade institutional AI-detection systems, and it must not be used to misrepresent AI-generated work as human-written. Follow your institution's AI-use and disclosure policies; the bundled `aigc_label_check.py` exists to help you **comply** with disclosure and labeling rules (e.g., China's 2025-09 labeling measures) — to declare AI assistance properly, not to hide it. Every report carries an explicit `integrity_notice` to this effect.
+This tool is for **authors self-reviewing and improving their own writing quality** — clearer sentences, consistent terminology, natural style. It is not designed to evade institutional AI-detection systems, and it must not be used to misrepresent AI-generated work as human-written. Follow your institution's AI-use and disclosure policies; the bundled `aigc_label_check.py` exists to help you **comply** with disclosure and labeling rules (e.g., China's 2025-09 labeling measures) — to declare AI assistance properly, not to hide it. Every AI-risk report (`ai_detector.py` / `deai_gate.py`) carries an explicit `integrity_notice` to this effect.
 
 ## Measured performance (C-ReD + DetectRL-ZH, held-out test half, n=5,251)
 
@@ -57,10 +57,28 @@ This tool is for **authors self-reviewing and improving their own writing qualit
 | Edit-extent regression head | ρ=0.540 — reported as metadata, never used in verdicts |
 | Colloquial / oral-register text | The style layer is calibrated on academic prose; treat style scores as advisory outside that register |
 
+## Safety and behavior statement
+
+- **100% local**: every feature runs on-device. The codebase makes zero network calls (no network client libraries of any kind, no external network utilities) — verify yourself: `grep -rEin "urllib|requests|socket|http" scripts/` (expected: zero hits).
+- **No upload, no credentials**: reads and transmits no credentials, keys, or personal data; the only environment variable, `PP_NO_SUP`, is a local behavior toggle.
+- **No persistence**: creates no scheduled tasks, autostart entries, or system config changes; temp files (inter-layer JSON, probe text) are deleted after use.
+- **No remote code**: loads no remote models or scripts; the optional supervised model is placed by the user at a local path.
+- **Data boundary**: reads/writes only user-specified files, the system temp dir, and its own package data directories (calibration/freshness artifacts); reports go only where the user points them.
+- **Academic integrity**: see the section above — for author self-review and quality improvement with policy-compliant disclosure; not for evading detection.
+
+## What's new in v3.8.0
+
+- **Mixed-register signal (`mixed_signal`)**: when paragraph scores diverge sharply, reports now say so explicitly ("document may combine human and AI writing; document-level score unreliable") and point to `paragraph_report.py` — turning the documented mixed-document limitation (AUROC 0.38 document-level) into an in-engine guardrail (aligned with the field's move to three-class human/AI/mixed evaluation and bidirectional paraphrase benchmarks).
+- **Register hint (`register_hint`)**: colloquial/narrative features in Chinese text trigger an advisory that scores are calibrated on academic prose.
+- **Encoding warning (`encoding_warning`)**: many undecodable bytes (GBK/binary) trigger a distortion warning.
+- **Gate layer-divergence disclosure**: deai_gate reports when the word layer and style layer disagree sharply (≥30), a pattern seen in deliberate style-imitation rewrites and register mixing.
+- **Safety and behavior statement**: self-verifiable local-only / no-upload / no-credential / no-persistence commitments (aligned with platform review trends).
+- **Fingerprint freshness second pass**: qwen3.8 balanced sampling (35 docs) yielded no low-FP patterns — honestly not registered (same as deepseek-v4); kimi-k3 registration stands.
+
 ## What's new in v3.7.0
 
 - **Discourse-structure heuristic layer (L12)**: detects social-media-style document-level AI patterns — hook ("先看一个场景"/"imagine…") + reversal ("不是X，是Y") + slogan ("把这句话记住"/"划重点") + engagement bait / parallelism / self-Q&A / spoken-word closing / emotional intensifiers — eight pattern groups; ≥2 distinct groups add a density-scaled bump (8×groups + hits capped at 8, total cap 30); single-group hits are recorded without scoring (zero false-positive impact on academic prose). Fixes a sentence-layer blind spot: pure discourse-pattern text previously scored 21-32/low (AgentOps LES-20260923-021); held-out academic regression bit-identical (AUROC 0.9022, zero false positives).
-- **FAQ section (evaluation-driven: C dimension "lacks a centralized FAQ")**: nine high-frequency questions — short-text policy, medical-register over-scoring, supervised-layer install/verification, degraded_mode semantics, non-interchangeability with CNKI/Wanfang, layer-failure fallback, edit_extent scope, English support boundary, label-check usage.
+- **FAQ section (evaluation-driven: C dimension "lacks a centralized FAQ")**: ten high-frequency questions — short-text policy, medical-register over-scoring, supervised-layer install/verification, degraded_mode semantics, non-interchangeability with CNKI/Wanfang, layer-failure fallback, edit_extent scope, English support boundary, label-check usage.
 - **Script cheat sheet (C: "per-script usage could be more detailed")**: purpose/flags/output for all eight entry points in one table.
 - **Clearer edge-case errors (R)**: style_distance now explains *why* no style score was produced (no sentence boundaries / no body paragraphs) instead of a generic "too short".
 
@@ -159,6 +177,9 @@ A supervised-layer regression head estimating how much the text was AI-edited (0
 
 **Q: Is English supported?**
 Partially: the supervised layer is Chinese-trained, so English skips fusion by design and gets rules-only skeleton scoring, advisory only (stated in the report).
+
+**Q: What about documents that mix human and AI writing?**
+Watch the mixed-register signal (`mixed_signal=true`): document-level scores are diluted by human paragraphs or pushed up by AI ones — unreliable either way. Run `paragraph_report.py` for per-paragraph attribution and work paragraph by paragraph.
 
 **Q: How do I use the AIGC label check?**
 `python scripts/aigc_label_check.py manuscript.docx figures/*.png` — checks metadata / C2PA watermark / explicit declaration (China 2025-09 labeling rules). Exit 0 = labeled, 1 = unlabeled; both are normal runs.
