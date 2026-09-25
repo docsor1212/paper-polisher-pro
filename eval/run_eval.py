@@ -167,6 +167,8 @@ def main():
     ap.add_argument("--tag", default="run")
     ap.add_argument("--engine", default="current", choices=list(ENGINES.keys()))
     ap.add_argument("--sample", type=int, default=0, help="每格子抽样加速(0=全量)")
+    ap.add_argument("--layer", default=None,
+                    help="报告层独立评测(如 surprisal): 对该层 0-10 分做 AUROC 统计, 不走主融合")
     ap.add_argument("--split", default="all", choices=["all", "calib", "test"],
                     help="test=只评留出半(诚实数字,频谱/权重未见过)")
     a = ap.parse_args()
@@ -189,6 +191,44 @@ def main():
             recs += pool[:a.sample]
 
     os.makedirs(RESULTS, exist_ok=True)
+    if a.layer:
+        import importlib.util
+        spec = importlib.util.spec_from_file_location(
+            "layers_surface", os.path.join(os.path.dirname(HERE), "scripts", "layers_surface.py"))
+        LS = importlib.util.module_from_spec(spec); spec.loader.exec_module(LS)
+        _LAYER_FN = {"surprisal": lambda txt: (LS.surprisal_variation_layer(txt) or {}).get("score", 0.0)}
+        if a.layer not in _LAYER_FN:
+            print(f"未知报告层: {a.layer}（可用: {list(_LAYER_FN)}）")
+            return 2
+        fn = _LAYER_FN[a.layer]
+        recs = [json.loads(l) for l in open(a.corpus, encoding="utf-8") if l.strip()]
+        recs = [r for r in recs if r.get("attack") == "none"]
+        data = filter_split(recs, a.split)
+        pairs = []
+        for r in data:
+            if len(r["text"]) <= 800:  # L13 仅对长文有效
+                continue
+            pairs.append((fn(r["text"]), r["label"]))
+        au = auroc(pairs)
+        n_ai = sum(1 for _, y in pairs if y == 1)
+        n_hu = len(pairs) - n_ai
+        det6 = sum(1 for s, y in pairs if y == 1 and s >= 6)
+        fp6 = sum(1 for s, y in pairs if y == 0 and s >= 6)
+        print("─" * 50)
+        print(f"报告层评测 [{a.layer}] split={a.split} 长文(>800字)")
+        print(f"  样本: {len(pairs)} (AI {n_ai} / 人类 {n_hu})")
+        print(f"  AUROC          : {au:.4f}")
+        print(f"  检出率@≥6      : {det6}/{n_ai}")
+        print(f"  人类误报@≥6    : {fp6}/{n_hu}")
+        print(f"  [汇总] layer={a.layer} auroc={au:.4f} det={det6}/{n_ai} fpr={fp6}/{n_hu} -> "
+              f"{'PASS' if au >= 0.6 else 'REVIEW'}")
+        out = {"layer": a.layer, "split": a.split, "n": len(pairs), "auroc": au,
+               "det_at6": det6, "n_ai": n_ai, "fpr_at6": fp6, "n_hu": n_hu}
+        rp = os.path.join(RESULTS, f"layer_{a.layer}_{a.tag}.json")
+        json.dump(out, open(rp, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
+        print(f"  结果: {rp}")
+        return 0
+
     cache_path = os.path.join(RESULTS, "score_cache.json")
     cache = json.load(open(cache_path, encoding="utf-8")) if os.path.exists(cache_path) else {}
 

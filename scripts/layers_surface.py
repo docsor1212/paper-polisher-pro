@@ -137,8 +137,45 @@ def cot_layer(text: str) -> dict:
                          "para_cv": round(para_cv, 3)}}
 
 
+# ── L13 surprisal-variation 层（v3.9.0，DivEye 思路的本地化实现）──
+# 原理：人类写作的"意外度"（surprisal≈token 频率 lift 的负向）在窗口间波动大；
+# AI 生成倾向平滑。用滑动窗口的频谱 lift 变异系数(CV)刻画——纯标准库、可复现。
+_WIN = 60  # 滑窗 token 数
+
+
+def surprisal_variation_layer(text: str) -> dict:
+    """滑窗频谱 lift 的变异系数。返回 {score(0-10), cv, n_windows, verdict}。
+    score 高=变化性低=更像 AI 平滑生成（DivEye: diversity boosts detection）。"""
+    spec = _load_spectrum()
+    toks = _zh_tokens(text)
+    if not spec or not toks:
+        return {"score": 0.0, "cv": None, "n_windows": 0, "verdict": "insufficient"}
+    known = [t for t in toks if t in spec]
+    # v3.9.0 调优: 谱覆盖率过低(C<40%)的文本 lift 估计噪声大——
+    # 实测 3 篇人类误伤样本 known 比率 27-36%, 均为文学/演讲体; 正常 AI/人类样本 ≥60%
+    coverage = len(known) / max(len(toks), 1)
+    if len(known) < _WIN * 2 or coverage < 0.35:
+        return {"score": 0.0, "cv": None, "n_windows": 0, "verdict": "insufficient", "coverage": round(coverage, 2)}
+    lifts = [spec[t] for t in known]
+    wins = [sum(lifts[i:i + _WIN]) / _WIN for i in range(0, len(lifts) - _WIN + 1, _WIN // 2)]
+    if len(wins) < 4:
+        return {"score": 0.0, "cv": None, "n_windows": len(wins), "verdict": "insufficient"}
+    mean = sum(wins) / len(wins)
+    var = sum((w - mean) ** 2 for w in wins) / len(wins)
+    cv = (var ** 0.5) / abs(mean) if mean else 0.0
+    # CV 低=平滑=AI 特征强。学术人类 CV 实测分布与 AI 差异见 eval/results/v390_*.json
+    # 映射（保守线性，CV<0.05 → 10 分；CV>0.25 → 0 分）
+    score = max(0.0, min(10.0, (0.25 - cv) / 0.20 * 10.0))
+    # 证据折扣: coverage<0.55 时线性降权(谱覆盖不足=区分力弱, 宁可少说)
+    score *= min(1.0, coverage / 0.55)
+    verdict = "smooth" if score >= 6 else ("human" if score <= 3 else "mixed")
+    return {"score": round(score, 2), "cv": round(cv, 4),
+            "n_windows": len(wins), "verdict": verdict, "coverage": round(coverage, 2)}
+
+
 def all_surface_layers(text: str) -> dict:
-    """一次算齐三层，供 detect() 融合。"""
+    """一次算齐四层，供 detect() 融合。"""
     return {"surface": surface_layer(text),
             "spectrum": spectrum_layer(text),
-            "cot": cot_layer(text)}
+            "cot": cot_layer(text),
+            "surprisal": surprisal_variation_layer(text)}

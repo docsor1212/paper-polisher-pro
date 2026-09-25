@@ -1,6 +1,6 @@
 ---
 name: paper-polisher
-version: 3.8.0
+version: 3.9.0
 author: DoctorQ Lab
 description: >-
   AI-rate self-check for academic writing, polish guidance (style, terminology,
@@ -66,6 +66,11 @@ This tool is for **authors self-reviewing and improving their own writing qualit
 - **Data boundary**: reads/writes only user-specified files, the system temp dir, and its own package data directories (calibration/freshness artifacts); reports go only where the user points them.
 - **Academic integrity**: see the section above — for author self-review and quality improvement with policy-compliant disclosure; not for evading detection.
 
+## What's new in v3.9.0
+
+- **Discourse smoothness disclosure (L13, DivEye-inspired)**: a new surprisal-variation layer measures how uniformly word choice varies across sliding windows — AI generation tends to be smooth, human writing uneven. Held-out long-document stats: AUROC 0.8256 as a standalone signal, detection 66/146 at threshold 6, human false-positive 1/14. **By the reproducible-numbers iron law it is NOT fused into the score** (single-layer SNR insufficient); it appears as an evidence line in reports (`layers_surface.surprisal_variation_layer`, with a spectrum-coverage guard at 0.35 and an evidence discount for low-coverage text).
+- **Layer evaluation mode**: `python eval/run_eval.py --layer surprisal --split test` gives any report layer a reproducible AUROC/detection/FPR card (results saved to `eval/results/layer_*.json`) — the framework that let us measure L13 honestly instead of shipping it fused on faith.
+
 ## What's new in v3.8.0
 
 - **Mixed-register signal (`mixed_signal`)**: when paragraph scores diverge sharply, reports now say so explicitly ("document may combine human and AI writing; document-level score unreliable") and point to `paragraph_report.py` — turning the documented mixed-document limitation (AUROC 0.38 document-level) into an in-engine guardrail (aligned with the field's move to three-class human/AI/mixed evaluation and bidirectional paraphrase benchmarks).
@@ -85,7 +90,7 @@ This tool is for **authors self-reviewing and improving their own writing qualit
 ## What's new in v3.6.0
 
 - **Academic-integrity guardrails**: every report now carries an explicit `integrity_notice` field/line; new "Academic integrity" section; positioning stated plainly — author self-review and writing quality, compliance with disclosure rules, not detector evasion.
-- **Docs hardened for platform policy**: evasion-flavored phrasing replaced with quality-framed language in the English documentation (detection and revision guidance stay; no detector-evasion framing). Chinese documentation keeps the SkillHub-approved wording.
+- **Positioning clarified**: documentation wording aligned to the quality-framed scope (detection and revision guidance stay; no detector-evasion framing).
 
 ## What's new in v3.5.0
 
@@ -199,7 +204,7 @@ Watch the mixed-register signal (`mixed_signal=true`): document-level scores are
 
 ## Trigger words (Chinese)
 
-`润色论文 `查AI率` `论文AI率` `AIGC检测` `AIGC率` `GPT检测` `查AI写作` `论文润色` `改写论文` `AI论文检测` `学术写作助手` `AI写作检测` `毕业论文润色` `学位论文降重` `SCI论文编辑` `手稿润色` `AI写作评分` `AI改写检测` `文风对标顶刊` `这篇文章像不像AI`
+`润色论文`查AI率` `论文AI率` `AIGC检测` `AIGC率` `GPT检测` `查AI写作` `论文润色` `改写论文` `AI论文检测` `学术写作助手` `AI写作检测` `毕业论文润色` `学位论文降重` `SCI论文编辑` `手稿润色` `AI写作评分` `AI改写检测` `文风对标顶刊` `这篇文章像不像AI`
 
 ## Related skills (Paper Toolbox family)
 
@@ -221,6 +226,10 @@ Monthly full pass: `python scripts/freshness_refresh.py` (schedule it with your 
 
 ## Version history (condensed)
 
+- **v3.9.0 (2026-09-25)** — discourse smoothness disclosure (L13 surprisal-variation, standalone AUROC 0.8256 held-out; NOT fused per iron law); layer-evaluation mode in run_eval (`--layer`).
+- v3.8.0 (2026-09-24) — mixed-register signal, register hint, encoding warning, gate layer-divergence disclosure; safety & behavior statement; qwen3.8/v4 fingerprint mining (honestly unregistered).
+- v3.7.0 (2026-09-23) — discourse-structure heuristic layer L12 (8 groups, density-scaled cap 30; LES-20260923-021 blind-spot fix; AUROC 0.9022 unchanged); kimi-k3 fingerprint registered (OpenCode Go sampling); centralized FAQ; script cheat sheet; documentation wording cleanup.
+- v3.6.0 (2026-09-21) — academic-integrity guardrails (integrity_notice + section); CH-side wording cleanup.
 - **v3.5.0 (2026-09-20)** — degraded-mode disclosure (engine mode + medical-register warning with held-out numbers); iron law #2 enforced (<100 chars → risk=unknown, quality_report shows "cannot judge" instead of misleading green); `pp_doctor.py` self-check; `deai_gate.py` usage guard; honest dual-language docs rebuild.
 - v3.4.3 — markdown table-separator rows filtered from paragraph scoring (6/8 flagged rows in real MD manuscripts were false positives).
 - v3.4.2 — fixed CJK double-count in language detection (Chinese journal PDFs misrouted to EN rules); degenerate PDF hard-line-break paragraph rebuilding (747→19 segments); paragraph-level language routing dead code fixed.

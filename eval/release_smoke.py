@@ -204,7 +204,7 @@ finally:
 
 # v3.6 补: CH 读取面(EN SKILL.md + skill.json)平台政策禁词表——campaign 教训固化为机器检查
 # (negated integrity statements 中的 evade/evasion 属声明性用法, 刻意不在禁词表——见 SKILL.md Academic integrity 节)
-_BAN = ["朱雀", "gptzero", "turnitin", "过检测", "过ai检测", "降检测率", "humanize",
+_BAN = ["朱雀", "gptzero", "turnitin", "过检测", "过ai检测", "降检测率", "去ai痕迹", "humanize",
         "remove ai traces", "reduce ai detection", "过朱雀", "bypass"]
 _ch_surface = (skill_md + json.dumps(skill_json, ensure_ascii=False)).lower()
 _hits = [w for w in _BAN if w in _ch_surface]

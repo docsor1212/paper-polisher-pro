@@ -731,6 +731,18 @@ def detect(text: str, lang: str = "auto") -> DetectionReport:
             )
         details += "\n" + degraded_notice
 
+    # v3.9: L13 surprisal-variation 披露(报告元数据, 不进融合分——单层信噪比不足,
+    # 留出集实测检出 66/146、误报 1/14, 按"只报可复现的数字"原则降级为透明披露)
+    if surface_meta and surface_meta.get("layers", {}).get("surprisal", {}).get("verdict") not in (None, "insufficient"):
+        _sp = surface_meta["layers"]["surprisal"]
+        if _sp["verdict"] == "smooth":
+            details += ("\nℹ️ 篇幅平滑度特征: 句间用词变化性偏低(平滑度 %.0f/10, 谱覆盖 %.0f%%)——"
+                        "常见于模板化生成文本, 已作为辅助线索列出(不参与评分)。"
+                        % (_sp["score"], _sp["coverage"] * 100))
+        elif _sp["verdict"] == "human":
+            details += ("\nℹ️ 篇幅平滑度特征: 句间用词变化性较高(平滑度 %.0f/10)——"
+                        "更像人类写作的波动模式(辅助线索, 不参与评分)。" % _sp["score"])
+
     # v3.6: 学术诚信护栏行
     details += "\n" + (INTEG_ZH if lang == "zh" else INTEG_EN)
 

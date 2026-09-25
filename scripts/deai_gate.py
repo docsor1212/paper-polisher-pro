@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""deai_gate.py — 4层去AI化加权融合门禁 (deai-medical-writing skill 核心)
+"""deai_gate.py — 四层融合门禁（词级/文体/翻译腔/术语加权综合, deai-medical-writing 系）
 
 四层加权融合综合评分, 替代各层独立判定。
 
@@ -164,7 +164,7 @@ def gate(text_file, json_out=False):
         print(f"  判定带: {result['bands']}")
         print("  📘 " + result["integrity_notice"])
         if verdict != "pass":
-            print("  ⚠️ 概率性判断非定罪; 建议参照顶刊范文改写长短句节奏与标点多样性后复测")
+            print("  ⚠️ 概率性判断非定罪; 建议人工复核, 并参照顶刊范文打磨句式节奏与标点多样性")
     return result
 
 
