@@ -1,10 +1,10 @@
 ---
 name: paper-polisher
-version: 3.9.0
+version: 3.10.0
 author: DoctorQ Lab
 description: >-
-  AI-rate self-check for academic writing, polish guidance (style, terminology,
-  guidance (style, terminology, translation-smell),
+  AI-rate self-check for academic writing, polish guidance (style, terminology, translation-smell),
+  metaphor audit, quality report, AIGC compliance label check (China 2025-09
   metaphor audit, quality report, AIGC compliance label check (China 2025-09
   labeling rules), paragraph-level attribution, journal precheck. Bilingual
   CN/EN, 100% local, zero upload, zero credentials. v3 delivers an 11-layer recalibrated
@@ -66,6 +66,10 @@ This tool is for **authors self-reviewing and improving their own writing qualit
 - **Data boundary**: reads/writes only user-specified files, the system temp dir, and its own package data directories (calibration/freshness artifacts); reports go only where the user points them.
 - **Academic integrity**: see the section above — for author self-review and quality improvement with policy-compliant disclosure; not for evading detection.
 
+## What's new in v3.10.0
+
+- **Fingerprint freshness phase 3 (current-generation coverage)**: 135 fresh samples across four model families (kimi-k2.7 / minimax-m3 / deepseek-v4.1 / glm-5.3) via the OpenCode Go channel; **kimi-k2.7 registered** (zero-FP pattern, Kimi-family attribution verified), contaminated candidates (topic words, cross-family markers) rolled back per quality gate, glm-5.3 refreshed with no new patterns. Registry: 13 families. Quality over quantity — every registration is attribution-verified.
+
 ## What's new in v3.9.0
 
 - **Discourse smoothness disclosure (L13, DivEye-inspired)**: a new surprisal-variation layer measures how uniformly word choice varies across sliding windows — AI generation tends to be smooth, human writing uneven. Held-out long-document stats: AUROC 0.8256 as a standalone signal, detection 66/146 at threshold 6, human false-positive 1/14. **By the reproducible-numbers iron law it is NOT fused into the score** (single-layer SNR insufficient); it appears as an evidence line in reports (`layers_surface.surprisal_variation_layer`, with a spectrum-coverage guard at 0.35 and an evidence discount for low-coverage text).
@@ -110,7 +114,7 @@ ai_detector.py            Main engine: 8 rule layers (125 recalibrated patterns,
                           L11 chain-of-thought features
  + ai_detector L12        discourse-structure heuristics (v3.7.0: hook/reversal/slogan/engagement)
  + fusion_config.json     Weights & thresholds (calib-half grid search + human p95/p99)
- + model_fingerprints.json v4 fingerprint registry (11 families incl. GLM-5.3 self-sampled; attribution only)
+ + model_fingerprints.json v4 fingerprint registry (13 families incl. GLM-5.3 & Kimi K-series self-sampled; attribution only)
  + layers_lm.py           Optional supervised layer (local ONNX + pure-Python Qwen tokenizer;
                           PP_NO_SUP=1 falls back to rules)
 paragraph_report.py       Paragraph-level attribution HTML (pattern×spectrum 50/50 fusion)
@@ -213,19 +217,22 @@ Watch the mixed-register signal (`mixed_signal=true`): document-level scores are
 - **cite-holmes** — deep research with machine-verified citations
 - **academic-figures** — publication-ready scientific figures in one command
 - **doc-holmes** — layout-preserving PDF translation
+
+Docs & site: **docsor.cn**
 - **paper-rewriter** — same-source de-AI rewriting companion (full rewrite pipeline)
 
 Writing a paper? The family covers the full loop: literature → verified citations → de-AI polishing → figures.
 
 ## Fingerprint freshness (against "detectors lag one generation")
 
-Coverage as of 2026-09-23: kimi-k3 registered (40 fresh samples via OpenCode Go, attribution-verified); qwen3.8 & deepseek-v4 sampled, fingerprints pending quality-pass mining; kimi-k2.7 / deepseek-v4.1 / minimax-m3 / glm-5.3 refresh queued.
+Coverage as of 2026-09-26: kimi-k3 & kimi-k2.7 registered (OpenCode Go fresh sampling, attribution-verified); qwen3.8 / deepseek-v4 / deepseek-v4.1 / minimax-m3 sampled — mining produced no family-distinctive low-FP patterns, honestly unregistered; glm-5.3 refreshed (no new patterns). Next: deepseek-v4.1 & minimax-m3 with larger corpora.
 
 On a new-model release day: `python scripts/fingerprint_miner.py --corpus <new_samples.jsonl> --model <family> --apply`
 Monthly full pass: `python scripts/freshness_refresh.py` (schedule it with your own system timer, e.g. monthly; the script never creates or modifies system schedules). Compare adjacent `eval/results/freshness_*.json`; investigate if AUROC drops by more than 3 percentage points.
 
 ## Version history (condensed)
 
+- v3.10.0 (2026-09-26) — fingerprint freshness phase 3: kimi-k2.7 registered (attribution-verified); contaminated candidates rolled back per quality gate.
 - **v3.9.0 (2026-09-25)** — discourse smoothness disclosure (L13 surprisal-variation, standalone AUROC 0.8256 held-out; NOT fused per iron law); layer-evaluation mode in run_eval (`--layer`).
 - v3.8.0 (2026-09-24) — mixed-register signal, register hint, encoding warning, gate layer-divergence disclosure; safety & behavior statement; qwen3.8/v4 fingerprint mining (honestly unregistered).
 - v3.7.0 (2026-09-23) — discourse-structure heuristic layer L12 (8 groups, density-scaled cap 30; LES-20260923-021 blind-spot fix; AUROC 0.9022 unchanged); kimi-k3 fingerprint registered (OpenCode Go sampling); centralized FAQ; script cheat sheet; documentation wording cleanup.
