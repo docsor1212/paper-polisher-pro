@@ -1,10 +1,9 @@
 ---
 name: paper-polisher
-version: 3.10.0
+version: 3.11.0
 author: DoctorQ Lab
 description: >-
   AI-rate self-check for academic writing, polish guidance (style, terminology, translation-smell),
-  metaphor audit, quality report, AIGC compliance label check (China 2025-09
   metaphor audit, quality report, AIGC compliance label check (China 2025-09
   labeling rules), paragraph-level attribution, journal precheck. Bilingual
   CN/EN, 100% local, zero upload, zero credentials. v3 delivers an 11-layer recalibrated
@@ -65,6 +64,12 @@ This tool is for **authors self-reviewing and improving their own writing qualit
 - **No remote code**: loads no remote models or scripts; the optional supervised model is placed by the user at a local path.
 - **Data boundary**: reads/writes only user-specified files, the system temp dir, and its own package data directories (calibration/freshness artifacts); reports go only where the user points them.
 - **Academic integrity**: see the section above — for author self-review and quality improvement with policy-compliant disclosure; not for evading detection.
+
+## What's new in v3.11.0
+
+- **Batch detection (`--batch DIR`)**: score every `.txt`/`.md` file in a directory in one run — per-file scores, aggregate stats (mean/max/high-risk count), deterministic, files >5 MB skipped. Built for thesis-scale self-review.
+- **Paragraph report consistency**: the HTML attribution report now carries the same academic-integrity notice as the CLI reports.
+- **Negative result, honestly recorded**: cross-family tier-2 n-gram mining over 285 fresh samples yielded nothing beyond topic-word noise after guards (the two real markers were already registered) — pattern-recall expansion via n-grams has hit its ceiling, consistent with the v3.0 recalibration. Fingerprint registrations this cycle: none qualified (quality gate held).
 
 ## What's new in v3.10.0
 
@@ -197,7 +202,7 @@ Watch the mixed-register signal (`mixed_signal=true`): document-level scores are
 
 | Script | Purpose | Key flags | Output |
 |---|---|---|---|
-| ai_detector.py | Main AI-writing detector | `--lang auto\|zh\|en` `--format json\|text\|summary` `--profile journal` | Score + paragraph detail + fingerprints (JSON incl. degraded_mode/integrity_notice) |
+| ai_detector.py | Main AI-writing detector | `--lang auto\|zh\|en` `--format json\|text\|summary` `--profile journal` `--batch DIR` | Score + paragraph detail + fingerprints (JSON incl. degraded_mode/integrity_notice) |
 | pp_doctor.py | Environment self-check | `--json` | Data/deps/model probes; exit 0 = green |
 | deai_gate.py | 4-layer fused gate | `--json` | composite score + verdict band (<35 pass / 35-55 review / ≥55 suspect) |
 | paragraph_report.py | Paragraph attribution | `--output report.html` | HTML report |
@@ -232,6 +237,7 @@ Monthly full pass: `python scripts/freshness_refresh.py` (schedule it with your 
 
 ## Version history (condensed)
 
+- **v3.11.0 (2026-09-27)** — batch detection (`--batch DIR`); paragraph report integrity notice; tier-2 n-gram negative result recorded.
 - v3.10.0 (2026-09-26) — fingerprint freshness phase 3: kimi-k2.7 registered (attribution-verified); contaminated candidates rolled back per quality gate.
 - **v3.9.0 (2026-09-25)** — discourse smoothness disclosure (L13 surprisal-variation, standalone AUROC 0.8256 held-out; NOT fused per iron law); layer-evaluation mode in run_eval (`--layer`).
 - v3.8.0 (2026-09-24) — mixed-register signal, register hint, encoding warning, gate layer-divergence disclosure; safety & behavior statement; qwen3.8/v4 fingerprint mining (honestly unregistered).

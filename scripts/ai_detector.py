@@ -937,16 +937,77 @@ def journal_profile(report, text=None) -> str:
     return "\n".join(lines)
 
 
+def batch_detect(dir_path: str, fmt: str, out_path: str):
+    """v3.11: 目录批处理——逐文件检测, 输出每文件分数+聚合。确定性、零网络。"""
+    d = Path(dir_path)
+    if not d.is_dir():
+        print(f"Error: not a directory: {dir_path}", file=sys.stderr)
+        sys.exit(1)
+    files = sorted(f for f in d.iterdir()
+                   if f.is_file() and f.suffix.lower() in (".txt", ".md") and f.stat().st_size < 5 * 1024 * 1024)
+    rows = []
+    for f in files:
+        try:
+            text = f.read_text(encoding="utf-8", errors="replace")
+            if len(text.strip()) < 100:
+                rows.append({"file": f.name, "overall_ai_score": None, "overall_risk": "unknown",
+                             "note": "insufficient text (<100 chars)"})
+                continue
+            rep = detect(text, "auto")
+            rows.append({"file": f.name, "overall_ai_score": rep.overall_ai_score,
+                         "overall_risk": rep.overall_risk, "language": rep.language,
+                         "degraded_mode": rep.degraded_mode})
+        except Exception as e:
+            rows.append({"file": f.name, "error": str(e)[:120]})
+    scored = [r["overall_ai_score"] for r in rows if isinstance(r.get("overall_ai_score"), (int, float))]
+    agg = {"files": len(rows), "scored": len(scored),
+           "mean_score": round(sum(scored) / len(scored), 1) if scored else None,
+           "max_score": max(scored) if scored else None,
+           "high_risk_files": sum(1 for r in rows if r.get("overall_risk") == "high")}
+    result = {"directory": str(d), "aggregate": agg, "files": rows,
+              "integrity_notice": INTEG_ZH}
+    if fmt == "json" or out_path:
+        out = json.dumps(result, ensure_ascii=False, indent=2)
+    else:
+        lines = [f"批量检测: {agg['files']} 个文件 (可评 {agg['scored']})", 
+                 f"均分: {agg['mean_score']}  最高: {agg['max_score']}  高风险文件: {agg['high_risk_files']}",
+                 "─" * 40]
+        for r in rows:
+            if "error" in r:
+                lines.append(f"  [错误] {r['file']}: {r['error'][:40]}")
+            elif r.get("overall_ai_score") is None:
+                lines.append(f"  [过短] {r['file']}: 不判定")
+            else:
+                mark = {"high": "🔴", "medium": "🟡", "low": "🟢", "unknown": "⚪"}.get(r["overall_risk"], "·")
+                lines.append(f"  {mark} {r['overall_ai_score']:5.1f} {r['overall_risk']:7s} {r['file']}")
+        out = "\n".join(lines)
+    if out_path:
+        Path(out_path).parent.mkdir(parents=True, exist_ok=True)
+        Path(out_path).write_text(out, encoding="utf-8")
+        print(f"Batch report saved to {out_path}", file=sys.stderr)
+    else:
+        print(out)
+
+
 def main():
     parser = argparse.ArgumentParser(description="AI Writing Detector")
-    parser.add_argument("input", help="Input text file")
+    parser.add_argument("input", nargs="?", help="Input text file")
     parser.add_argument("--lang", choices=["zh", "en", "auto"], default="auto", help="Language")
     parser.add_argument("--format", choices=["json", "text", "summary"], default="summary", help="Output format")
     parser.add_argument("--profile", choices=["default", "journal"], default="default",
                         help="journal=期刊口径预检(疑似AIGC比例, 对标20-25%%参考线)")
     parser.add_argument("--output", help="Output file (default: stdout)")
+    parser.add_argument("--batch", metavar="DIR",
+                        help="Batch mode: detect all .txt/.md files in DIR (non-recursive), "
+                             "output per-file scores + aggregate; ignores --input/--profile")
     args = parser.parse_args()
 
+    if args.batch:
+        batch_detect(args.batch, args.format, args.output)
+        return
+
+    if not args.input:
+        parser.error("the following arguments are required: input (or use --batch DIR)")
     if not os.path.exists(args.input):
         print(f"Error: File not found: {args.input}", file=sys.stderr)
         sys.exit(1)

@@ -70,7 +70,9 @@ def main():
             '<div class="b" style="background:#fdecea">疑似AI段落 %d (%.0f%%)</div>'
             '<div class="b" style="background:#fff6e0">存疑段落 %d (%.0f%%)</div>'
             '<div class="b" style="background:#f2f8f2">倾向人类 %d (%.0f%%)</div></div>'
-            "<p>文档级分数: <b>%.1f</b>（%s）%s</p>" %
+            "<p>文档级分数: <b>%.1f</b>（%s）%s</p>"
+            "<p style='color:#666'>学术诚信提示：本报告供作者自查与改进写作质量，不用于规避机构的 AIGC 检测；"
+            "请遵循所在机构的 AI 使用与披露政策。</p>" %
             (n_hi, 100 * n_hi / total, n_med, 100 * n_med / total,
              total - n_hi - n_med, 100 * (total - n_hi - n_med) / total,
              rep.overall_ai_score, rep.overall_risk,

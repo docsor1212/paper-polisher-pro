@@ -125,6 +125,25 @@ rc, r, se = detect_json(ZH_SHORT)
 chk("短文本铁律2: risk=unknown", rc == 0 and r and r["overall_risk"] == "unknown", f"rc={rc} risk={r and r.get('overall_risk')}")
 chk("短文本含不判定提示", r and "100" in r.get("degraded_notice", "") + r.get("details", ""))
 
+# v3.11: --batch 批处理模式探针
+import shutil as _shutil
+_bdir = Path(tempfile.mkdtemp())
+(_bdir / "a.txt").write_text(ZH_HUMAN, encoding="utf-8")
+(_bdir / "b.txt").write_text(ZH_SHORT, encoding="utf-8")
+try:
+    _rcb, sob, seb = run_py("ai_detector.py", ["--batch", str(_bdir), "--format", "json"])
+    _okb = _rcb == 0
+    if _okb:
+        _jb = json.loads(sob)
+        _okb = ("aggregate" in _jb and _jb["aggregate"]["files"] == 2
+                and "integrity_notice" in _jb)
+    chk("batch 模式(聚合+诚信字段)", _okb, f"rc={_rcb}")
+finally:
+    _shutil.rmtree(_bdir, ignore_errors=True)
+
+rcn, rn, _ = detect_json(ZH_HUMAN)
+chk("学术样本篇章层零扰动", rcn == 0 and rn and not rn.get("discourse_hits") and rn.get("discourse_bonus", 0) == 0)
+
 # v3.7.0: L12 篇章结构启发层探针（LES-20260923-021 回归防护）
 _DISC = ("先看一个场景。小林昨天拿到检测报告，数字比上个月低了不少。他盯着屏幕看了半天，心里直犯嘀咕："
          "这系统是不是换了比对库？同一段文字，前后两次测，一个说高一个说低。所以你看，不是谁退步了，是规则变了。"
@@ -152,7 +171,6 @@ except ImportError:
     chk("YAML 解析(pyyaml 未装, 跳过)", True)
 chk("安全与行为声明节在位(双语)", "安全与行为声明" in skill_zh and "Safety and behavior statement" in skill_md)
 
-# v3.7.0: L12 篇章结构启发层探针（LES-20260923-021 回归防护）, rcn == 0 and rn and not rn.get("discourse_hits") and rn.get("discourse_bonus", 0) == 0)
 
 rc1, r1, _ = detect_json(ZH_HUMAN)
 rc2, r2, _ = detect_json(ZH_HUMAN)
