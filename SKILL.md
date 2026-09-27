@@ -1,13 +1,13 @@
 ---
 name: paper-polisher
-version: 3.11.0
+version: 3.12.0
 author: DoctorQ Lab
 description: >-
   AI-rate self-check for academic writing, polish guidance (style, terminology, translation-smell),
   metaphor audit, quality report, AIGC compliance label check (China 2025-09
-  labeling rules), paragraph-level attribution, journal precheck. Bilingual
-  CN/EN, 100% local, zero upload, zero credentials. v3 delivers an 11-layer recalibrated
-  rule engine + token-spectrum layer + length-routed fusion + optional
+  labeling rules), paragraph-level attribution, journal precheck, plus `--batch DIR` for thesis-scale batch rewriting guidance (per-file AI-rate scores and polish suggestions across a whole directory). Bilingual
+  CN/EN, 100% local, zero upload, zero credentials. v3 delivers a recalibrated multi-layer
+  rule engine (11 core layers + discourse/smoothness heuristics) + token-spectrum layer + length-routed fusion + optional
   supervised Qwen3-0.6B ONNX layer (AUROC 1.0 on held-out test) + LLM
   fingerprint attribution (GLM / DeepSeek / Qwen / Kimi / MiniMax / GPT /
   Claude / Gemini) + freshness pipeline. Base-engine numbers reproduce from the
@@ -65,11 +65,18 @@ This tool is for **authors self-reviewing and improving their own writing qualit
 - **Data boundary**: reads/writes only user-specified files, the system temp dir, and its own package data directories (calibration/freshness artifacts); reports go only where the user points them.
 - **Academic integrity**: see the section above — for author self-review and quality improvement with policy-compliant disclosure; not for evading detection.
 
+## What's new in v3.12.0
+
+- **Translation-smell layer revived in the gate (substantive fix)**: deai_gate's layer-3 parser expected a `hits[]` array while `translation_smell_check --json` emitted only `total_hits` — the layer had been silently neutral (fallback 50) since the schema drifted. Schema aligned; the layer now genuinely contributes to the fused score.
+- **Integrity notice on every report**: term_check / quality_report / style_distance / translation_smell outputs now carry the same academic-integrity notice as ai_detector/deai_gate — the "every report" claim is now literally true.
+- **Paragraph-count consistency**: quality_report now counts paragraphs with the same whitespace/short-segment filtering as ai_detector (trailing-newline mismatch fixed).
+- Negative results recorded: spectrum v2 blend (fresh-generation 0.15 mix) produced a bit-identical held-out AUROC — not adopted; L13 mid-length (300-800 chars) extension evaluated and declined (human-side evaluable sample too small, FPR 2/10 at threshold).
 ## What's new in v3.11.0
 
 - **Batch detection (`--batch DIR`)**: score every `.txt`/`.md` file in a directory in one run — per-file scores, aggregate stats (mean/max/high-risk count), deterministic, files >5 MB skipped. Built for thesis-scale self-review.
 - **Paragraph report consistency**: the HTML attribution report now carries the same academic-integrity notice as the CLI reports.
 - **Negative result, honestly recorded**: cross-family tier-2 n-gram mining over 285 fresh samples yielded nothing beyond topic-word noise after guards (the two real markers were already registered) — pattern-recall expansion via n-grams has hit its ceiling, consistent with the v3.0 recalibration. Fingerprint registrations this cycle: none qualified (quality gate held).
+
 
 ## What's new in v3.10.0
 
@@ -237,7 +244,8 @@ Monthly full pass: `python scripts/freshness_refresh.py` (schedule it with your 
 
 ## Version history (condensed)
 
-- **v3.11.0 (2026-09-27)** — batch detection (`--batch DIR`); paragraph report integrity notice; tier-2 n-gram negative result recorded.
+- **v3.12.0 (2026-09-28)** — translation-smell layer revived (schema fix); integrity notice on every report; paragraph-count consistency; spectrum-v2 & L13-mid negative results recorded.
+- v3.11.0 (2026-09-27) — batch detection (`--batch DIR`); paragraph report integrity notice; tier-2 n-gram negative result recorded.
 - v3.10.0 (2026-09-26) — fingerprint freshness phase 3: kimi-k2.7 registered (attribution-verified); contaminated candidates rolled back per quality gate.
 - **v3.9.0 (2026-09-25)** — discourse smoothness disclosure (L13 surprisal-variation, standalone AUROC 0.8256 held-out; NOT fused per iron law); layer-evaluation mode in run_eval (`--layer`).
 - v3.8.0 (2026-09-24) — mixed-register signal, register hint, encoding warning, gate layer-divergence disclosure; safety & behavior statement; qwen3.8/v4 fingerprint mining (honestly unregistered).

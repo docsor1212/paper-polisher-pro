@@ -144,6 +144,34 @@ finally:
 rcn, rn, _ = detect_json(ZH_HUMAN)
 chk("学术样本篇章层零扰动", rcn == 0 and rn and not rn.get("discourse_hits") and rn.get("discourse_bonus", 0) == 0)
 
+# v3.12: 层3复活+诚信覆盖探针
+_TS = ("这部作品被给予了一个深刻的印象。作出了一个全面的分析。进行了认真的研究。"
+       "一个优秀的方案被制定了出来，并且被实施了一个详细的计划。"
+       "而在整个过程中，一个重要的角色被扮演了。本研究具有重要的理论意义。")
+_fts = Path(tempfile.mkdtemp())
+(_fts / "t.txt").write_text(_TS, encoding="utf-8")
+try:
+    _rg, gog, _ = run_py("deai_gate.py", [str(_fts / "t.txt"), "--json"])
+    _ok3 = _rg == 0
+    if _ok3:
+        _gj = json.loads(gog)
+        _n3 = _gj["layers"]["L3_translation_smell"]["note"]
+        _ok3 = ("解析失败" not in _n3) and ("翻译腔命中" in _n3)
+    chk("层3复活(翻译腔真实参与)", _ok3, f"note={_n3 if _ok3 else '解析失败'}")
+finally:
+    _shutil.rmtree(_fts, ignore_errors=True)
+_int_scripts = ["style_distance.py", "translation_smell_check.py", "term_check.py", "quality_report.py"]
+_int_hits = 0
+_fti = tmpfile(ZH_HUMAN)
+try:
+    for _s in _int_scripts:
+        _rci, _so, _se = run_py(_s, [_fti])
+        if NOTICE_MARK := ("学术写作自查" in _so or "学术诚信" in _so):
+            _int_hits += 1
+    chk("诚信提示全报告覆盖(4脚本)", _int_hits == 4, f"命中 {_int_hits}/4")
+finally:
+    Path(_fti).unlink(missing_ok=True)
+
 # v3.7.0: L12 篇章结构启发层探针（LES-20260923-021 回归防护）
 _DISC = ("先看一个场景。小林昨天拿到检测报告，数字比上个月低了不少。他盯着屏幕看了半天，心里直犯嘀咕："
          "这系统是不是换了比对库？同一段文字，前后两次测，一个说高一个说低。所以你看，不是谁退步了，是规则变了。"

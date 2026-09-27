@@ -194,8 +194,15 @@ def main():
                     blind_spots.append({"file": Path(r.file).name, "word": h.word, "suggestion": h.suggestion})
 
     if json_mode:
-        print(json.dumps({"blind_spots": blind_spots, "total_hits": sum(len(r.hits) for r in all_results),
-                          "rule_count": dict(rule_count)}, ensure_ascii=False, indent=2))
+        # v3.12: 增加结构化 hits 数组（deai_gate 层3 解析依赖；旧键保留兼容）
+        hits_detail = [{"file": Path(r.file).name, "rule": h.rule, "word": h.word,
+                        "suggestion": h.suggestion,
+                        "盲区": "盲区" in h.suggestion}
+                       for r in all_results for h in r.hits]
+        print(json.dumps({"total_hits": sum(len(r.hits) for r in all_results),
+                          "hits": hits_detail,
+                          "blind_spots": blind_spots, "rule_count": dict(rule_count)},
+                         ensure_ascii=False, indent=2))
         return 0
 
     print("=" * 70)
@@ -218,6 +225,7 @@ def main():
     print(f"\n说明: 🔴盲区新词(本工具核心价值) | 🟡已知/语法特征 | 规则可扩展")
     print(f"融合: 命中后交叉验证term_check(2328条)+ai_detector(14翻译腔模式),")
     print(f"      两者均未收录=盲区→记录→专家确认→扩充术语库→盲区缩小")
+    print("ℹ️ 供学术写作自查与质量改进使用；不用于规避机构 AIGC 检测，请遵循所在机构的 AI 使用与披露政策。")
     return 0
 
 

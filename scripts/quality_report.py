@@ -217,6 +217,8 @@ def generate_report(file_path: str, before_path: str = None) -> QualityReport:
             lines.append(f"\n📈 Before/After:")
             lines.append(f"  AI Score: {before_ai:.1f} → {ai_report.overall_ai_score:.1f} ({improvement:+.1f})")
     
+    lines.append("ℹ️ 供学术写作自查与质量改进使用；不用于规避机构 AIGC 检测，请遵循所在机构的 AI 使用与披露政策。")
+
     return QualityReport(
         file=file_path,
         language=lang,
@@ -231,7 +233,7 @@ def generate_report(file_path: str, before_path: str = None) -> QualityReport:
         sentence_len_cv=rd["cv"],
         ttr=rd["ttr"],
         total_chars=len(text),
-        total_paragraphs=len(re.split(r'\n\s*\n|\n', text)),
+        total_paragraphs=sum(1 for pp in re.split(r'\n\s*\n|\n', text) if pp.strip() and len(pp.strip()) > 3),
         before_ai_score=round(before_ai, 1),
         improvement=round(improvement, 1),
         summary="\n".join(lines)

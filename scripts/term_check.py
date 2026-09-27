@@ -260,6 +260,9 @@ def auto_fix(text: str, issues: list) -> str:
     return result
 
 
+NOTICE = "ℹ️ 供学术写作自查与质量改进使用；不用于规避机构 AIGC 检测，请遵循所在机构的 AI 使用与披露政策。"
+
+
 def main():
     parser = argparse.ArgumentParser(description="Term Normalization Checker")
     parser.add_argument("input", help="Input text file")
@@ -295,6 +298,7 @@ def main():
         print(f"Report saved to {args.output}", file=sys.stderr)
     else:
         print(report.summary)
+        print(NOTICE)
 
 
 if __name__ == "__main__":

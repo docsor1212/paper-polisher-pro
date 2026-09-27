@@ -75,13 +75,11 @@ def layer3_smell(text_file):
     try:
         r = json.loads(so)
         if isinstance(r, dict):
-            for key in ("hits", "result", "results"):
-                v = r.get(key)
-                if isinstance(v, list):
-                    hits = len(v)
-                    blind = sum(1 for h in v if isinstance(h, dict)
-                                and "盲区" in str(h.get("suggestion", "")))
-                    break
+            v = r.get("hits")
+            if isinstance(v, list):
+                hits = len(v)
+                blind = sum(1 for h in v if isinstance(h, dict)
+                            and "盲区" in str(h.get("suggestion", "")))
     except Exception:
         pass
     if hits < 0:

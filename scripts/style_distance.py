@@ -133,6 +133,9 @@ def style_score_from_features(f):
     return round(score, 1), verdict, reasons
 
 
+NOTICE = "ℹ️ 供学术写作自查与质量改进使用；不用于规避机构 AIGC 检测，请遵循所在机构的 AI 使用与披露政策。"
+
+
 def style_distance(text, json_out=False):
     """计算文本的文体分。返回结构化结果。"""
     paras = [p.strip() for p in re.split(r'\n\s*\n', text) if p.strip() and len(p.strip()) >= 50]
@@ -195,10 +198,12 @@ def style_distance(text, json_out=False):
         "paragraph_details": all_reasons[:3],
         "note": "文体特征工程版(v2);score越高越像人类写作;<45疑似AI;<60需复核",
     }
+    result["integrity_notice"] = NOTICE
     if json_out:
         print(json.dumps(result, ensure_ascii=False, indent=2))
     else:
         print(f"文体分: {result['style_score']}/100 ({verdict})")
+        print(NOTICE)
         print(f"  检测段落: {result['paragraphs_checked']} | 最低段: {result['min_paragraph_score']}")
         for pd in all_reasons[:2]:
             print(f"  [{pd['lang']}] {pd['score']}: {'; '.join(pd['reasons'])}")
