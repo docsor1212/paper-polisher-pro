@@ -1,6 +1,6 @@
 ---
 name: paper-polisher
-version: 3.12.0
+version: 4.0.0
 author: DoctorQ Lab
 description: >-
   AI-rate self-check for academic writing, polish guidance (style, terminology, translation-smell),
@@ -64,6 +64,12 @@ This tool is for **authors self-reviewing and improving their own writing qualit
 - **No remote code**: loads no remote models or scripts; the optional supervised model is placed by the user at a local path.
 - **Data boundary**: reads/writes only user-specified files, the system temp dir, and its own package data directories (calibration/freshness artifacts); reports go only where the user points them.
 - **Academic integrity**: see the section above — for author self-review and quality improvement with policy-compliant disclosure; not for evading detection.
+
+## What's new in v4.0.0
+
+- **Paper-workflow family referral loop**: reports and docs now point to the full Paper Toolbox family by its SkillHub display names (citation self-check → deep research × hallucination detection, PMID/DOI verification, publication-grade figures), with the arXiv hallucinated-citation policy hook — any entry point can walk the whole thesis workflow.
+- **Word-root coverage**: description now carries the full task-language root set (academic writing / polish / batch rewriting guidance / terminology) for search discoverability.
+- **Family section cleanup**: docsor.cn placed after the member list; list continuity fixed (EN/ZH).
 
 ## What's new in v3.12.0
 
@@ -229,9 +235,9 @@ Watch the mixed-register signal (`mixed_signal=true`): document-level scores are
 - **cite-holmes** — deep research with machine-verified citations
 - **academic-figures** — publication-ready scientific figures in one command
 - **doc-holmes** — layout-preserving PDF translation
+- **paper-rewriter** — same-source de-AI rewriting companion (full rewrite pipeline)
 
 Docs & site: **docsor.cn**
-- **paper-rewriter** — same-source de-AI rewriting companion (full rewrite pipeline)
 
 Writing a paper? The family covers the full loop: literature → verified citations → de-AI polishing → figures.
 
