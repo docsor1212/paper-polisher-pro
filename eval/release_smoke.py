@@ -157,6 +157,18 @@ finally:
     _shutil.rmtree(_cdir, ignore_errors=True)
 
 rcn, rn, _ = detect_json(ZH_HUMAN)
+# v4.2: batch recursive 探针
+_rdir = Path(tempfile.mkdtemp()) / "deep"
+_rdir.mkdir(parents=True)
+(_rdir / "nested.txt").write_text(ZH_HUMAN, encoding="utf-8")
+try:
+    _rcr, sor, _ = run_py("ai_detector.py", ["--batch", str(_rdir.parent), "--recursive", "--format", "json"])
+    _okr = _rcr == 0 and "nested.txt" in sor and sor.count('"file"') >= 1
+    chk("batch recursive 子目录遍历", _okr, f"rc={_rcr}")
+finally:
+    _shutil.rmtree(_rdir.parent, ignore_errors=True)
+
+rcn, rn, _ = detect_json(ZH_HUMAN)
 chk("学术样本篇章层零扰动", rcn == 0 and rn and not rn.get("discourse_hits") and rn.get("discourse_bonus", 0) == 0)
 
 # v3.12: 层3复活+诚信覆盖探针

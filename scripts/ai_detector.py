@@ -937,28 +937,30 @@ def journal_profile(report, text=None) -> str:
     return "\n".join(lines)
 
 
-def batch_detect(dir_path: str, fmt: str, out_path: str, csv_path: str = None):
+def batch_detect(dir_path: str, fmt: str, out_path: str, csv_path: str = None,
+                 recursive: bool = False):
     """v3.11: 目录批处理——逐文件检测, 输出每文件分数+聚合。确定性、零网络。"""
     d = Path(dir_path)
     if not d.is_dir():
         print(f"Error: not a directory: {dir_path}", file=sys.stderr)
         sys.exit(1)
-    files = sorted(f for f in d.iterdir()
+    it = d.rglob("*") if recursive else d.iterdir()
+    files = sorted(f for f in it
                    if f.is_file() and f.suffix.lower() in (".txt", ".md") and f.stat().st_size < 5 * 1024 * 1024)
     rows = []
     for f in files:
         try:
             text = f.read_text(encoding="utf-8", errors="replace")
             if len(text.strip()) < 100:
-                rows.append({"file": f.name, "overall_ai_score": None, "overall_risk": "unknown",
+                rows.append({"file": str(f.relative_to(d)), "overall_ai_score": None, "overall_risk": "unknown",
                              "note": "insufficient text (<100 chars)"})
                 continue
             rep = detect(text, "auto")
-            rows.append({"file": f.name, "overall_ai_score": rep.overall_ai_score,
+            rows.append({"file": str(f.relative_to(d)), "overall_ai_score": rep.overall_ai_score,
                          "overall_risk": rep.overall_risk, "language": rep.language,
                          "degraded_mode": rep.degraded_mode})
         except Exception as e:
-            rows.append({"file": f.name, "error": str(e)[:120]})
+            rows.append({"file": str(f.relative_to(d)), "error": str(e)[:120]})
     scored = [r["overall_ai_score"] for r in rows if isinstance(r.get("overall_ai_score"), (int, float))]
     agg = {"files": len(rows), "scored": len(scored),
            "mean_score": round(sum(scored) / len(scored), 1) if scored else None,
@@ -1015,10 +1017,13 @@ def main():
                              "output per-file scores + aggregate; ignores --input/--profile")
     parser.add_argument("--csv", metavar="PATH",
                         help="With --batch: also write per-file results as CSV")
+    parser.add_argument("--recursive", action="store_true",
+                        help="With --batch: recurse into subdirectories")
     args = parser.parse_args()
 
     if args.batch:
-        batch_detect(args.batch, args.format, args.output, csv_path=args.csv)
+        batch_detect(args.batch, args.format, args.output, csv_path=args.csv,
+                     recursive=args.recursive)
         return
 
     if not args.input:

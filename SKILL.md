@@ -1,6 +1,6 @@
 ---
 name: paper-polisher
-version: 4.1.0
+version: 4.2.0
 author: DoctorQ Lab
 description: >-
   AI-rate self-check for academic writing, polish guidance (style, terminology, translation-smell),
@@ -64,6 +64,12 @@ This tool is for **authors self-reviewing and improving their own writing qualit
 - **No remote code**: loads no remote models or scripts; the optional supervised model is placed by the user at a local path.
 - **Data boundary**: reads/writes only user-specified files, the system temp dir, and its own package data directories (calibration/freshness artifacts); reports go only where the user points them.
 - **Academic integrity**: see the section above — for author self-review and quality improvement with policy-compliant disclosure; not for evading detection.
+
+## What's new in v4.2.0
+
+- **Batch recursion**: `--batch DIR --recursive` walks subdirectories; per-file paths are reported relative to the root.
+- **GitHub README**: the repository landing page now carries the tool description, quick start, family table, and compliance statement (agents discovering via `skills add` see the full picture).
+- **Gate layer-3 distribution check**: post-revival verdict distribution verified on 40 held-out documents — zero parse failures, no systematic band shift (data archived).
 
 ## What's new in v4.1.0
 
@@ -254,6 +260,7 @@ Monthly full pass: `python scripts/freshness_refresh.py` (schedule it with your 
 
 ## Version history (condensed)
 
+- **v4.2.0 (2026-09-30)** — batch recursion; GitHub README landing page; gate layer-3 distribution verification.
 - **v4.1.0 (2026-09-29)** — smoothness layer fused into the score (A/B-verified zero regression); batch CSV; paragraph report disclosures.
 - **v4.0.0 (2026-09-28)** — family referral loop; task-word-root coverage; family-section cleanup.
 - **v3.12.0 (2026-09-28)** — translation-smell layer revived (schema fix); integrity notice on every report; paragraph-count consistency; spectrum-v2 & L13-mid negative results recorded.

@@ -1,0 +1,59 @@
+# Paper Polisher Pro — 论文降AI润色工具 · AI率检测
+
+AI 痕迹检测（AI率）· 去AI化改写建议 · 术语标准化 · 翻译腔检查 · 质量报告 · AIGC 合规标识检查 · 段落级归因 · 期刊口径预检。
+
+**100% 本地运行，零上传，零凭证**——论文数据不出本机。
+
+## 这是什么
+
+面向学术写作者的 AI 痕迹自查工具：概率化输出（非二元判定）、分层证据、指纹归因（GLM / DeepSeek / Qwen / Kimi / MiniMax / GPT / Claude / Gemini），全部指标可由随包留出集评测复现。
+
+- 基础引擎（纯规则+词频谱）：留出集 AUROC 0.9187
+- 可选监督层（本地 Qwen3-0.6B ONNX）：AUROC 1.0（作者侧实测）
+- 短文本不出判定（<100 字，误报铁律）
+
+## 快速开始
+
+```bash
+# AI 痕迹检测（AI率）
+python scripts/ai_detector.py draft.txt --format json
+
+# 四层融合门禁
+python scripts/deai_gate.py draft.txt
+
+# 批量检测一个目录
+python scripts/ai_detector.py --batch ./drafts --csv scores.csv
+
+# 环境自检
+python scripts/pp_doctor.py
+```
+
+## 安装
+
+克隆本仓库后直接使用，纯 Python 标准库即可运行（可选 onnxruntime 增强监督层）。
+
+```bash
+git clone https://github.com/docsor1212/paper-polisher-pro
+cd paper-polisher-pro
+python scripts/ai_detector.py your_draft.txt --format summary
+```
+
+## 论文工作流家族
+
+写作是一条链，每环有专用工具（均在本账号下）：
+
+| 工具 | 用途 |
+|---|---|
+| **paper-polisher-pro**（本仓库） | AI率检测·润色·降重·质量报告 |
+| **paper-rewriter** | 论文降AI改写执行 |
+| **pubmed-verifier** | PMID/DOI 引用核验 |
+| **cite-holmes** | 深度调研 × 引用自证 |
+| **cn-med-oa** | 中文医学文献 OA 下载 |
+| **academic-figures** | 出版级科研图表 |
+| **doc-holmes** | PDF 精准翻译 |
+
+文档站：[docsor.cn](https://docsor.cn)
+
+## 合规声明
+
+本工具供作者自查与写作质量改进，**不用于规避机构的 AIGC 检测**；请遵循所在机构的 AI 使用与披露政策（标识合规可用包内 aigc_label_check 自查）。许可：MIT-0。
