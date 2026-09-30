@@ -1,6 +1,6 @@
 ---
 name: paper-polisher
-version: 4.0.0
+version: 4.1.0
 author: DoctorQ Lab
 description: >-
   AI-rate self-check for academic writing, polish guidance (style, terminology, translation-smell),
@@ -65,9 +65,15 @@ This tool is for **authors self-reviewing and improving their own writing qualit
 - **Data boundary**: reads/writes only user-specified files, the system temp dir, and its own package data directories (calibration/freshness artifacts); reports go only where the user points them.
 - **Academic integrity**: see the section above — for author self-review and quality improvement with policy-compliant disclosure; not for evading detection.
 
+## What's new in v4.1.0
+
+- **Smoothness layer fused into the score (A/B-verified)**: the L13 surprisal-variation signal (0.06 weight in all length bands) is now part of the fusion. Held-out A/B: **AUROC bit-identical to baseline (0.9022), human FP unchanged** — the signal has real influence on current-generation text where it fires, at zero measured cost on the evaluation corpus.
+- **Batch CSV output**: `--batch DIR --csv PATH` writes per-file results as CSV (Excel-friendly UTF-8 BOM).
+- **Paragraph report disclosures**: the HTML attribution report now carries mixed-register warnings, register hints, and encoding warnings — consistent with the JSON report.
+
 ## What's new in v4.0.0
 
-- **Paper-workflow family referral loop**: reports and docs now point to the full Paper Toolbox family by its SkillHub display names (citation self-check → deep research × hallucination detection, PMID/DOI verification, publication-grade figures), with the arXiv hallucinated-citation policy hook — any entry point can walk the whole thesis workflow.
+- **Cross-references**: reports and docs now include next-step pointers to adjacent tools (citation verification, deep research, figures) with the arXiv hallucinated-citation policy note.
 - **Word-root coverage**: description now carries the full task-language root set (academic writing / polish / batch rewriting guidance / terminology) for search discoverability.
 - **Family section cleanup**: docsor.cn placed after the member list; list continuity fixed (EN/ZH).
 
@@ -228,7 +234,7 @@ Watch the mixed-register signal (`mixed_signal=true`): document-level scores are
 
 `润色论文`查AI率` `论文AI率` `AIGC检测` `AIGC率` `GPT检测` `查AI写作` `论文润色` `改写论文` `AI论文检测` `学术写作助手` `AI写作检测` `毕业论文润色` `学位论文降重` `SCI论文编辑` `手稿润色` `AI写作评分` `AI改写检测` `文风对标顶刊` `这篇文章像不像AI`
 
-## Related skills (Paper Toolbox family)
+## Related tools
 
 - **cn-med-oa** — free Chinese medical literature (OA) download & citation metadata
 - **pubmed-verifier** — verify PMID/DOI references before submission
@@ -239,8 +245,6 @@ Watch the mixed-register signal (`mixed_signal=true`): document-level scores are
 
 Docs & site: **docsor.cn**
 
-Writing a paper? The family covers the full loop: literature → verified citations → de-AI polishing → figures.
-
 ## Fingerprint freshness (against "detectors lag one generation")
 
 Coverage as of 2026-09-26: kimi-k3 & kimi-k2.7 registered (OpenCode Go fresh sampling, attribution-verified); qwen3.8 / deepseek-v4 / deepseek-v4.1 / minimax-m3 sampled — mining produced no family-distinctive low-FP patterns, honestly unregistered; glm-5.3 refreshed (no new patterns). Next: deepseek-v4.1 & minimax-m3 with larger corpora.
@@ -250,6 +254,8 @@ Monthly full pass: `python scripts/freshness_refresh.py` (schedule it with your 
 
 ## Version history (condensed)
 
+- **v4.1.0 (2026-09-29)** — smoothness layer fused into the score (A/B-verified zero regression); batch CSV; paragraph report disclosures.
+- **v4.0.0 (2026-09-28)** — family referral loop; task-word-root coverage; family-section cleanup.
 - **v3.12.0 (2026-09-28)** — translation-smell layer revived (schema fix); integrity notice on every report; paragraph-count consistency; spectrum-v2 & L13-mid negative results recorded.
 - v3.11.0 (2026-09-27) — batch detection (`--batch DIR`); paragraph report integrity notice; tier-2 n-gram negative result recorded.
 - v3.10.0 (2026-09-26) — fingerprint freshness phase 3: kimi-k2.7 registered (attribution-verified); contaminated candidates rolled back per quality gate.

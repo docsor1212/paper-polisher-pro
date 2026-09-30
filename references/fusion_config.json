@@ -6,9 +6,10 @@
   "short": {
    "weights": {
     "para": 0.4,
-    "spectrum": 0.6,
+    "spectrum": 0.54,
     "surface": 0.0,
-    "cot": 0.0
+    "cot": 0.0,
+    "surprisal": 0.06
    },
    "band_auroc": 0.9684,
    "n": 1362
@@ -16,9 +17,10 @@
   "mid": {
    "weights": {
     "para": 0.4,
-    "spectrum": 0.6,
+    "spectrum": 0.54,
     "surface": 0.0,
-    "cot": 0.0
+    "cot": 0.0,
+    "surprisal": 0.06
    },
    "band_auroc": 0.982,
    "n": 2660
@@ -26,9 +28,10 @@
   "long": {
    "weights": {
     "para": 0.4,
-    "spectrum": 0.6,
+    "spectrum": 0.54,
     "surface": 0.0,
-    "cot": 0.0
+    "cot": 0.0,
+    "surprisal": 0.06
    },
    "band_auroc": 0.9894,
    "n": 733

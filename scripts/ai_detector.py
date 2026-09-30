@@ -937,7 +937,7 @@ def journal_profile(report, text=None) -> str:
     return "\n".join(lines)
 
 
-def batch_detect(dir_path: str, fmt: str, out_path: str):
+def batch_detect(dir_path: str, fmt: str, out_path: str, csv_path: str = None):
     """v3.11: 目录批处理——逐文件检测, 输出每文件分数+聚合。确定性、零网络。"""
     d = Path(dir_path)
     if not d.is_dir():
@@ -966,6 +966,19 @@ def batch_detect(dir_path: str, fmt: str, out_path: str):
            "high_risk_files": sum(1 for r in rows if r.get("overall_risk") == "high")}
     result = {"directory": str(d), "aggregate": agg, "files": rows,
               "integrity_notice": INTEG_ZH}
+    if csv_path:
+        import csv as _csv
+        with open(csv_path, "w", encoding="utf-8-sig", newline="") as cf:
+            w = _csv.writer(cf)
+            w.writerow(["file", "ai_score", "risk", "language", "degraded_mode"])
+            for r in rows:
+                if "error" in r:
+                    w.writerow([r["file"], "ERROR", "", "", r["error"][:60]])
+                elif r.get("overall_ai_score") is None:
+                    w.writerow([r["file"], "", "unknown", "", r.get("note", "")])
+                else:
+                    w.writerow([r["file"], r["overall_ai_score"], r["overall_risk"],
+                                r.get("language", ""), ""])
     if fmt == "json" or out_path:
         out = json.dumps(result, ensure_ascii=False, indent=2)
     else:
@@ -1000,10 +1013,12 @@ def main():
     parser.add_argument("--batch", metavar="DIR",
                         help="Batch mode: detect all .txt/.md files in DIR (non-recursive), "
                              "output per-file scores + aggregate; ignores --input/--profile")
+    parser.add_argument("--csv", metavar="PATH",
+                        help="With --batch: also write per-file results as CSV")
     args = parser.parse_args()
 
     if args.batch:
-        batch_detect(args.batch, args.format, args.output)
+        batch_detect(args.batch, args.format, args.output, csv_path=args.csv)
         return
 
     if not args.input:

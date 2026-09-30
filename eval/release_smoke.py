@@ -112,7 +112,10 @@ chk("旧营销宣称已清(铁律引述行除外)",
     f"zh={_banned_outside_quote(skill_zh)} en={_banned_outside_quote(skill_md)}")
 chk("ZH 中 F1 98.3 仅出现在铁律引述(≤1处)", skill_zh.count("98.3") <= 1, f"count={skill_zh.count('98.3')}")
 chk("触发词含 AI率 词位", "查AI率" in skill_zh and "AI率" in skill_zh)
-chk("家族导流段在位(双语)", "Related skills" in skill_md and "Related skills" in skill_zh)
+chk("相关工具节在位(双语)", "## Related tools" in skill_md and "## 相关工具" in skill_zh)
+_ADTALK = ["全家桶", "搜招牌名直达", "五件套", "论文工具家族", "Paper Toolbox family"]
+_adtalk_hits = [w for w in _ADTALK if w in skill_md or w in skill_zh]
+chk("导流叫卖词零残留(家族/全家桶/搜招牌名/五件套)", not _adtalk_hits, "; ".join(_adtalk_hits))
 chk("FAQ 专节在位(评测C维驱动,双语)", "## 常见问题（FAQ）" in skill_zh and "## FAQ" in skill_md)
 chk("脚本速查表在位(评测C维驱动,双语)", "各脚本速查" in skill_zh and "Script cheat sheet" in skill_md)
 chk("FAQ 覆盖高频问法", "知网" in skill_zh and "degraded_mode" in skill_zh and "100 字" in skill_zh)
@@ -140,6 +143,18 @@ try:
     chk("batch 模式(聚合+诚信字段)", _okb, f"rc={_rcb}")
 finally:
     _shutil.rmtree(_bdir, ignore_errors=True)
+
+rcn, rn, _ = detect_json(ZH_HUMAN)
+# v4.1: batch CSV 探针
+_cdir = Path(tempfile.mkdtemp())
+(_cdir / "x.txt").write_text(ZH_HUMAN, encoding="utf-8")
+_csvp = _cdir / "out.csv"
+try:
+    _rcc, soc, _ = run_py("ai_detector.py", ["--batch", str(_cdir), "--format", "json", "--csv", str(_csvp)])
+    _okc = _rcc == 0 and _csvp.exists() and "ai_score" in _csvp.read_text(encoding="utf-8-sig")
+    chk("batch CSV 输出", _okc, f"rc={_rcc}")
+finally:
+    _shutil.rmtree(_cdir, ignore_errors=True)
 
 rcn, rn, _ = detect_json(ZH_HUMAN)
 chk("学术样本篇章层零扰动", rcn == 0 and rn and not rn.get("discourse_hits") and rn.get("discourse_bonus", 0) == 0)

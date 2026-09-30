@@ -79,6 +79,16 @@ def main():
              ("｜指纹归因: " + ", ".join("%s(%.0f%%)" % (h["family"], h["confidence"] * 100)
                                         for h in rep.model_hints)) if rep.model_hints else "") +
             "".join(rows) + _TPL_FOOT)
+    # v4.1: 与 JSON 报告一致的披露行（诚信/混写/平滑度——有信号才显示）
+    _disc = []
+    if getattr(rep, "mixed_signal", False):
+        _disc.append("⚠️ 混写预警：" + (rep.mixed_notice or "")[:80])
+    if getattr(rep, "register_hint", ""):
+        _disc.append("ℹ️ " + rep.register_hint[:80])
+    if getattr(rep, "encoding_warning", ""):
+        _disc.append("⚠️ " + rep.encoding_warning[:80])
+    if _disc:
+        html = html.replace("学术诚信提示", " ".join(_disc) + "<br>学术诚信提示", 1)
     with open(a.output, "w", encoding="utf-8") as f:
         f.write(html)
     print("段落: %d | 疑似AI %d | 存疑 %d | 倾向人类 %d | 文档分 %.1f" %
