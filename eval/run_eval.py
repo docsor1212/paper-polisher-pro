@@ -193,6 +193,7 @@ def main():
     os.makedirs(RESULTS, exist_ok=True)
     if a.layer:
         import importlib.util
+        from pp_split import filter_split
         spec = importlib.util.spec_from_file_location(
             "layers_surface", os.path.join(os.path.dirname(HERE), "scripts", "layers_surface.py"))
         LS = importlib.util.module_from_spec(spec); spec.loader.exec_module(LS)

@@ -1,6 +1,6 @@
 ---
 name: paper-polisher
-version: 4.2.0
+version: 4.3.0
 author: DoctorQ Lab
 description: >-
   AI-rate self-check for academic writing, polish guidance (style, terminology, translation-smell),
@@ -54,6 +54,7 @@ This tool is for **authors self-reviewing and improving their own writing qualit
 | English text | Language gating skips the Chinese-trained supervised layer by design; rules-only English skeleton, advisory only |
 | Mixed human+AI documents (document-level) | AUROC 0.38 — a principled limitation of document-level averaging; use `paragraph_report.py` attribution instead |
 | Edit-extent regression head | ρ=0.540 — reported as metadata, never used in verdicts |
+| **Current-generation models (2026-09 sampling)** | **AUROC 0.6542** on a 443-doc current-gen eval set (9 families incl. K3/K2.7/Qwen3.7-3.8/DS-V4/V4.1/GLM-5.3/M3) vs 0.9022 on the pre-2026 corpus — a quantified generation gap; supervised-layer retraining on fresh samples is the planned remedy
 | Colloquial / oral-register text | The style layer is calibrated on academic prose; treat style scores as advisory outside that register |
 
 ## Safety and behavior statement
@@ -64,6 +65,11 @@ This tool is for **authors self-reviewing and improving their own writing qualit
 - **No remote code**: loads no remote models or scripts; the optional supervised model is placed by the user at a local path.
 - **Data boundary**: reads/writes only user-specified files, the system temp dir, and its own package data directories (calibration/freshness artifacts); reports go only where the user points them.
 - **Academic integrity**: see the section above — for author self-review and quality improvement with policy-compliant disclosure; not for evading detection.
+
+## What's new in v4.3.0
+
+- **Generation-split evaluation (infrastructure + first numbers)**: a 443-doc current-generation eval set (312 fresh AI samples from 9 families + 131 held-out human docs) now ships in `eval/corpora_small/eval_gen2026.jsonl`; `run_eval.py --layer` fixed. First quantified generational breakdown: pre-2026 corpus AUROC 0.9022 vs current-gen 0.6542 — the generation gap is now measured, not assumed.
+- **Negative results ×2, data-closed**: spectrum v2 blend and the L13 surprisal signal both show no current-gen gains (bit-identical and 0.32 respectively) — the remaining remedy is supervised-layer retraining on fresh samples (planned).
 
 ## What's new in v4.2.0
 
@@ -260,6 +266,7 @@ Monthly full pass: `python scripts/freshness_refresh.py` (schedule it with your 
 
 ## Version history (condensed)
 
+- **v4.3.0 (2026-10-01)** — generation-split eval infrastructure; first quantified generation-gap numbers (0.9022 vs 0.6542); spectrum/L13 current-gen negative results recorded.
 - **v4.2.0 (2026-09-30)** — batch recursion; GitHub README landing page; gate layer-3 distribution verification.
 - **v4.1.0 (2026-09-29)** — smoothness layer fused into the score (A/B-verified zero regression); batch CSV; paragraph report disclosures.
 - **v4.0.0 (2026-09-28)** — family referral loop; task-word-root coverage; family-section cleanup.
