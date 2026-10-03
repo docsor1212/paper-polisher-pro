@@ -26,6 +26,13 @@ python scripts/ai_detector.py --batch ./drafts --csv scores.csv
 
 # 环境自检
 python scripts/pp_doctor.py
+
+# Python 编程接口（零网络，import 即用）
+python -c "import sys; sys.path.insert(0,'scripts'); from pp_api import detect_text; \
+print(detect_text(open('draft.txt').read())['overall_ai_score'])"
+
+# 监督层一键装模（作者签发模型文件，指纹校验+推理自检）
+python scripts/pp_setup.py --model <作者签发模型.onnx>
 ```
 
 ## 安装

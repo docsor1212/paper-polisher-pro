@@ -405,6 +405,69 @@ for f in ROOT.rglob("*"):
             bad.append(f"gif: {rel}")
 chk("SH 白名单预检(无扩展名/_meta.json/gif)", not bad, "; ".join(bad[:3]))
 
+# ───────────────────────── F. 可编程接口（v4.5.0） ─────────────────────────
+import shutil as _shutil_f
+try:
+    sys.path.insert(0, str(SCRIPTS))
+    import pp_api as _API
+    _d = _API.detect_text(ZH_HUMAN, lang="zh")
+    chk("SDK import + detect_text 出分", isinstance(_d.get("overall_ai_score"), (int, float)),
+        f"score={_d.get('overall_ai_score')}")
+    # 与 CLI 位级同源（同一 detect 代码路径）
+    with tempfile.NamedTemporaryFile("w", suffix=".txt", delete=False, encoding="utf-8") as _f:
+        _f.write(ZH_HUMAN); _cli_f = _f.name
+    _rc, _so, _se = run_py("ai_detector.py", [_cli_f, "--format", "json"])
+    Path(_cli_f).unlink(missing_ok=True)
+    _cli_score = json.loads(_so).get("overall_ai_score") if _rc == 0 else None
+    chk("SDK detect_text 与 CLI 同分（同源校验）",
+        _cli_score is not None and _cli_score == _d.get("overall_ai_score"),
+        f"sdk={_d.get('overall_ai_score')} cli={_cli_score}")
+    _g = _API.gate_text(ZH_HUMAN)
+    chk("SDK gate_text 出复合分", isinstance(_g.get("composite_ai_risk"), (int, float))
+        and _g.get("verdict") in ("pass", "review", "ai_suspect"),
+        f"composite={_g.get('composite_ai_risk')}")
+    _doc = _API.doctor_summary()
+    chk("SDK doctor_summary 档位+版本", _doc.get("engine_mode") in ("full", "degraded")
+        and isinstance(_doc.get("version"), str),
+        f"mode={_doc.get('engine_mode')} v={_doc.get('version')}")
+    # 终审 NO-GO 修复回归: doctor_summary 的 data_files_ok 在健康机器上必须 True
+    chk("SDK doctor_summary data_files_ok", _doc.get("data_files_ok") is True,
+        f"data_files_ok={_doc.get('data_files_ok')} missing={_doc.get('data_missing')}")
+    # 终审 NO-GO 修复回归: smell_report 有命中时必须 JSON 可序列化
+    import json as _json_f
+    _hit_text = "这个问题的结果被进行了详细的分析和讨论。"
+    _sr = _API.smell_report(_hit_text)
+    _json_f.dumps(_sr)  # 不序列化即抛
+    chk("SDK smell_report JSON 可序列化（含命中）", _sr.get("total_hits", 0) >= 1
+        and isinstance(_sr["hits"][0], dict),
+        f"total_hits={_sr.get('total_hits')}")
+except Exception as _e:
+    chk("SDK import + detect_text 出分", False, f"exception: {_e}")
+
+# pp_setup: --check 与未知指纹拒绝
+try:
+    _p = subprocess.run([sys.executable, str(SCRIPTS / "pp_setup.py"), "--check"],
+                        capture_output=True, text=True, encoding="utf-8", timeout=180,
+                        env={**os.environ, "PP_ORT_THREADS": "8"})
+    chk("pp_setup --check 可跑", _p.returncode in (0, 1), f"rc={_p.returncode}")
+    _fake = Path(tempfile.mkdtemp()) / "fake.onnx"
+    _fake.write_bytes(b"not a model")
+    _p2 = subprocess.run([sys.executable, str(SCRIPTS / "pp_setup.py"), "--model", str(_fake)],
+                         capture_output=True, text=True, encoding="utf-8", timeout=120)
+    chk("pp_setup 未知指纹拒绝(exit 2)", _p2.returncode == 2, f"rc={_p2.returncode}")
+    _shutil_f.rmtree(_fake.parent, ignore_errors=True)
+except Exception as _e:
+    chk("pp_setup --check 可跑", False, f"exception: {_e}")
+
+# 零网络契约在新增接口上依然成立（SKILL.md 的 grep 零命中承诺）
+import re as _re
+_bad_net = []
+for _n in ("pp_api.py", "pp_setup.py"):
+    _src = (SCRIPTS / _n).read_text(encoding="utf-8")
+    if _re.search(r"import\s+(socket|http|urllib|requests)|from\s+(socket|http|urllib|requests)", _src):
+        _bad_net.append(_n)
+chk("SDK/装模零网络导入", not _bad_net, "; ".join(_bad_net))
+
 # ───────────────────────── 汇总 ─────────────────────────
 failed = [r for r in results if not r[1]]
 print("────────────────────────────────")

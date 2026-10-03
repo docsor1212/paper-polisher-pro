@@ -179,7 +179,7 @@ def style_distance(text, json_out=False):
                    "②段落均被判定为非正文（引用块/表格/代码）。请检查文本后重试。",
                 "style_score": None}
         print(json.dumps(result, ensure_ascii=False) if json_out else result["error"])
-        return
+        return result  # v4.5.0: 返回结构化结果（SDK pp_api.style_report 依赖）
 
     mean_score = sum(para_scores) / len(para_scores)
     min_score = min(para_scores)
@@ -209,6 +209,7 @@ def style_distance(text, json_out=False):
             print(f"  [{pd['lang']}] {pd['score']}: {'; '.join(pd['reasons'])}")
         if verdict == "ai_like":
             print("  ⚠️ 文体偏离人类写作, 疑似AI生成")
+    return result  # v4.5.0: 返回结构化结果（SDK pp_api.style_report 依赖）
 
 
 if __name__ == "__main__":

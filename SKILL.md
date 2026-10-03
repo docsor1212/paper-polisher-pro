@@ -1,6 +1,6 @@
 ---
 name: paper-polisher
-version: 4.4.0
+version: 4.5.0
 author: DoctorQ Lab
 description: >-
   AI-rate self-check for academic writing, polish guidance (style, terminology, translation-smell),
@@ -67,6 +67,11 @@ This tool is for **authors self-reviewing and improving their own writing qualit
 - **No remote code**: loads no remote models or scripts; the optional supervised model is placed by the user at a local path.
 - **Data boundary**: reads/writes only user-specified files, the system temp dir, and its own package data directories (calibration/freshness artifacts); reports go only where the user points them.
 - **Academic integrity**: see the section above — for author self-review and quality improvement with policy-compliant disclosure; not for evading detection.
+
+## What's new in v4.5.0
+
+- **Python API (`scripts/pp_api.py`)**: the engine is now importable. `detect_text(text)` runs the full detector in-process (same code path as the CLI — parity-checked) and returns a plain JSON-able dict; helpers cover the rest of the toolkit: `gate_text`, `term_report`, `smell_report`, `style_report`, `quality_report_file`, `attribution`, `model_fingerprint`, `doctor_summary`. Zero network, zero third-party dependencies, exceptions instead of silent failures. Programmatic integration no longer requires wrapping subprocess calls.
+- **One-command supervised setup (`scripts/pp_setup.py`)**: `--model <file>` replaces manual multi-step model placement. The file's md5 is checked against the author-signed fingerprint registry (`references/supervised_models.json`) — unknown weights are rejected (exit 2) — then the model is installed, inference-canaried, and confirmed GREEN; `--check` shows current status. The model still never ships inside the package and nothing is ever downloaded (the 100%-local contract is intact).
 
 ## What's new in v4.4.0
 
@@ -206,6 +211,26 @@ python scripts/layers_lm.py            # self-test: supervised_available: true
 # ⚠️ Do not substitute other exports or quantizations — measured probability drift; use exactly these files.
 ```
 
+### Python API (programmatic use)
+
+```python
+import sys; sys.path.insert(0, "<skill>/scripts")
+from pp_api import detect_text, gate_text, doctor_summary
+r = detect_text("中文学术文本，建议 300 字以上。" * 10, lang="zh")
+print(r["overall_ai_score"], r["overall_risk"], r["degraded_mode"])
+```
+
+`detect_text` runs in-process (no subprocess) and returns the same JSON structure as the CLI. Every function returns JSON-able dicts and raises on bad input — no silent failures. Zero network, stdlib-only.
+
+### One-command supervised setup
+
+```bash
+python3 scripts/pp_setup.py --model <author-signed model.onnx>   # verify md5 -> install -> inference canary
+python3 scripts/pp_setup.py --check                              # current installation status
+```
+
+Only author-signed fingerprints (`references/supervised_models.json`) are accepted; unknown weights are rejected before anything is touched. Nothing is downloaded — the model always comes from the authors' channel as a local file.
+
 ## FAQ
 
 **Q: Why no risk verdict for texts under 100 characters?**
@@ -215,7 +240,7 @@ Short-text false positives are uncontrollable (a few sentences carry no style di
 You are most likely in degraded mode (optional supervised model not installed). Rules-only scoring systematically over-scores medical register (held-out human FPR at @medium: ~59% medical vs ~2% general). For medical text trust only @high verdicts, or install the supervised layer (next question).
 
 **Q: How do I install the supervised model and confirm it works?**
-`pip install onnxruntime regex`, place the authors' model.int8.onnx + tokenizer.json exactly at `~/.cache/paper-polisher/qwen3-detector/`, then run `python scripts/pp_doctor.py` — both model checks green = active; `degraded_mode=false` in reports confirms it.
+one command: `python3 scripts/pp_setup.py --model <author-signed model.onnx>` — it verifies the md5 against the signed registry, installs, and runs an inference canary (GREEN = active; `degraded_mode=false` in reports confirms it). Manual placement of the two files at `~/.cache/paper-polisher/qwen3-detector/` still works and `python scripts/pp_doctor.py` remains the full check.
 
 **Q: What do degraded_mode / degraded_notice mean?**
 Engine-mode disclosure: true = rules+spectrum fallback, reason in the notice (model missing / PP_NO_SUP=1 / English language gating). See the capability boundary matrix.
@@ -275,6 +300,7 @@ Monthly full pass: `python scripts/freshness_refresh.py` (schedule it with your 
 
 ## Version history (condensed)
 
+- **v4.5.0 (2026-10-04)** — programmable-interface release: pp_api.py SDK (in-process detect + 8 helpers, zero network, JSON dicts) and pp_setup.py one-command model installation with the author-signed fingerprint registry; targets the two lowest official-evaluation dimensions (trigger/usability).
 - **v4.4.0 (2026-10-03)** — measurement-integrity release: verified re-baseline (held-out 0.9998 / current-gen 0.9400 / human FPR@med 2.3%, superseding 0.9022/0.6542 artifacts); eval cache keys bind model md5; contamination audit (eval/check_leak.py) halts the v36 retrain (285 eval-set samples had leaked into training); ONNX export self-test; PP_ORT_THREADS; pp_doctor fingerprint; smoke degradation checks made mode-aware.
 - **v4.3.0 (2026-10-01)** — generation-split eval infrastructure; first quantified generation-gap numbers (0.9022 vs 0.6542); spectrum/L13 current-gen negative results recorded.
 - **v4.2.0 (2026-09-30)** — batch recursion; GitHub README landing page; gate layer-3 distribution verification.
