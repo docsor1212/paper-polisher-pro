@@ -98,7 +98,14 @@ def main():
     tok_p = CACHE_MODEL / "tokenizer.json"
     model_ok = onnx_p.exists() and tok_p.exists()
     sup_live = None
+    model_fp = ""
     if model_ok:
+        import hashlib
+        h = hashlib.md5()
+        with open(onnx_p, "rb") as fh:
+            for chunk in iter(lambda: fh.read(1 << 22), b""):
+                h.update(chunk)
+        model_fp = h.hexdigest()[:12]
         os.chdir(str(SCRIPTS))
         try:
             sys.path.insert(0, str(SCRIPTS))
@@ -107,7 +114,8 @@ def main():
         except Exception:
             sup_live = False
     chk("监督层模型在位", model_ok,
-        f"{CACHE_MODEL}" + ("" if model_ok else "（缺失——将运行纯规则+词频谱降级模式）"),
+        f"{CACHE_MODEL}" + (f"（md5:{model_fp}——与评测结果 JSON 的 model_fp 字段对账）" if model_ok
+                            else "（缺失——将运行纯规则+词频谱降级模式）"),
         required=False)
     if model_ok:
         chk("监督层可加载推理", sup_live is True, "layers_lm.supervised_layer 返回 None" if not sup_live else "")

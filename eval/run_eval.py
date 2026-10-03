@@ -37,6 +37,24 @@ def score_current(text):
 
 ENGINES = {"current": score_current}
 
+# 部署模型指纹: 缓存键必须绑定具体权重——换模型而键不变会让评测静默复用旧分
+# (2026-10-02 事故: v36 换模后 score_cache 全命中, "位级 0.9022" 实为 v35 陈旧分)。
+MODEL_FP = "unset"
+
+
+def _model_fp():
+    """部署监督模型 md5 前 12 位; 无模型(纯规则)返回 'rules'。"""
+    import hashlib
+    from layers_lm import DET_DIR
+    mp = os.path.join(DET_DIR, "model.int8.onnx")
+    if not os.path.isfile(mp):
+        return "rules"
+    h = hashlib.md5()
+    with open(mp, "rb") as f:
+        for chunk in iter(lambda: f.read(1 << 22), b""):
+            h.update(chunk)
+    return h.hexdigest()[:12]
+
 
 # ── 指标 ──
 def auroc(pairs):
@@ -88,7 +106,7 @@ def load(path):
 def evaluate(recs, engine, cache, tag):
     """打分（带缓存）并计算全部指标。"""
     for r in recs:
-        cid = "%s:%s" % (tag, r["id"])
+        cid = "%s:%s:%s" % (tag, MODEL_FP, r["id"])
         if cache.get(cid) is None:
             try:
                 v = engine(r["text"])
@@ -106,6 +124,7 @@ def evaluate(recs, engine, cache, tag):
     neg = [r["_score"] for r in base if r["label"] == 0]
 
     res = {"n": len(scored), "n_base": len(base),
+           "model_fp": MODEL_FP,
            "auroc": auroc([(r["_score"], r["label"]) for r in base])}
     for fpr in (0.01, 0.05):
         t = tpr_at_fpr(pos, neg, fpr)
@@ -173,6 +192,9 @@ def main():
                     help="test=只评留出半(诚实数字,频谱/权重未见过)")
     a = ap.parse_args()
 
+    global MODEL_FP
+    MODEL_FP = _model_fp()
+
     recs = load(a.corpus)
     if os.path.exists(a.attacks):
         recs += load(a.attacks)
@@ -233,7 +255,7 @@ def main():
     cache_path = os.path.join(RESULTS, "score_cache.json")
     cache = json.load(open(cache_path, encoding="utf-8")) if os.path.exists(cache_path) else {}
 
-    print("评测: engine=%s tag=%s 样本=%d ..." % (a.engine, a.tag, len(recs)))
+    print("评测: engine=%s tag=%s model_fp=%s 样本=%d ..." % (a.engine, a.tag, MODEL_FP, len(recs)))
     res = evaluate(recs, ENGINES[a.engine], cache, a.engine)
 
     json.dump(cache, open(cache_path, "w", encoding="utf-8"), ensure_ascii=False)

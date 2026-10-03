@@ -1,6 +1,6 @@
 ---
 name: paper-polisher
-version: 4.3.0
+version: 4.4.0
 author: DoctorQ Lab
 description: >-
   AI-rate self-check for academic writing, polish guidance (style, terminology, translation-smell),
@@ -43,18 +43,20 @@ This tool is for **authors self-reviewing and improving their own writing qualit
 | Attack "AI-assisted" recall | — | — | 71.1% | **86.6%** |
 | OOD plain-narrative/film recall | — | — | 1/6 | **5/6 supervised-only · 6/6 local fusion** |
 
-**Which column applies to you?** The base package runs the **v3.0 rules+spectrum engine** (0.9187 AUROC column, measured on the full held-out corpus; the bundled small-corpus regression measures 0.9022 — see `eval/results/v350_release.json`). The two right-hand columns require the optional local supervised model (see below). The engine tells you honestly which mode you are in: every report carries `degraded_mode` / `degraded_notice` when the supervised layer is absent or skipped.
+> **v4.4.0 fingerprint-bound re-measurement** of the shipping supervised model (md5 `2631df3d388b`): AUROC **0.9998** (test half, n_base=927), TPR@FPR1% 99.4%, human FPR@medium 2.3% — `eval/results/v35ctl_oldgen.json`. Columns above are preserved as version-era records (earlier model lineage; binaries were not fingerprinted before v4.4.0).
+
+**Which column applies to you?** The base package runs the **v3.0 rules+spectrum engine** (0.9187 AUROC column, measured on the full held-out corpus; pre-4.4.0 archived baselines predate fingerprint binding — every eval result since v4.4.0 carries the deployed model's md5 as `model_fp`, current bound numbers in `eval/results/v35ctl_*.json`). The two right-hand columns require the optional local supervised model (see below). The engine tells you honestly which mode you are in: every report carries `degraded_mode` / `degraded_notice` when the supervised layer is absent or skipped.
 
 ### Capability boundary matrix (read before trusting any detector)
 
 | Scenario | Behavior |
 |---|---|
-| Chinese academic prose, full stack | Best case (AUROC 1.0 held-out, human FPR 0.71%) |
+| Chinese academic prose, full stack | Best case (AUROC 0.9998 held-out, human FPR@medium 2.3% — v4.4.0 fingerprint-bound) |
 | Base package without model | Rules+spectrum (0.9187); **medical register over-scored** (rules-only human FPR @medium: ~59% medical vs ~2% general) → trust only @high verdicts on medical text |
 | English text | Language gating skips the Chinese-trained supervised layer by design; rules-only English skeleton, advisory only |
-| Mixed human+AI documents (document-level) | AUROC 0.38 — a principled limitation of document-level averaging; use `paragraph_report.py` attribution instead |
+| Mixed human+AI documents (document-level) | AUROC 0.52-0.54 (v4.4.0 re-measurement) — a principled limitation of document-level averaging; use `paragraph_report.py` attribution instead |
 | Edit-extent regression head | ρ=0.540 — reported as metadata, never used in verdicts |
-| **Current-generation models (2026-09 sampling)** | **AUROC 0.6542** on a 443-doc current-gen eval set (9 families incl. K3/K2.7/Qwen3.7-3.8/DS-V4/V4.1/GLM-5.3/M3) vs 0.9022 on the pre-2026 corpus — a quantified generation gap; supervised-layer retraining on fresh samples is the planned remedy
+| **Current-generation models (2026-09 sampling)** | **AUROC 0.9400** (v4.4.0 fingerprint-bound re-measurement, 443-doc current-gen eval set: 9 families incl. K3/K2.7/Qwen3.7-3.8/DS-V4/V4.1/GLM-5.3/M3) vs 0.9998 pre-2026 held-out — a modest verified gap. The earlier 0.6542-vs-0.9022 figure was a measurement artifact (stale score-cache replay + unverified model lineage); both classes are structurally prevented since v4.4.0 (`model_fp` in every result JSON)
 | Colloquial / oral-register text | The style layer is calibrated on academic prose; treat style scores as advisory outside that register |
 
 ## Safety and behavior statement
@@ -65,6 +67,13 @@ This tool is for **authors self-reviewing and improving their own writing qualit
 - **No remote code**: loads no remote models or scripts; the optional supervised model is placed by the user at a local path.
 - **Data boundary**: reads/writes only user-specified files, the system temp dir, and its own package data directories (calibration/freshness artifacts); reports go only where the user points them.
 - **Academic integrity**: see the section above — for author self-review and quality improvement with policy-compliant disclosure; not for evading detection.
+
+## What's new in v4.4.0
+
+- **Headline numbers re-measured under verified conditions — they changed**: pre-2026 held-out AUROC **0.9998** (was believed 0.9022) and current-generation AUROC **0.9400** (was believed 0.6542), human FPR@medium **2.3%** (was believed ~20%). The old figures were measurement artifacts: eval score-cache keys did not bind the model (stale scores replayed across releases) and the deployed model binary was never fingerprinted. Both failure modes are structurally impossible since v4.4.0: cache keys carry the model md5 (`model_fp` in every result JSON) and `pp_doctor` prints the model fingerprint for audit.
+- **Model rollout halted by the new data-hygiene audit (negative result, data-closed)**: the planned supervised-layer retrain (v36: 7187 prior rows + 285 fresh current-generation samples) was deployed and initially evaluated at near-perfect separation (old-gen 0.9994) — then rejected by our own new contamination audit: those 285 "fresh" samples had been drawn from the current-generation eval set itself (64.6% of gen2026 eval docs entered training, 154 of them from the held-out half). All v36 numbers are void; the shipped supervised model remains **v35** (fingerprint `2631df3d388b`, re-export verified; the contamination audit shows v35's training data shares only 1 held-out doc with the eval corpora, so its numbers are clean). An honest retrain needs a fresh sampling round (currently frozen); `eval/check_leak.py` now gates every future training run.
+- **Evaluation score cache binds the deployed model fingerprint**: `run_eval.py` cache keys now include the model md5 — swapping models can no longer silently replay stale scores (a 10-02 v36 eval reading "bit-identical 0.9022" was exactly this failure; the true v36 numbers surfaced only after the fix). Result JSONs carry `model_fp`.
+- **ONNX export self-test + ONNX thread budget**: export now runs variable-length inference assertions before a binary ships (a transformers 4.57.6 regression baked the dynamic axes into a static seq=150 graph — it now dies at export, not in production); `PP_ORT_THREADS` caps the ONNX thread pool (default auto) — on 56-vCPU hosts the unrestricted pool thrashed (24.9 s/doc → ~1 s/doc at 8 threads); `pp_doctor` prints the model md5 fingerprint for audit.
 
 ## What's new in v4.3.0
 
@@ -266,6 +275,7 @@ Monthly full pass: `python scripts/freshness_refresh.py` (schedule it with your 
 
 ## Version history (condensed)
 
+- **v4.4.0 (2026-10-03)** — measurement-integrity release: verified re-baseline (held-out 0.9998 / current-gen 0.9400 / human FPR@med 2.3%, superseding 0.9022/0.6542 artifacts); eval cache keys bind model md5; contamination audit (eval/check_leak.py) halts the v36 retrain (285 eval-set samples had leaked into training); ONNX export self-test; PP_ORT_THREADS; pp_doctor fingerprint; smoke degradation checks made mode-aware.
 - **v4.3.0 (2026-10-01)** — generation-split eval infrastructure; first quantified generation-gap numbers (0.9022 vs 0.6542); spectrum/L13 current-gen negative results recorded.
 - **v4.2.0 (2026-09-30)** — batch recursion; GitHub README landing page; gate layer-3 distribution verification.
 - **v4.1.0 (2026-09-29)** — smoothness layer fused into the score (A/B-verified zero regression); batch CSV; paragraph report disclosures.

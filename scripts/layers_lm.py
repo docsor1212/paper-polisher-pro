@@ -167,6 +167,12 @@ def _load():
     try:
         import onnxruntime
         so = onnxruntime.SessionOptions()
+        # PP_ORT_THREADS: 大核机器(≥32 vCPU)上默认吃满所有核会线程互踩,
+        # 实测 56 vCPU 默认=24.9s/篇 vs 限 8 线程≈1-2s/篇; 0=自动(默认, 用户小核机不变)
+        _t = int(os.environ.get("PP_ORT_THREADS", "0") or 0)
+        if _t > 0:
+            so.intra_op_num_threads = _t
+            so.inter_op_num_threads = 1
         _sess = onnxruntime.InferenceSession(mp, so, providers=["CPUExecutionProvider"])
         _tok = QwenBPE(tp)
         return True

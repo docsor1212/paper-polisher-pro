@@ -232,8 +232,17 @@ rc2, r2, _ = detect_json(ZH_HUMAN)
 chk("长文本 JSON 可解析", rc1 == 0 and r1 and isinstance(r1.get("overall_ai_score"), (int, float)))
 chk("确定性(两次同分)", rc1 == rc2 == 0 and r1["overall_ai_score"] == r2["overall_ai_score"],
     f"{r1 and r1.get('overall_ai_score')} vs {r2 and r2.get('overall_ai_score')}")
-chk("降级披露字段在位", r1 and r1.get("degraded_mode") is True and bool(r1.get("degraded_notice")))
-chk("降级警示含医学语域数字", r1 and "59" in r1["degraded_notice"])
+# v4.4.0: 模式感知——模型在位时默认态=完整模式(坏图时代的全绿恰恰因为模型死了, smoke 自己失明)
+_sup_full = bool(r1 and r1.get("supervised"))
+chk("降级披露一致性(模式与监督层在位互洽)", r1 and isinstance(r1.get("degraded_mode"), bool)
+    and bool(r1.get("degraded_notice")) == r1["degraded_mode"]
+    and r1["degraded_mode"] == (not _sup_full),
+    f"degraded_mode={r1 and r1.get('degraded_mode')} supervised={'有' if _sup_full else '无'}")
+# 降级警示文本: 用 PP_NO_SUP=1 强制降级态验证(与模型是否在位无关)
+rc1d, r1d, _ = detect_json(ZH_HUMAN, env_extra={"PP_NO_SUP": "1"})
+chk("降级警示含医学语域数字", rc1d == 0 and r1d and r1d.get("degraded_mode") is True
+    and "59" in (r1d.get("degraded_notice") or ""),
+    f"notice={r1d and (r1d.get('degraded_notice') or '')[:60]}")
 chk("学术诚信护栏(integrity_notice)", bool(r1.get("integrity_notice")) and "披露" in r1["integrity_notice"] + r1.get("details", ""))
 
 # v3.8: 混写预警/语域提示/编码警示探针
@@ -285,8 +294,9 @@ chk("CH 面禁词表(朱雀/GPTZero/Turnitin/humanize/evade短语)", not _hits, 
 chk("接口兼容: overall_ai_score 字段(管线依赖)", r1 and "overall_ai_score" in r1 and "supervised" in r1)
 
 rc3, r3, _ = detect_json(ZH_HUMAN, env_extra={"PP_NO_SUP": "1"})
-chk("PP_NO_SUP 矩阵: rc=0 且分数可复现", rc3 == 0 and r3 and r3["overall_ai_score"] == r1["overall_ai_score"],
-    f"no_sup={r3 and r3.get('overall_ai_score')} vs default={r1 and r1.get('overall_ai_score')}")
+chk("PP_NO_SUP 矩阵: rc=0 且与强制降级态同分(可复现)", rc3 == 0 and r3 and r1d and
+    r3["overall_ai_score"] == r1d["overall_ai_score"],
+    f"no_sup={r3 and r3.get('overall_ai_score')} vs forced={r1d and r1d.get('overall_ai_score')}")
 
 # v3.5 补: 中文 Windows GBK 环境矩阵(默认 zh-CN 控制台, 多专家对抗测试发现的 P0 回归防护)
 _gbk_f = tmpfile(ZH_HUMAN)
