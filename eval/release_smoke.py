@@ -99,7 +99,11 @@ desc_md = " ".join(x.strip() for x in re.search(r"description: >-?\n((?:  .+\n)+
 chk("EN description ≤1024 字符", len(desc_md) <= 1024, f"{len(desc_md)}")
 chk("ZH description ≤1024 字符",
     len(" ".join(x.strip() for x in re.search(r"description: >-?\n((?:  .+\n)+)", skill_zh).group(1).splitlines())) <= 1024)
-chk("frontmatter 键数 ≤5", all(len(re.findall(r"^(\w+):", fm, re.M)) <= 5 for fm in (fm_md, fm_zh)))
+# v4.6.0: ZH frontmatter 增 metadata.displayName（10-05 全家族搜索审计任务要求, SH 页面一致性同步点）——EN 仍 ≤5
+_k_en = len(re.findall(r"^(\w+):", fm_md, re.M))
+_k_zh = len(re.findall(r"^(\w+):", fm_zh, re.M))
+chk("frontmatter 键数（EN ≤5; ZH 含 metadata.displayName ≤6）", _k_en <= 5 and _k_zh <= 6,
+    f"EN={_k_en} ZH={_k_zh}")
 _BANNED = ["全部100%检出", "10个模型测试", "100% detection rate", "detection rate: 100"]
 def _banned_outside_quote(doc):
     # 旧宣称允许出现在"已删除/removed"引述行(铁律原文), 除此之外零容忍
@@ -441,6 +445,19 @@ try:
     chk("SDK smell_report JSON 可序列化（含命中）", _sr.get("total_hits", 0) >= 1
         and isinstance(_sr["hits"][0], dict),
         f"total_hits={_sr.get('total_hits')}")
+    # v4.6.0: 端到端 workflow
+    _wf = _API.workflow(ZH_HUMAN, lang="zh")
+    _json_f.dumps(_wf)
+    _need = ("detect", "paragraphs", "gate", "terms", "smell", "style", "quality", "aigc_label")
+    chk("SDK workflow 全键+JSON 可序列化", all(k in _wf for k in _need)
+        and _wf["detect"].get("overall_ai_score") is not None
+        and _wf["paragraphs"].get("total", 0) >= 1,
+        f"keys={sorted(_wf)}")
+    # 终审 NO-GO 修复回归: MD 报告质量报告节必须非空（键名错配曾致恒空）
+    import pp_workflow as _PWf
+    _md = _PWf.to_markdown(_wf)
+    _sec6 = _md.split("## 6. 质量报告")[-1].split("##")[0].strip()
+    chk("workflow MD 质量报告节非空", len(_sec6) > 20, f"sec6len={len(_sec6)}")
 except Exception as _e:
     chk("SDK import + detect_text 出分", False, f"exception: {_e}")
 

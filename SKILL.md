@@ -1,6 +1,6 @@
 ---
 name: paper-polisher
-version: 4.5.0
+version: 4.6.0
 author: DoctorQ Lab
 description: >-
   AI-rate self-check for academic writing, polish guidance (style, terminology, translation-smell),
@@ -26,6 +26,14 @@ AI writing detection (AI-rate self-check for authors) · academic polishing guid
 > 2. **No verdict on short text.** Texts under 100 characters get `risk=unknown` (community lesson: short-text false positives are uncontrollable).
 > 3. **Fingerprints attribute, never score.** (Measured 2026-08-15: injecting fingerprints into the detector doubled human false positives.)
 > 4. **Calibration/evaluation separation.** Spectrum, weights and thresholds are built on the calib half only; the test half is reserved for final evaluation (an in-sample AUROC of 0.9972 collapsed to a real 0.9187 once split).
+
+## TL;DR
+
+- **What**: 100% local AI-rate self-check + academic polishing toolkit for Chinese academic text (optional supervised model for best accuracy; English gets advisory rules-only scores).
+- **30-second start**: `python3 scripts/ai_detector.py draft.txt --format json` · full self-check report: `python3 scripts/pp_workflow.py draft.txt` · environment: `python3 scripts/pp_doctor.py`
+- **Measured** (held-out, fingerprint-bound md5 2631df3d388b): AUROC 0.9998 pre-2026 / 0.9400 current-generation; human FPR@medium 2.3%.
+- **Know the limits**: texts <100 chars get `risk=unknown` by design · medical text in degraded mode is over-scored · authors' self-check only — never for evading institutional AI detection.
+- **Where to look next**: capability boundary matrix below · end-to-end example in § Quick start · FAQ near the end · full history in `CHANGELOG.md`.
 
 ## Academic integrity
 
@@ -68,92 +76,20 @@ This tool is for **authors self-reviewing and improving their own writing qualit
 - **Data boundary**: reads/writes only user-specified files, the system temp dir, and its own package data directories (calibration/freshness artifacts); reports go only where the user points them.
 - **Academic integrity**: see the section above — for author self-review and quality improvement with policy-compliant disclosure; not for evading detection.
 
-## What's new in v4.5.0
+## What's new in v4.6.0
 
-- **Python API (`scripts/pp_api.py`)**: the engine is now importable. `detect_text(text)` runs the full detector in-process (same code path as the CLI — parity-checked) and returns a plain JSON-able dict; helpers cover the rest of the toolkit: `gate_text`, `term_report`, `smell_report`, `style_report`, `quality_report_file`, `attribution`, `model_fingerprint`, `doctor_summary`. Zero network, zero third-party dependencies, exceptions instead of silent failures. Programmatic integration no longer requires wrapping subprocess calls.
-- **One-command supervised setup (`scripts/pp_setup.py`)**: `--model <file>` replaces manual multi-step model placement. The file's md5 is checked against the author-signed fingerprint registry (`references/supervised_models.json`) — unknown weights are rejected (exit 2) — then the model is installed, inference-canaried, and confirmed GREEN; `--check` shows current status. The model still never ships inside the package and nothing is ever downloaded (the 100%-local contract is intact).
+- **End-to-end workflow (`scripts/pp_workflow.py` / `pp_api.workflow()`)**: one command runs the full self-check — AI-rate detection, paragraph-level attribution, 4-layer gate, terminology, translation-smell, style, quality report, AIGC label self-check — and writes a single Markdown report plus the full JSON. Worked example in § Quick start.
+- **TL;DR layer & docs restructure**: a 30-second orientation section now sits at the top; historical release notes moved to `CHANGELOG.md`; anti-pattern guidance is consolidated in one section; the English FAQ is now on par with the Chinese one.
+- **Cleaner eval archive & actionable errors**: superseded eval artifacts moved to `eval/results/archive/`; pp_api/pp_setup errors now carry recovery hints.
 
-## What's new in v4.4.0
+## Anti-patterns (avoid these)
 
-- **Headline numbers re-measured under verified conditions — they changed**: pre-2026 held-out AUROC **0.9998** (was believed 0.9022) and current-generation AUROC **0.9400** (was believed 0.6542), human FPR@medium **2.3%** (was believed ~20%). The old figures were measurement artifacts: eval score-cache keys did not bind the model (stale scores replayed across releases) and the deployed model binary was never fingerprinted. Both failure modes are structurally impossible since v4.4.0: cache keys carry the model md5 (`model_fp` in every result JSON) and `pp_doctor` prints the model fingerprint for audit.
-- **Model rollout halted by the new data-hygiene audit (negative result, data-closed)**: the planned supervised-layer retrain (v36: 7187 prior rows + 285 fresh current-generation samples) was deployed and initially evaluated at near-perfect separation (old-gen 0.9994) — then rejected by our own new contamination audit: those 285 "fresh" samples had been drawn from the current-generation eval set itself (64.6% of gen2026 eval docs entered training, 154 of them from the held-out half). All v36 numbers are void; the shipped supervised model remains **v35** (fingerprint `2631df3d388b`, re-export verified; the contamination audit shows v35's training data shares only 1 held-out doc with the eval corpora, so its numbers are clean). An honest retrain needs a fresh sampling round (currently frozen); `eval/check_leak.py` now gates every future training run.
-- **Evaluation score cache binds the deployed model fingerprint**: `run_eval.py` cache keys now include the model md5 — swapping models can no longer silently replay stale scores (a 10-02 v36 eval reading "bit-identical 0.9022" was exactly this failure; the true v36 numbers surfaced only after the fix). Result JSONs carry `model_fp`.
-- **ONNX export self-test + ONNX thread budget**: export now runs variable-length inference assertions before a binary ships (a transformers 4.57.6 regression baked the dynamic axes into a static seq=150 graph — it now dies at export, not in production); `PP_ORT_THREADS` caps the ONNX thread pool (default auto) — on 56-vCPU hosts the unrestricted pool thrashed (24.9 s/doc → ~1 s/doc at 8 threads); `pp_doctor` prints the model md5 fingerprint for audit.
-
-## What's new in v4.3.0
-
-- **Generation-split evaluation (infrastructure + first numbers)**: a 443-doc current-generation eval set (312 fresh AI samples from 9 families + 131 held-out human docs) now ships in `eval/corpora_small/eval_gen2026.jsonl`; `run_eval.py --layer` fixed. First quantified generational breakdown: pre-2026 corpus AUROC 0.9022 vs current-gen 0.6542 — the generation gap is now measured, not assumed.
-- **Negative results ×2, data-closed**: spectrum v2 blend and the L13 surprisal signal both show no current-gen gains (bit-identical and 0.32 respectively) — the remaining remedy is supervised-layer retraining on fresh samples (planned).
-
-## What's new in v4.2.0
-
-- **Batch recursion**: `--batch DIR --recursive` walks subdirectories; per-file paths are reported relative to the root.
-- **GitHub README**: the repository landing page now carries the tool description, quick start, family table, and compliance statement (agents discovering via `skills add` see the full picture).
-- **Gate layer-3 distribution check**: post-revival verdict distribution verified on 40 held-out documents — zero parse failures, no systematic band shift (data archived).
-
-## What's new in v4.1.0
-
-- **Smoothness layer fused into the score (A/B-verified)**: the L13 surprisal-variation signal (0.06 weight in all length bands) is now part of the fusion. Held-out A/B: **AUROC bit-identical to baseline (0.9022), human FP unchanged** — the signal has real influence on current-generation text where it fires, at zero measured cost on the evaluation corpus.
-- **Batch CSV output**: `--batch DIR --csv PATH` writes per-file results as CSV (Excel-friendly UTF-8 BOM).
-- **Paragraph report disclosures**: the HTML attribution report now carries mixed-register warnings, register hints, and encoding warnings — consistent with the JSON report.
-
-## What's new in v4.0.0
-
-- **Cross-references**: reports and docs now include next-step pointers to adjacent tools (citation verification, deep research, figures) with the arXiv hallucinated-citation policy note.
-- **Word-root coverage**: description now carries the full task-language root set (academic writing / polish / batch rewriting guidance / terminology) for search discoverability.
-- **Family section cleanup**: docsor.cn placed after the member list; list continuity fixed (EN/ZH).
-
-## What's new in v3.12.0
-
-- **Translation-smell layer revived in the gate (substantive fix)**: deai_gate's layer-3 parser expected a `hits[]` array while `translation_smell_check --json` emitted only `total_hits` — the layer had been silently neutral (fallback 50) since the schema drifted. Schema aligned; the layer now genuinely contributes to the fused score.
-- **Integrity notice on every report**: term_check / quality_report / style_distance / translation_smell outputs now carry the same academic-integrity notice as ai_detector/deai_gate — the "every report" claim is now literally true.
-- **Paragraph-count consistency**: quality_report now counts paragraphs with the same whitespace/short-segment filtering as ai_detector (trailing-newline mismatch fixed).
-- Negative results recorded: spectrum v2 blend (fresh-generation 0.15 mix) produced a bit-identical held-out AUROC — not adopted; L13 mid-length (300-800 chars) extension evaluated and declined (human-side evaluable sample too small, FPR 2/10 at threshold).
-## What's new in v3.11.0
-
-- **Batch detection (`--batch DIR`)**: score every `.txt`/`.md` file in a directory in one run — per-file scores, aggregate stats (mean/max/high-risk count), deterministic, files >5 MB skipped. Built for thesis-scale self-review.
-- **Paragraph report consistency**: the HTML attribution report now carries the same academic-integrity notice as the CLI reports.
-- **Negative result, honestly recorded**: cross-family tier-2 n-gram mining over 285 fresh samples yielded nothing beyond topic-word noise after guards (the two real markers were already registered) — pattern-recall expansion via n-grams has hit its ceiling, consistent with the v3.0 recalibration. Fingerprint registrations this cycle: none qualified (quality gate held).
-
-
-## What's new in v3.10.0
-
-- **Fingerprint freshness phase 3 (current-generation coverage)**: 135 fresh samples across four model families (kimi-k2.7 / minimax-m3 / deepseek-v4.1 / glm-5.3) via the OpenCode Go channel; **kimi-k2.7 registered** (zero-FP pattern, Kimi-family attribution verified), contaminated candidates (topic words, cross-family markers) rolled back per quality gate, glm-5.3 refreshed with no new patterns. Registry: 13 families. Quality over quantity — every registration is attribution-verified.
-
-## What's new in v3.9.0
-
-- **Discourse smoothness disclosure (L13, DivEye-inspired)**: a new surprisal-variation layer measures how uniformly word choice varies across sliding windows — AI generation tends to be smooth, human writing uneven. Held-out long-document stats: AUROC 0.8256 as a standalone signal, detection 66/146 at threshold 6, human false-positive 1/14. **By the reproducible-numbers iron law it is NOT fused into the score** (single-layer SNR insufficient); it appears as an evidence line in reports (`layers_surface.surprisal_variation_layer`, with a spectrum-coverage guard at 0.35 and an evidence discount for low-coverage text).
-- **Layer evaluation mode**: `python eval/run_eval.py --layer surprisal --split test` gives any report layer a reproducible AUROC/detection/FPR card (results saved to `eval/results/layer_*.json`) — the framework that let us measure L13 honestly instead of shipping it fused on faith.
-
-## What's new in v3.8.0
-
-- **Mixed-register signal (`mixed_signal`)**: when paragraph scores diverge sharply, reports now say so explicitly ("document may combine human and AI writing; document-level score unreliable") and point to `paragraph_report.py` — turning the documented mixed-document limitation (AUROC 0.38 document-level) into an in-engine guardrail (aligned with the field's move to three-class human/AI/mixed evaluation and bidirectional paraphrase benchmarks).
-- **Register hint (`register_hint`)**: colloquial/narrative features in Chinese text trigger an advisory that scores are calibrated on academic prose.
-- **Encoding warning (`encoding_warning`)**: many undecodable bytes (GBK/binary) trigger a distortion warning.
-- **Gate layer-divergence disclosure**: deai_gate reports when the word layer and style layer disagree sharply (≥30), a pattern seen in deliberate style-imitation rewrites and register mixing.
-- **Safety and behavior statement**: self-verifiable local-only / no-upload / no-credential / no-persistence commitments (aligned with platform review trends).
-- **Fingerprint freshness second pass**: qwen3.8 balanced sampling (35 docs) yielded no low-FP patterns — honestly not registered (same as deepseek-v4); kimi-k3 registration stands.
-
-## What's new in v3.7.0
-
-- **Discourse-structure heuristic layer (L12)**: detects social-media-style document-level AI patterns — hook ("先看一个场景"/"imagine…") + reversal ("不是X，是Y") + slogan ("把这句话记住"/"划重点") + engagement bait / parallelism / self-Q&A / spoken-word closing / emotional intensifiers — eight pattern groups; ≥2 distinct groups add a density-scaled bump (8×groups + hits capped at 8, total cap 30); single-group hits are recorded without scoring (zero false-positive impact on academic prose). Fixes a sentence-layer blind spot: pure discourse-pattern text previously scored 21-32/low (AgentOps LES-20260923-021); held-out academic regression bit-identical (AUROC 0.9022, zero false positives).
-- **FAQ section (evaluation-driven: C dimension "lacks a centralized FAQ")**: ten high-frequency questions — short-text policy, medical-register over-scoring, supervised-layer install/verification, degraded_mode semantics, non-interchangeability with CNKI/Wanfang, layer-failure fallback, edit_extent scope, English support boundary, label-check usage.
-- **Script cheat sheet (C: "per-script usage could be more detailed")**: purpose/flags/output for all eight entry points in one table.
-- **Clearer edge-case errors (R)**: style_distance now explains *why* no style score was produced (no sentence boundaries / no body paragraphs) instead of a generic "too short".
-
-## What's new in v3.6.0
-
-- **Academic-integrity guardrails**: every report now carries an explicit `integrity_notice` field/line; new "Academic integrity" section; positioning stated plainly — author self-review and writing quality, compliance with disclosure rules, not detector evasion.
-- **Positioning clarified**: documentation wording aligned to the quality-framed scope (detection and revision guidance stay; no detector-evasion framing).
-
-## What's new in v3.5.0
-
-- **Degraded-mode disclosure**: `ai_detector.py` now reports `degraded_mode` + `degraded_notice` (JSON and text) whenever the supervised layer is absent, disabled (`PP_NO_SUP=1`), or skipped by language gating — including the medical-register over-score warning with the actual held-out numbers.
-- **Iron law #2 enforced**: texts under 100 characters now return `risk=unknown` with an explicit no-verdict notice (previously documented but not implemented; short texts also show as "cannot judge" in `quality_report.py` instead of a misleading green).
-- **`scripts/pp_doctor.py`**: one-command environment self-check — data integrity, script compilation, optional deps, model presence, supervised-layer loadability, short-text/long-text/determinism probes, deai_gate guard. Exit 0 = green.
-- **`deai_gate.py` usage guard + closed fallback loop**: `--help` / missing file no longer run the gate on a bogus filename; layer timeouts are caught (neutral 50); a failed smell layer now falls back to a neutral 50 instead of 0, and a failed terminology layer no longer dumps tracebacks into notes.
-- **Chinese-Windows encoding hardening**: every entry point forces UTF-8 stdout/stderr and tolerates non-UTF-8 (e.g. GBK) input files — no more crashes on default zh-CN consoles (found by adversarial multi-expert testing).
-- Docs rebuilt in honest dual-language form (this file + SKILL_ZH.md); trigger words expanded (AI率 / 查AI率 / AIGC 检测 …).
+- **Don't feed <100 chars** and expect a verdict — `risk=unknown` is by design (short-text false positives are uncontrollable); 300+ chars recommended.
+- **Don't trust degraded-mode scores on medical text** — rules-only over-scores medical register (~59% human FPR @medium); install the supervised model or trust only `@high`.
+- **Don't treat scores as CNKI/Wanfang equivalents** — thresholds are calibrated on our own held-out corpus; self-check only.
+- **Don't substitute or re-quantize the model file** — measured probability drift; only author-signed fingerprints pass `pp_setup.py`.
+- **Don't use it to evade institutional AI detection** — the integrity notice ships on every report; disclose per your institution's policy.
+- **Don't run batch on >5 MB files** — skipped by design; split first.
 
 ## Architecture (v3)
 
@@ -231,6 +167,17 @@ python3 scripts/pp_setup.py --check                              # current insta
 
 Only author-signed fingerprints (`references/supervised_models.json`) are accepted; unknown weights are rejected before anything is touched. Nothing is downloaded — the model always comes from the authors' channel as a local file.
 
+### End-to-end workflow (one command)
+
+```bash
+python3 scripts/pp_workflow.py draft.txt      # writes draft.workflow.md + draft.workflow.json
+```
+
+Runs the full self-check in one pass — AI-rate detection (fused engine), paragraph-level
+attribution with hi/med/lo classification, the 4-layer gate, terminology, translation-smell,
+style, quality report and AIGC label self-check — and produces a single readable Markdown
+report plus machine-readable JSON. Programmatic: `from pp_api import workflow`.
+
 ## FAQ
 
 **Q: Why no risk verdict for texts under 100 characters?**
@@ -300,6 +247,7 @@ Monthly full pass: `python scripts/freshness_refresh.py` (schedule it with your 
 
 ## Version history (condensed)
 
+- **v4.6.0 (2026-10-05)** — onboarding release: end-to-end workflow command (pp_workflow.py / pp_api.workflow); TL;DR layer; historical notes moved to CHANGELOG.md; consolidated anti-patterns section; eval archive cleanup; recovery hints in SDK errors.
 - **v4.5.0 (2026-10-04)** — programmable-interface release: pp_api.py SDK (in-process detect + 8 helpers, zero network, JSON dicts) and pp_setup.py one-command model installation with the author-signed fingerprint registry; targets the two lowest official-evaluation dimensions (trigger/usability).
 - **v4.4.0 (2026-10-03)** — measurement-integrity release: verified re-baseline (held-out 0.9998 / current-gen 0.9400 / human FPR@med 2.3%, superseding 0.9022/0.6542 artifacts); eval cache keys bind model md5; contamination audit (eval/check_leak.py) halts the v36 retrain (285 eval-set samples had leaked into training); ONNX export self-test; PP_ORT_THREADS; pp_doctor fingerprint; smoke degradation checks made mode-aware.
 - **v4.3.0 (2026-10-01)** — generation-split eval infrastructure; first quantified generation-gap numbers (0.9022 vs 0.6542); spectrum/L13 current-gen negative results recorded.

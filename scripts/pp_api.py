@@ -17,6 +17,8 @@
     g = gate_text("待门禁文本。" * 30)      # 四层降AI门禁
     d = doctor_summary()                     # 环境自检摘要（引擎档位/模型指纹）
 """
+import contextlib
+import io
 import json
 import os
 import sys
@@ -31,7 +33,7 @@ if str(HERE) not in sys.path:
 __all__ = [
     "engine_version", "model_fingerprint", "detect_text", "detect_file",
     "gate_text", "term_report", "smell_report", "style_report",
-    "quality_report_file", "attribution", "doctor_summary",
+    "quality_report_file", "attribution", "doctor_summary", "workflow",
 ]
 
 
@@ -80,7 +82,8 @@ def detect_text(text: str, lang: str = "auto") -> dict:
     except ValueError:
         raise
     except Exception as e:
-        raise RuntimeError("detect 失败: %s" % e) from e
+        raise RuntimeError("detect 失败: %s（恢复建议: python3 scripts/pp_doctor.py 环境自检；"
+                           "监督层异常可 PP_NO_SUP=1 走纯规则档，或 pp_setup.py --check 查装模）" % e) from e
 
 
 def detect_file(path: str) -> dict:
@@ -106,7 +109,8 @@ def gate_text(text: str) -> dict:
     try:
         with os.fdopen(fd, "w", encoding="utf-8") as f:
             f.write(text)
-        return deai_gate.gate(tmp, json_out=True)
+        with contextlib.redirect_stdout(io.StringIO()):  # v4.6.0: 吞掉子层 print，SDK 只返回值
+            return deai_gate.gate(tmp, json_out=True)
     except Exception as e:
         raise RuntimeError("gate 失败: %s" % e) from e
     finally:
@@ -142,7 +146,8 @@ def style_report(text: str) -> dict:
         raise ValueError("text 必须是非空字符串")
     import style_distance
     try:
-        return _asdict(style_distance.style_distance(text))
+        with contextlib.redirect_stdout(io.StringIO()):  # v4.6.0: 吞掉 CLI print
+            return _asdict(style_distance.style_distance(text))
     except Exception as e:
         raise RuntimeError("style_distance 失败: %s" % e) from e
 
@@ -168,6 +173,21 @@ def attribution(text: str, topn: int = 3) -> list:
         return _asdict(ai_detector.attribute_model(text, topn=topn))
     except Exception as e:
         raise RuntimeError("attribution 失败: %s" % e) from e
+
+
+def workflow(text: str, lang: str = "auto") -> dict:
+    """端到端自查工作流：检测+段落归因+门禁+术语+翻译腔+文体+质量+AIGC 标识，
+    一次调用返回综合 dict。落盘版见 scripts/pp_workflow.py（JSON+Markdown）。"""
+    if not isinstance(text, str) or not text.strip():
+        raise ValueError("text 必须是非空字符串")
+    import pp_workflow
+    try:
+        return pp_workflow.workflow(text, lang=lang)
+    except ValueError:
+        raise
+    except Exception as e:
+        raise RuntimeError("workflow 失败: %s（恢复建议: 先单独跑 ai_detector.py 确认引擎，"
+                           "再逐项 pp_api.detect_text/term_report 定位失败子检查）" % e) from e
 
 
 def doctor_summary() -> dict:
