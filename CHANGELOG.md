@@ -90,6 +90,12 @@
 - Docs rebuilt in honest dual-language form (this file + SKILL_ZH.md); trigger words expanded (AI率 / 查AI率 / AIGC 检测 …).
 
 
+## What's new in v4.6.0
+
+- **End-to-end workflow (`scripts/pp_workflow.py` / `pp_api.workflow()`)**: one command runs the full self-check — AI-rate detection, paragraph-level attribution, 4-layer gate, terminology, translation-smell, style, quality report, AIGC label self-check — and writes a single Markdown report plus the full JSON. Worked example in § Quick start.
+- **TL;DR layer & docs restructure**: a 30-second orientation section now sits at the top; historical release notes moved to `CHANGELOG.md`; anti-pattern guidance is consolidated in one section; the English FAQ is now on par with the Chinese one.
+- **Cleaner eval archive & actionable errors**: superseded eval artifacts moved to `eval/results/archive/`; pp_api/pp_setup errors now carry recovery hints.
+
 ---
 
 # 更新日志（中文）
@@ -182,4 +188,12 @@
 - **`deai_gate.py` 用法守卫与兜底闭环**：`--help`/缺失文件不再被当成文件名误跑门禁；层超时被捕获（中性 50）；翻译腔层解析失败改走中性 50 分而非 0 分（不再把垃圾输入推向 pass 带）；术语层失败不再把 Traceback 塞进 note。
 - **中文 Windows 编码加固**：全部入口强制 UTF-8 输出并容错非 UTF-8（如 GBK）输入文件——zh-CN 默认控制台不再崩溃（多专家对抗测试发现）。
 - 双语文档按诚实口径重建；触发词扩容（AI率/降AI/查AI率/论文AI率/降低AI率…）。
+
+
+## v4.6.0 更新内容
+
+- **端到端工作流（`scripts/pp_workflow.py` / `pp_api.workflow()`）**：一条命令跑完全部自查——AI 率检测、段落级归因、四层门禁、术语保护、翻译腔、文体、质量报告、AIGC 标识自查——产出单一 Markdown 报告+完整 JSON。示例见 § 快速开始。
+- **TL;DR 层与文档重构**：顶部新增 30 秒上手层；历史更新说明迁至 `CHANGELOG.md`；反模式集中成节；英文 FAQ 对齐中文版。
+- **评测存档整理与错误可行动化**：过时评测产物移入 `eval/results/archive/`；pp_api/pp_setup 错误信息附带恢复建议。
+
 

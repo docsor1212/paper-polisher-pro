@@ -23,6 +23,8 @@ from datetime import datetime
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
+GITHUB_URL = "https://github.com/docsor1212/paper-polisher-pro"
+SH_URL = "https://skillhub.cn/skills/indiv-sorsor/paper-polisher-pro"
 if str(HERE) not in sys.path:
     sys.path.insert(0, str(HERE))
 
@@ -66,6 +68,21 @@ def workflow(text: str, lang: str = "auto") -> dict:
     result["paragraphs"] = {"thresholds": {"medium": round(tm, 1), "high": round(th, 1)},
                             "total": len(rows), "high": n_hi, "medium": n_med,
                             "items": rows}
+
+    # 2b) 混写文档评估（v4.7.0）：段落双峰或引擎混写预警 → 给出段落级定位结论
+    n_lo = len(rows) - n_hi - n_med
+    mixed_detected = bool(getattr(rep, "mixed_signal", False)) or (len(rows) >= 3 and n_hi > 0 and n_lo > 0)
+    result["mixed_document"] = {
+        "detected": mixed_detected,
+        "hi": n_hi, "medium": n_med, "low": n_lo,
+        "ai_paragraph_fraction_est": round((n_hi + 0.5 * n_med) / max(len(rows), 1), 2),
+        "measured": {"document_level_auroc": "0.52-0.54",
+                     "paragraph_level_auroc": 0.6883,
+                     "source": "eval/results/mixed_para_20261005.json (n=54 docs/333 paras, model_fp 2631df3d388b)"},
+        "guidance": ("文档级分数不可单独采信（混写会稀释/顶起文档级均分，实测文档级 AUROC 0.52-0.54）；"
+                     "上方段落级排序可用于人工复核定位（实测段落级 AUROC 0.69，triage 质量而非自动判定）。")
+        if mixed_detected else "",
+    }
 
     # 3) 四层门禁
     result["gate"] = pp_api.gate_text(text)
@@ -113,6 +130,14 @@ def to_markdown(r: dict) -> str:
             p["thresholds"]["medium"], p["thresholds"]["high"], p["high"], p["medium"], p["total"]),
         "",
     ]
+    mx = r.get("mixed_document") or {}
+    if mx.get("detected"):
+        lines += [
+            "> ⚠️ **混写文档**（疑似人机混写：高/低分段并存或引擎混写预警）",
+            "> 估计 AI 段占比 ≈ %s ｜ 文档级 AUROC 0.52-0.54（原理性弱）｜ 段落级 AUROC 0.69（可用于定位，非自动判定）" % mx.get("ai_paragraph_fraction_est"),
+            "> 以下为高分/中风险段，建议逐段人工复核：",
+            "",
+        ]
     for it in p["items"]:
         if it["class"] != "lo":
             lines.append("- 段%d [%s %.0f] %s…" % (it["index"], it["class"], it["score"], it["excerpt"]))
@@ -151,6 +176,9 @@ def to_markdown(r: dict) -> str:
         "",
         "---",
         "逐项完整数据见同名 .workflow.json。",
+        "",
+        "> 本文档由 Paper Polisher Pro 生成（[GitHub](https://github.com/docsor1212/paper-polisher-pro) · "
+        "[SkillHub](https://skillhub.cn/skills/indiv-sorsor/paper-polisher-pro)）· 觉得有用欢迎 Star / 收藏",
     ]
     return "\n".join(lines)
 

@@ -1,6 +1,6 @@
 ---
 name: paper-polisher
-version: 4.6.0
+version: 4.7.0
 author: DoctorQ Lab
 description: >-
   AI-rate self-check for academic writing, polish guidance (style, terminology, translation-smell),
@@ -62,7 +62,7 @@ This tool is for **authors self-reviewing and improving their own writing qualit
 | Chinese academic prose, full stack | Best case (AUROC 0.9998 held-out, human FPR@medium 2.3% — v4.4.0 fingerprint-bound) |
 | Base package without model | Rules+spectrum (0.9187); **medical register over-scored** (rules-only human FPR @medium: ~59% medical vs ~2% general) → trust only @high verdicts on medical text |
 | English text | Language gating skips the Chinese-trained supervised layer by design; rules-only English skeleton, advisory only |
-| Mixed human+AI documents (document-level) | AUROC 0.52-0.54 (v4.4.0 re-measurement) — a principled limitation of document-level averaging; use `paragraph_report.py` attribution instead |
+| Mixed human+AI documents | Document-level AUROC 0.52-0.54 (inherent averaging limitation); **paragraph-level AUROC 0.69** (controlled 54-doc benchmark with per-paragraph ground truth, `eval/results/mixed_para_20261005.json`) — use `pp_workflow.py`/`paragraph_report.py` to locate suspect paragraphs for human review (triage-quality, not auto-verdict) |
 | Edit-extent regression head | ρ=0.540 — reported as metadata, never used in verdicts |
 | **Current-generation models (2026-09 sampling)** | **AUROC 0.9400** (v4.4.0 fingerprint-bound re-measurement, 443-doc current-gen eval set: 9 families incl. K3/K2.7/Qwen3.7-3.8/DS-V4/V4.1/GLM-5.3/M3) vs 0.9998 pre-2026 held-out — a modest verified gap. The earlier 0.6542-vs-0.9022 figure was a measurement artifact (stale score-cache replay + unverified model lineage); both classes are structurally prevented since v4.4.0 (`model_fp` in every result JSON)
 | Colloquial / oral-register text | The style layer is calibrated on academic prose; treat style scores as advisory outside that register |
@@ -76,11 +76,10 @@ This tool is for **authors self-reviewing and improving their own writing qualit
 - **Data boundary**: reads/writes only user-specified files, the system temp dir, and its own package data directories (calibration/freshness artifacts); reports go only where the user points them.
 - **Academic integrity**: see the section above — for author self-review and quality improvement with policy-compliant disclosure; not for evading detection.
 
-## What's new in v4.6.0
+## What's new in v4.7.0
 
-- **End-to-end workflow (`scripts/pp_workflow.py` / `pp_api.workflow()`)**: one command runs the full self-check — AI-rate detection, paragraph-level attribution, 4-layer gate, terminology, translation-smell, style, quality report, AIGC label self-check — and writes a single Markdown report plus the full JSON. Worked example in § Quick start.
-- **TL;DR layer & docs restructure**: a 30-second orientation section now sits at the top; historical release notes moved to `CHANGELOG.md`; anti-pattern guidance is consolidated in one section; the English FAQ is now on par with the Chinese one.
-- **Cleaner eval archive & actionable errors**: superseded eval artifacts moved to `eval/results/archive/`; pp_api/pp_setup errors now carry recovery hints.
+- **Mixed-document special**: a controlled mixed-writing benchmark with per-paragraph ground truth (54 synthesized docs built from held-out test-half sources only; `eval/build_mixed_bench.py`, results in `eval/results/mixed_para_20261005.json`) quantifies what the boundary matrix could only hint at: document-level AUROC 0.52-0.54 is an inherent averaging limitation, while **paragraph-level AUROC reaches 0.69** — paragraph attribution is triage-quality for locating suspect paragraphs (not an auto-verdict). `pp_workflow.py` now emits a `mixed_document` assessment (detection, AI-fraction estimate, guidance) and flags mixed documents prominently in the Markdown report.
+- **Discoverability**: description gained a "Trigger on" routing-word block; README gained the China mirror (ModelScope) link. No behavior change.
 
 ## Anti-patterns (avoid these)
 
@@ -247,6 +246,7 @@ Monthly full pass: `python scripts/freshness_refresh.py` (schedule it with your 
 
 ## Version history (condensed)
 
+- **v4.7.0 (2026-10-06)** — mixed-document special: controlled per-paragraph benchmark quantifies paragraph-level AUROC 0.69 (document-level 0.52-0.54); pp_workflow gains mixed_document assessment + prominent mixed flagging; description Trigger-on routing words; README China mirror link.
 - **v4.6.0 (2026-10-05)** — onboarding release: end-to-end workflow command (pp_workflow.py / pp_api.workflow); TL;DR layer; historical notes moved to CHANGELOG.md; consolidated anti-patterns section; eval archive cleanup; recovery hints in SDK errors.
 - **v4.5.0 (2026-10-04)** — programmable-interface release: pp_api.py SDK (in-process detect + 8 helpers, zero network, JSON dicts) and pp_setup.py one-command model installation with the author-signed fingerprint registry; targets the two lowest official-evaluation dimensions (trigger/usability).
 - **v4.4.0 (2026-10-03)** — measurement-integrity release: verified re-baseline (held-out 0.9998 / current-gen 0.9400 / human FPR@med 2.3%, superseding 0.9022/0.6542 artifacts); eval cache keys bind model md5; contamination audit (eval/check_leak.py) halts the v36 retrain (285 eval-set samples had leaked into training); ONNX export self-test; PP_ORT_THREADS; pp_doctor fingerprint; smoke degradation checks made mode-aware.

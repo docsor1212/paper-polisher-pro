@@ -1,5 +1,7 @@
 # Paper Polisher Pro — 论文降AI润色工具 · AI率检测
 
+[![GitHub Stars](https://img.shields.io/github/stars/docsor1212/paper-polisher-pro?style=social&label=Star)](https://github.com/docsor1212/paper-polisher-pro)
+
 AI 痕迹检测（AI率）· 去AI化改写建议 · 术语标准化 · 翻译腔检查 · 质量报告 · AIGC 合规标识检查 · 段落级归因 · 期刊口径预检。
 
 **100% 本地运行，零上传，零凭证**——论文数据不出本机。
@@ -44,6 +46,8 @@ git clone https://github.com/docsor1212/paper-polisher-pro
 cd paper-polisher-pro
 python scripts/ai_detector.py your_draft.txt --format summary
 ```
+
+**China mirror (ModelScope 魔搭)**: <https://modelscope.cn/skills/Docsor/paper-polisher-pro> — if you find this skill useful, a like there helps others find it.
 
 ## 论文工作流家族
 

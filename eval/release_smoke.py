@@ -458,6 +458,24 @@ try:
     _md = _PWf.to_markdown(_wf)
     _sec6 = _md.split("## 6. 质量报告")[-1].split("##")[0].strip()
     chk("workflow MD 质量报告节非空", len(_sec6) > 20, f"sec6len={len(_sec6)}")
+    # v4.7.0: 混写文档评估块（人写段夹 AI 段 → mixed_document.detected 必须 True）
+    _hu = ("本研究采用前瞻性队列设计，共纳入2024年1月至2025年6月期间就诊的312例患儿。"
+           "所有纳入对象均由两名副主任医师及以上职称者独立诊断，诊断符合率Kappa值为0.87。"
+           "随访终点为首次复发，中位随访时间18.4个月，四分位距12.1至24.6。"
+           "统计学分析使用Python完成，组间比较采用Mann-Whitney U检验，分类资料采用卡方检验。")
+    _ai = ("值得注意的是，本研究具有重要的理论意义与实践价值。首先，我们系统性地梳理了相关领域的研究脉络，"
+           "为后续研究奠定了坚实的基础。其次，本研究采用了多元化的研究方法，确保了结论的可靠性和普适性。"
+           "总而言之，这项研究不仅填补了学术空白，更为实践应用提供了强有力的支撑和指导。")
+    _wm = _API.workflow(_hu + "\n\n" + _ai + "\n\n" + _hu.replace("312", "286"), lang="zh")
+    _json_f.dumps(_wm)
+    chk("workflow 混写评估块（夹心文档 detected=True）",
+        _wm.get("mixed_document", {}).get("detected") is True
+        and "0.69" in _wm["mixed_document"].get("guidance", ""),
+        f"detected={_wm.get('mixed_document', {}).get('detected')}")
+    # v4.7.0 求星合规铺设: MD 交付物页脚恰好一次（同一产物仅一次纪律）
+    _foot = "觉得有用欢迎 Star / 收藏"
+    chk("workflow MD 页脚恰好一次（求星合规）", _md.count(_foot) == 1,
+        f"count={_md.count(_foot)}")
 except Exception as _e:
     chk("SDK import + detect_text 出分", False, f"exception: {_e}")
 

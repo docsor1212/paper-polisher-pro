@@ -28,7 +28,7 @@ body{font-family:"Microsoft YaHei",sans-serif;max-width:900px;margin:24px auto;c
 h1{font-size:19px}
 </style></head><body>"""
 _TPL_FOOT = """<p style="color:#888;font-size:12px">判定阈值来自 fusion_config.json（评测语料人类分布 p95/p99 校准）。
-段落判定用于人机协作写作的分工定位；文档级分数不适用于拼接文本（混合攻击实测 AUROC 0.38）。</p></body></html>"""
+段落判定用于人机协作写作的分工定位；文档级分数不适用于拼接文本（混合攻击实测 AUROC 0.38）。</p><footer style='margin-top:24px;padding-top:12px;border-top:1px solid #eee;color:#9aa0a6;font-size:12px;text-align:center;'>本文档由 Paper Polisher Pro 生成 · <a href='https://github.com/docsor1212/paper-polisher-pro' style='color:#9aa0a6;'>GitHub</a> · <a href='https://skillhub.cn/skills/indiv-sorsor/paper-polisher-pro' style='color:#9aa0a6;'>SkillHub</a> · 觉得有用欢迎 Star / 收藏</footer></body></html>"""
 
 
 def main():
