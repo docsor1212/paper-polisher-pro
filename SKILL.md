@@ -1,6 +1,6 @@
 ---
 name: paper-polisher
-version: 4.7.0
+version: 4.8.0
 author: DoctorQ Lab
 description: >-
   AI-rate self-check for academic writing, polish guidance (style, terminology, translation-smell),
@@ -41,6 +41,8 @@ This tool is for **authors self-reviewing and improving their own writing qualit
 
 ## Measured performance (C-ReD + DetectRL-ZH, held-out test half, n=5,251)
 
+> Corpus scope note (v4.8.0): the v3.0-era table below was measured on the **full** held-out test half (n=5,251). The **bundled** sample corpus is a subset — its test half is n=1,304; reproducible per-corpus numbers: rules-only (PP_NO_SUP) 0.8985 old-gen / 0.7149 current-gen, fused 0.9998 / 0.9400 (`eval/results/v480_rules_*.json`, `v35ctl_*.json`; cache keys bind model fingerprint AND engine mode).
+
 | Metric | v2.0 baseline | v3.0 rules+spectrum | v3.1 +supervised | **v3.4 supervised + edit-regression v2** |
 |---|---|---|---|---|
 | AUROC (test half) | 0.7046 | 0.9187 | 0.9997 | **1.0** |
@@ -69,17 +71,23 @@ This tool is for **authors self-reviewing and improving their own writing qualit
 
 ## Safety and behavior statement
 
-- **100% local**: every feature runs on-device. The codebase makes zero network calls (no network client libraries of any kind, no external network utilities) — verify yourself: `grep -rEin "urllib|requests|socket|http" scripts/` (expected: zero hits).
+- **100% local**: every feature runs on-device. The codebase makes zero network calls — no network client libraries, no network utilities. Verify: `grep -rEin "urllib|requests|socket|import http" scripts/` (expected: zero hits; plain `https://` URL strings inside generated-report footers are data, not network code).
 - **No upload, no credentials**: reads and transmits no credentials, keys, or personal data; the only environment variable, `PP_NO_SUP`, is a local behavior toggle.
 - **No persistence**: creates no scheduled tasks, autostart entries, or system config changes; temp files (inter-layer JSON, probe text) are deleted after use.
 - **No remote code**: loads no remote models or scripts; the optional supervised model is placed by the user at a local path.
 - **Data boundary**: reads/writes only user-specified files, the system temp dir, and its own package data directories (calibration/freshness artifacts); reports go only where the user points them.
 - **Academic integrity**: see the section above — for author self-review and quality improvement with policy-compliant disclosure; not for evading detection.
 
-## What's new in v4.7.0
+## What's new in v4.8.0
 
-- **Mixed-document special**: a controlled mixed-writing benchmark with per-paragraph ground truth (54 synthesized docs built from held-out test-half sources only; `eval/build_mixed_bench.py`, results in `eval/results/mixed_para_20261005.json`) quantifies what the boundary matrix could only hint at: document-level AUROC 0.52-0.54 is an inherent averaging limitation, while **paragraph-level AUROC reaches 0.69** — paragraph attribution is triage-quality for locating suspect paragraphs (not an auto-verdict). `pp_workflow.py` now emits a `mixed_document` assessment (detection, AI-fraction estimate, guidance) and flags mixed documents prominently in the Markdown report.
-- **Discoverability**: description gained a "Trigger on" routing-word block; README gained the China mirror (ModelScope) link. No behavior change.
+- **Measurement integrity fixes from an independent third-party test round** (13 findings, verified one by one; the real bugs are fixed here, the capability observations are disclosed honestly):
+  - `run_eval.py` cache keys now include the engine mode (`:nosup` suffix) — a rules-only evaluation could previously replay supervised-layer cached scores, making the base-engine numbers unreproducible. Reproducible now, fingerprint-and-mode-bound: rules-only **0.8985** old-gen / **0.7149** current-gen (bundled sample).
+  - `--profile journal --format json` now emits **pure JSON** (journal precheck embedded as a `journal_precheck` field with both statistics explained — distribution vs intensity口径 measure different things).
+  - `risk_bands` (active medium/high thresholds + calibration tier) is now surfaced in every report — the supervised and rules tiers carry independently calibrated thresholds, which fully explains score-band differences across modes.
+  - `mixed_signal` denoised: both extremes must each cover ≥25% of paragraphs (a pure-AI document with one low-scoring outlier no longer flags as mixed).
+  - Single files >5 MB now print a warning in single-file mode (batch still skips them); `--batch` directory requirement stated in the error message.
+- **Honest disclosures**: real-world medical papers (PDF→text) can score elevated even in full mode — paragraph attribution is the actionable signal; fingerprint attribution is heuristic (top-n, never scored) and may misattribute. See FAQ.
+- **Doc precision**: bundled-corpus scope clarified (n=1,304 sample vs n=5,251 full); terminology count corrected to 2,308 loaded; zero-network verification command made import-precise.
 
 ## Anti-patterns (avoid these)
 
@@ -206,6 +214,12 @@ Partially: the supervised layer is Chinese-trained, so English skips fusion by d
 **Q: What about documents that mix human and AI writing?**
 Watch the mixed-register signal (`mixed_signal=true`): document-level scores are diluted by human paragraphs or pushed up by AI ones — unreliable either way. Run `paragraph_report.py` for per-paragraph attribution and work paragraph by paragraph.
 
+**Q: Why does a real, human-written journal paper still score medium/high?**
+Two measured reasons: distribution shift (our held-out corpus differs from real journal PDF→text, which carries layout noise) and register calibration. Paragraph attribution is the actionable signal — use it to locate suspect passages for human review; the document-level score is a triage hint, not a verdict. The journal precheck (distribution口径) offers a second view and may disagree with the main score by design.
+
+**Q: The fingerprint attribution says GPT-4o but my text is from another model?**
+Attribution is heuristic (top-n candidates, never scored) and may misattribute — known case: GLM-generated text has been attributed elsewhere. Treat family hints as weak evidence; the detection score and paragraph attribution are the substantive outputs.
+
 **Q: How do I use the AIGC label check?**
 `python scripts/aigc_label_check.py manuscript.docx figures/*.png` — checks metadata / C2PA watermark / explicit declaration (China 2025-09 labeling rules). Exit 0 = labeled, 1 = unlabeled; both are normal runs.
 
@@ -246,9 +260,10 @@ Monthly full pass: `python scripts/freshness_refresh.py` (schedule it with your 
 
 ## Version history (condensed)
 
+- **v4.8.0 (2026-10-07)** — measurement & output-contract integrity (independent test round, 13 findings addressed): eval cache keys bind engine mode (rules-only reproducible: 0.8985/0.7149 bundled); journal+json purity; risk_bands surfaced; mixed_signal denoised; 5MB/batch CLI guards; real-world FPR & attribution limits disclosed in FAQ; corpus/terminology counting precision.
 - **v4.7.0 (2026-10-06)** — mixed-document special: controlled per-paragraph benchmark quantifies paragraph-level AUROC 0.69 (document-level 0.52-0.54); pp_workflow gains mixed_document assessment + prominent mixed flagging; description Trigger-on routing words; README China mirror link.
 - **v4.6.0 (2026-10-05)** — onboarding release: end-to-end workflow command (pp_workflow.py / pp_api.workflow); TL;DR layer; historical notes moved to CHANGELOG.md; consolidated anti-patterns section; eval archive cleanup; recovery hints in SDK errors.
-- **v4.5.0 (2026-10-04)** — programmable-interface release: pp_api.py SDK (in-process detect + 8 helpers, zero network, JSON dicts) and pp_setup.py one-command model installation with the author-signed fingerprint registry; targets the two lowest official-evaluation dimensions (trigger/usability).
+- **v4.5.0 (2026-10-04)** — programmable-interface release: pp_api.py SDK (in-process detect + 8 helpers, zero network, JSON dicts) and pp_setup.py one-command model installation with the author-signed fingerprint registry; closing the two biggest usability friction points reported with the 4.4.x interface (programmatic integration and model setup).
 - **v4.4.0 (2026-10-03)** — measurement-integrity release: verified re-baseline (held-out 0.9998 / current-gen 0.9400 / human FPR@med 2.3%, superseding 0.9022/0.6542 artifacts); eval cache keys bind model md5; contamination audit (eval/check_leak.py) halts the v36 retrain (285 eval-set samples had leaked into training); ONNX export self-test; PP_ORT_THREADS; pp_doctor fingerprint; smoke degradation checks made mode-aware.
 - **v4.3.0 (2026-10-01)** — generation-split eval infrastructure; first quantified generation-gap numbers (0.9022 vs 0.6542); spectrum/L13 current-gen negative results recorded.
 - **v4.2.0 (2026-09-30)** — batch recursion; GitHub README landing page; gate layer-3 distribution verification.

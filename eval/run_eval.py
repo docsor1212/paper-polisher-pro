@@ -194,6 +194,10 @@ def main():
 
     global MODEL_FP
     MODEL_FP = _model_fp()
+    # v4.8.0: 规则档评测独立命名空间（外部测试发现#1——PP_NO_SUP 不入键会导致
+    # 规则档评测重放监督层缓存分, 基础引擎指标不可复现）
+    if os.environ.get("PP_NO_SUP") == "1":
+        MODEL_FP += ":nosup"
 
     recs = load(a.corpus)
     if os.path.exists(a.attacks):

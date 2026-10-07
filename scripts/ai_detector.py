@@ -81,6 +81,8 @@ class DetectionReport:
     # v3.8: 混写预警——段落得分显著分化时提示文档级分数不可单独采信(混合文档 AUROC 0.38 的可操作化)
     mixed_signal: bool = False
     mixed_notice: str = ""
+    # v4.8.0: 当前生效的风险带阈值与校准口径（监督档/规则档各有一套校准, 透出让分带可解释）
+    risk_bands: dict = None
     # v3.8: 语域提示——口语/叙事语域超出学术校准域时如实告知(能力边界矩阵的引擎侧落地)
     register_hint: str = ""
     # v3.8: 编码警示——大量不可解码字节时提示结果可能失真
@@ -685,6 +687,10 @@ def detect(text: str, lang: str = "auto") -> DetectionReport:
     if isinstance(thr_medium, float) and thr_medium <= 1.0:
         thr_medium *= 100
         thr_high *= 100
+    risk_bands = {"medium": round(thr_medium, 1), "high": round(thr_high, 1),
+                  "calibration": ("supervised_v2" if sup_meta else "rules_base"),
+                  "note": ("监督档阈值（0.9 权重融合分布校准）" if sup_meta
+                           else "纯规则档阈值；两档阈值各自独立校准，跨档比较分数与风险带需以本字段为准。")}
     if overall >= thr_high:
         risk = "high"
     elif overall >= thr_medium:
@@ -756,7 +762,14 @@ def detect(text: str, lang: str = "auto") -> DetectionReport:
     mixed_notice = ""
     if len(results) >= 2:
         _ps = [r.ai_score for r in results]
-        if (max(_ps) - min(_ps) >= 40) and max(_ps) >= 60 and min(_ps) <= 35:
+        # v4.8.0 去噪: 两端各自 ≥25% 段占比才报混写（纯 AI/纯人文档的单段离群不再误触发;
+        # 真 4+4 交替混写两端占比 ≥50% 不受影响）
+        import math as _math
+        _lo = sum(1 for x in _ps if x <= 35)
+        _hi = sum(1 for x in _ps if x >= 60)
+        _min_side = max(1, _math.ceil(0.25 * len(_ps)))
+        if ((max(_ps) - min(_ps) >= 40) and max(_ps) >= 60 and min(_ps) <= 35
+                and _lo >= _min_side and _hi >= _min_side):
             mixed_signal = True
     if mixed_signal:
         if lang == "zh":
@@ -804,6 +817,7 @@ def detect(text: str, lang: str = "auto") -> DetectionReport:
         avg_sentence_len=round(sum(r.avg_sentence_len for r in results) / max(len(results), 1), 1),
         avg_sentence_len_variance=round(sum(r.sentence_len_variance for r in results) / max(len(results), 1), 1),
         paragraph_scores=[asdict(r) for r in results],
+        risk_bands=risk_bands,
         top_patterns=top,
         language=lang,
         details=details,
@@ -905,36 +919,51 @@ def blended_paragraph_scores(text: str, report=None) -> list:
                 for p in report.paragraph_scores]
 
 
-def journal_profile(report, text=None) -> str:
-    """v3 期刊口径预检：疑似AIGC段落比例（对标期刊 AIGC 检测的"疑似率"口径）。
+def journal_profile_data(report, text=None) -> dict:
+    """v4.8.0: 期刊口径预检的结构化数据（JSON 模式嵌入 report.journal_precheck）。
 
-    ⚠️ 诚实声明：本比例基于本 skill 评测语料校准的阈值（fusion_config p95/p99），
-    与知网/万方官方检测器不可互换，仅作投稿前自查参考。期刊通行阈值约 20-25%。
+    两个口径说明（回应真实测试发现#9 的口径矛盾）：
+      - 期刊口径（本函数）=按段落/字数计「疑似占比」——测的是**分布**
+      - 主评分=文档级加权均分——测的是**强度**
+      两者测量对象不同，方向可能不一致；投稿自查建议两个口径+段落归因一起看。
     """
     fc = _load_fusion_config() or {}
     thr = fc.get("thresholds", {}).get("medium", 0.4914)
     tm = float(thr) * 100 if float(thr) <= 1.0 else float(thr)
     paras = report.paragraph_scores
     if not paras:
-        return "无段落可评"
+        return {"error": "无段落可评"}
     texts = split_paragraphs(text) if text else [str(p.get("text", "")) for p in paras]
     scores = blended_paragraph_scores(text, report) if text else [p.get("ai_score", 0) for p in paras]
     flagged = sum(1 for s in scores if s >= tm)
-    # 按长度加权（短段落权重低，避免列表项虚增）
     w_flagged = sum(len(texts[min(i, len(texts) - 1)]) for i, s in enumerate(scores) if s >= tm)
     w_total = sum(len(t) for t in texts) or 1
     pct, wpct = 100 * flagged / len(paras), 100 * w_flagged / w_total
-    lines = [
+    verdict = ("高于参考线，投稿前建议逐段处理" if wpct > 25 else
+               ("处于参考线附近，建议人工复核存疑段落" if wpct > 15 else "低于参考线"))
+    return {"suspected_paragraph_pct": round(pct),
+            "suspected_char_weighted_pct": round(wpct),
+            "flagged_paragraphs": flagged, "total_paragraphs": len(paras),
+            "verdict": verdict, "reference_line": "期刊通行阈值约 20-25%",
+            "statistic_note": ("期刊口径按段落/字数计「疑似占比」（分布口径），主评分为文档级加权均分"
+                               "（强度口径）——测量对象不同，两个数字方向可能不一致，均供自查参考。"),
+            "disclaimer": "本结果基于 paper-polisher 校准阈值, 与知网/万方官方检测不可互换, 仅供自查。"}
+
+
+def journal_profile(report, text=None) -> str:
+    """v3 期刊口径预检文本渲染（v4.8.0 起数据层独立为 journal_profile_data）。"""
+    d = journal_profile_data(report, text)
+    if "error" in d:
+        return d["error"]
+    return "\n".join([
         "── 期刊口径预检 ─────────────────",
-        "疑似AIGC段落比例: %.0f%%  (按段落计, %d/%d)" % (pct, flagged, len(paras)),
-        "疑似内容占比    : %.0f%%  (按字数加权)" % wpct,
-        "参考线: 期刊通行阈值约 20-25%% → %s" % (
-            "高于参考线，投稿前建议逐段处理" if wpct > 25 else
-            ("处于参考线附近，建议人工复核存疑段落" if wpct > 15 else "低于参考线")),
-        "⚠️ 本结果基于 paper-polisher 校准阈值, 与知网/万方官方检测不可互换, 仅供自查。",
+        "疑似AIGC段落比例: %.0f%%  (按段落计, %d/%d)" % (d["suspected_paragraph_pct"], d["flagged_paragraphs"], d["total_paragraphs"]),
+        "疑似内容占比    : %.0f%%  (按字数加权)" % d["suspected_char_weighted_pct"],
+        "参考线: %s → %s" % (d["reference_line"], d["verdict"]),
+        "ℹ️ 口径说明: " + d["statistic_note"],
+        "⚠️ " + d["disclaimer"],
         "────────────────────────────────",
-    ]
-    return "\n".join(lines)
+    ])
 
 
 def batch_detect(dir_path: str, fmt: str, out_path: str, csv_path: str = None,
@@ -942,7 +971,8 @@ def batch_detect(dir_path: str, fmt: str, out_path: str, csv_path: str = None,
     """v3.11: 目录批处理——逐文件检测, 输出每文件分数+聚合。确定性、零网络。"""
     d = Path(dir_path)
     if not d.is_dir():
-        print(f"Error: not a directory: {dir_path}", file=sys.stderr)
+        print(f"Error: not a directory: {dir_path}（--batch 需要目录；单文件请直接作为 input 传入）",
+              file=sys.stderr)
         sys.exit(1)
     it = d.rglob("*") if recursive else d.iterdir()
     files = sorted(f for f in it
@@ -1033,16 +1063,24 @@ def main():
         sys.exit(1)
     with open(args.input, "r", encoding="utf-8", errors="replace") as f:
         text = f.read()
+    if os.path.getsize(args.input) > 5 * 1024 * 1024:
+        print("⚠️ 单文件超过 5MB（批处理模式会跳过该口径的文件）；处理耗时可能显著增加，结果不受影响。",
+              file=sys.stderr)
 
     report = detect(text, args.lang)
-    if args.profile == "journal":
-        print(journal_profile(report, text))
-
-    # When writing to file, default to JSON unless format explicitly set
+    # v4.8.0: --format json 时 journal 口径作为 JSON 字段嵌入（不再前置文本块破坏 JSON 纯度）
     use_json = args.format == "json" or (args.output and args.format == "summary")
+    journal_data = None
+    if args.profile == "journal":
+        journal_data = journal_profile_data(report, text)
+        if not use_json:
+            print(journal_profile(report, text))
 
     if use_json:
-        output = json.dumps(asdict(report), ensure_ascii=False, indent=2)
+        _d = asdict(report)
+        if journal_data is not None:
+            _d["journal_precheck"] = journal_data
+        output = json.dumps(_d, ensure_ascii=False, indent=2)
     else:
         output = report.details
 

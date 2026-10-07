@@ -96,6 +96,11 @@
 - **TL;DR layer & docs restructure**: a 30-second orientation section now sits at the top; historical release notes moved to `CHANGELOG.md`; anti-pattern guidance is consolidated in one section; the English FAQ is now on par with the Chinese one.
 - **Cleaner eval archive & actionable errors**: superseded eval artifacts moved to `eval/results/archive/`; pp_api/pp_setup errors now carry recovery hints.
 
+## What's new in v4.7.0
+
+- **Mixed-document special**: a controlled mixed-writing benchmark with per-paragraph ground truth (54 synthesized docs built from held-out test-half sources only; `eval/build_mixed_bench.py`, results in `eval/results/mixed_para_20261005.json`) quantifies what the boundary matrix could only hint at: document-level AUROC 0.52-0.54 is an inherent averaging limitation, while **paragraph-level AUROC reaches 0.69** — paragraph attribution is triage-quality for locating suspect paragraphs (not an auto-verdict). `pp_workflow.py` now emits a `mixed_document` assessment (detection, AI-fraction estimate, guidance) and flags mixed documents prominently in the Markdown report.
+- **Discoverability**: description gained a "Trigger on" routing-word block; README gained the China mirror (ModelScope) link. No behavior change.
+
 ---
 
 # 更新日志（中文）
@@ -196,4 +201,10 @@
 - **TL;DR 层与文档重构**：顶部新增 30 秒上手层；历史更新说明迁至 `CHANGELOG.md`；反模式集中成节；英文 FAQ 对齐中文版。
 - **评测存档整理与错误可行动化**：过时评测产物移入 `eval/results/archive/`；pp_api/pp_setup 错误信息附带恢复建议。
 
+
+
+## v4.7.0 更新内容
+
+- **混写文档专项**：构造带逐段真值的可控混写基准（54 篇合成文档，段落仅取自留出 test 半来源；`eval/build_mixed_bench.py`，结果 `eval/results/mixed_para_20261005.json`），把边界矩阵只能定性提示的局限定量化：**文档级 AUROC 0.52-0.54（平均原理性局限）vs 段落级 AUROC 0.69**——段落归因达到「人工复核定位」的 triage 质量而非自动判定。`pp_workflow.py` 新增 `mixed_document` 评估块（检测/AI 段占比估计/处置指引），混写文档在 Markdown 报告中醒目标注。
+- **可发现性**：description 新增 Trigger on 路由词块；README 新增中国镜像（魔搭）链接。行为零变更。
 

@@ -476,6 +476,21 @@ try:
     _foot = "觉得有用欢迎 Star / 收藏"
     chk("workflow MD 页脚恰好一次（求星合规）", _md.count(_foot) == 1,
         f"count={_md.count(_foot)}")
+    # v4.8.0: journal+json 纯度（第三方测试 Bug#8 回归）与 risk_bands 透出（发现#4）
+    with tempfile.NamedTemporaryFile("w", suffix=".txt", delete=False, encoding="utf-8") as _hf:
+        _hf.write(ZH_HUMAN); _hu_file_hold = _hf.name
+    _p = subprocess.run([sys.executable, str(SCRIPTS / "ai_detector.py"), _hu_file_hold,
+                         "--profile", "journal", "--format", "json"],
+                        capture_output=True, text=True, encoding="utf-8", timeout=180,
+                        env={**os.environ, "PP_ORT_THREADS": "8"})
+    try:
+        _jd = json.loads(_p.stdout)
+        _ok_j = _jd.get("journal_precheck") is not None and _jd.get("risk_bands") is not None
+    except Exception:
+        _ok_j = False
+    chk("journal+json 纯度且 risk_bands 透出", _ok_j,
+        f"rc={_p.returncode} parse={'ok' if _ok_j else 'FAIL'}")
+    Path(_hu_file_hold).unlink(missing_ok=True)
 except Exception as _e:
     chk("SDK import + detect_text 出分", False, f"exception: {_e}")
 

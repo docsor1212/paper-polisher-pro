@@ -118,7 +118,7 @@ def gate_text(text: str) -> dict:
 
 
 def term_report(text: str) -> dict:
-    """术语保护检查（2328 条医学学术术语库）。返回 TermReport dict。"""
+    """术语保护检查（2308 条医学学术术语库）。返回 TermReport dict。"""
     if not isinstance(text, str) or not text.strip():
         raise ValueError("text 必须是非空字符串")
     import term_check
