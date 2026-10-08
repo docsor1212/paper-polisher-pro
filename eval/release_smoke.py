@@ -468,10 +468,12 @@ try:
            "总而言之，这项研究不仅填补了学术空白，更为实践应用提供了强有力的支撑和指导。")
     _wm = _API.workflow(_hu + "\n\n" + _ai + "\n\n" + _hu.replace("312", "286"), lang="zh")
     _json_f.dumps(_wm)
-    chk("workflow 混写评估块（夹心文档 detected=True）",
+    chk("workflow 混写评估块（夹心文档 detected=True+校准字段在位）",
         _wm.get("mixed_document", {}).get("detected") is True
-        and "0.69" in _wm["mixed_document"].get("guidance", ""),
-        f"detected={_wm.get('mixed_document', {}).get('detected')}")
+        and _wm["mixed_document"].get("measured", {}).get("paragraph_level_auroc") == 0.6883
+        and _wm["mixed_document"].get("measured", {}).get("calibrated_high_threshold") is not None,
+        f"detected={_wm.get('mixed_document', {}).get('detected')} "
+        f"calibrated={_wm.get('mixed_document', {}).get('measured', {}).get('calibrated_high_threshold')}")
     # v4.7.0 求星合规铺设: MD 交付物页脚恰好一次（同一产物仅一次纪律）
     _foot = "觉得有用欢迎 Star / 收藏"
     chk("workflow MD 页脚恰好一次（求星合规）", _md.count(_foot) == 1,
@@ -491,6 +493,27 @@ try:
     chk("journal+json 纯度且 risk_bands 透出", _ok_j,
         f"rc={_p.returncode} parse={'ok' if _ok_j else 'FAIL'}")
     Path(_hu_file_hold).unlink(missing_ok=True)
+    # v4.9.0: pp.py 统一入口路由
+    _pp = subprocess.run([sys.executable, str(SCRIPTS / "pp.py")],
+                         capture_output=True, text=True, encoding="utf-8", timeout=60)
+    _pp_bad = subprocess.run([sys.executable, str(SCRIPTS / "pp.py"), "no-such-cmd"],
+                             capture_output=True, text=True, encoding="utf-8", timeout=60)
+    chk("pp.py 统一入口（列表+未知命令 rc=2）",
+        _pp.returncode == 0 and "detect" in _pp.stdout and _pp_bad.returncode == 2,
+        f"rc={_pp.returncode}/{_pp_bad.returncode}")
+    with tempfile.NamedTemporaryFile("w", suffix=".txt", delete=False, encoding="utf-8") as _rf:
+        _rf.write(ZH_HUMAN); _route_f = _rf.name
+    _pp_d = subprocess.run([sys.executable, str(SCRIPTS / "pp.py"), "detect", _route_f,
+                            "--format", "json"], capture_output=True, text=True,
+                           encoding="utf-8", timeout=180,
+                           env={**os.environ, "PP_ORT_THREADS": "8"})
+    Path(_route_f).unlink(missing_ok=True)
+    try:
+        _route_ok = _pp_d.returncode == 0 and isinstance(json.loads(_pp_d.stdout).get("overall_ai_score"), (int, float))
+    except Exception:
+        _route_ok = False
+    chk("pp.py detect 路由可达引擎", _route_ok,
+        f"rc={_pp_d.returncode}")
 except Exception as _e:
     chk("SDK import + detect_text 出分", False, f"exception: {_e}")
 

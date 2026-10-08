@@ -1,6 +1,6 @@
 ---
 name: paper-polisher
-version: 4.8.0
+version: 4.9.0
 author: DoctorQ Lab
 description: >-
   AI-rate self-check for academic writing, polish guidance (style, terminology, translation-smell),
@@ -30,7 +30,7 @@ AI writing detection (AI-rate self-check for authors) · academic polishing guid
 ## TL;DR
 
 - **What**: 100% local AI-rate self-check + academic polishing toolkit for Chinese academic text (optional supervised model for best accuracy; English gets advisory rules-only scores).
-- **30-second start**: `python3 scripts/ai_detector.py draft.txt --format json` · full self-check report: `python3 scripts/pp_workflow.py draft.txt` · environment: `python3 scripts/pp_doctor.py`
+- **30-second start**: `python3 scripts/pp.py detect draft.txt --format json` · full self-check report: `python3 scripts/pp.py workflow draft.txt` · environment: `python3 scripts/pp.py doctor` (one entry routes all subcommands)
 - **Measured** (held-out, fingerprint-bound md5 2631df3d388b): AUROC 0.9998 pre-2026 / 0.9400 current-generation; human FPR@medium 2.3%.
 - **Know the limits**: texts <100 chars get `risk=unknown` by design · medical text in degraded mode is over-scored · authors' self-check only — never for evading institutional AI detection.
 - **Where to look next**: capability boundary matrix below · end-to-end example in § Quick start · FAQ near the end · full history in `CHANGELOG.md`.
@@ -64,7 +64,7 @@ This tool is for **authors self-reviewing and improving their own writing qualit
 | Chinese academic prose, full stack | Best case (AUROC 0.9998 held-out, human FPR@medium 2.3% — v4.4.0 fingerprint-bound) |
 | Base package without model | Rules+spectrum (0.9187); **medical register over-scored** (rules-only human FPR @medium: ~59% medical vs ~2% general) → trust only @high verdicts on medical text |
 | English text | Language gating skips the Chinese-trained supervised layer by design; rules-only English skeleton, advisory only |
-| Mixed human+AI documents | Document-level AUROC 0.52-0.54 (inherent averaging limitation); **paragraph-level AUROC 0.69** (controlled 54-doc benchmark with per-paragraph ground truth, `eval/results/mixed_para_20261005.json`) — use `pp_workflow.py`/`paragraph_report.py` to locate suspect paragraphs for human review (triage-quality, not auto-verdict) |
+| Mixed human+AI documents | Document-level AUROC 0.52-0.54 (inherent averaging limitation); paragraph-level AUROC 0.69 with **calibrated best operating point P=0.60 at 63% coverage** (`references/para_thresholds.json`) — below the automatic-verdict bar; use `pp_workflow.py`/`paragraph_report.py` rankings for human review only |
 | Edit-extent regression head | ρ=0.540 — reported as metadata, never used in verdicts |
 | **Current-generation models (2026-09 sampling)** | **AUROC 0.9400** (v4.4.0 fingerprint-bound re-measurement, 443-doc current-gen eval set: 9 families incl. K3/K2.7/Qwen3.7-3.8/DS-V4/V4.1/GLM-5.3/M3) vs 0.9998 pre-2026 held-out — a modest verified gap. The earlier 0.6542-vs-0.9022 figure was a measurement artifact (stale score-cache replay + unverified model lineage); both classes are structurally prevented since v4.4.0 (`model_fp` in every result JSON)
 | Colloquial / oral-register text | The style layer is calibrated on academic prose; treat style scores as advisory outside that register |
@@ -78,16 +78,11 @@ This tool is for **authors self-reviewing and improving their own writing qualit
 - **Data boundary**: reads/writes only user-specified files, the system temp dir, and its own package data directories (calibration/freshness artifacts); reports go only where the user points them.
 - **Academic integrity**: see the section above — for author self-review and quality improvement with policy-compliant disclosure; not for evading detection.
 
-## What's new in v4.8.0
+## What's new in v4.9.0
 
-- **Measurement integrity fixes from an independent third-party test round** (13 findings, verified one by one; the real bugs are fixed here, the capability observations are disclosed honestly):
-  - `run_eval.py` cache keys now include the engine mode (`:nosup` suffix) — a rules-only evaluation could previously replay supervised-layer cached scores, making the base-engine numbers unreproducible. Reproducible now, fingerprint-and-mode-bound: rules-only **0.8985** old-gen / **0.7149** current-gen (bundled sample).
-  - `--profile journal --format json` now emits **pure JSON** (journal precheck embedded as a `journal_precheck` field with both statistics explained — distribution vs intensity口径 measure different things).
-  - `risk_bands` (active medium/high thresholds + calibration tier) is now surfaced in every report — the supervised and rules tiers carry independently calibrated thresholds, which fully explains score-band differences across modes.
-  - `mixed_signal` denoised: both extremes must each cover ≥25% of paragraphs (a pure-AI document with one low-scoring outlier no longer flags as mixed).
-  - Single files >5 MB now print a warning in single-file mode (batch still skips them); `--batch` directory requirement stated in the error message.
-- **Honest disclosures**: real-world medical papers (PDF→text) can score elevated even in full mode — paragraph attribution is the actionable signal; fingerprint attribution is heuristic (top-n, never scored) and may misattribute. See FAQ.
-- **Doc precision**: bundled-corpus scope clarified (n=1,304 sample vs n=5,251 full); terminology count corrected to 2,308 loaded; zero-network verification command made import-precise.
+- **Mixed-document calibration (closing the v4.7.0 backlog)**: paragraph-level hi/med/lo thresholds are now calibrated on the controlled mixed benchmark (333 paragraphs with ground truth; `eval/calibrate_mixed_para.py` → `references/para_thresholds.json`). Honest result: the best operating point (≥50) reaches precision 0.60 at 63% AI-paragraph coverage — below the automatic-verdict bar, so paragraph attribution remains a ranking aid for human review; the calibrated numbers and their scope ship in `references/para_thresholds.json` and surface in every `mixed_document` assessment.
+- **Unified entry (`scripts/pp.py`)**: one command routes all eleven subcommands (detect/gate/workflow/term/smell/style/quality/aigc/paragraph/setup/doctor) — no more script-navigation cost.
+- **Reliability**: batch CSV writes are now atomic (temp+rename — concurrent batch runs no longer clobber the same CSV); gate layers retry once on crash/timeout before falling back.
 
 ## Anti-patterns (avoid these)
 
@@ -231,7 +226,7 @@ Attribution is heuristic (top-n candidates, never scored) and may misattribute �
 | pp_doctor.py | Environment self-check | `--json` | Data/deps/model probes; exit 0 = green |
 | deai_gate.py | 4-layer fused gate | `--json` | composite score + verdict band (<35 pass / 35-55 review / ≥55 suspect) |
 | paragraph_report.py | Paragraph attribution | `--output report.html` | HTML report |
-| term_check.py | Terminology (2,328 terms) | `--auto-fix` `--output` | Standardization rate + fixed file |
+| term_check.py | Terminology (2,308 terms) | `--auto-fix` `--output` | Standardization rate + fixed file |
 | translation_smell_check.py | Translation-smell scan | `--json` | Hits + blind-spot terms |
 | style_distance.py | Stylometry (human-likeness) | `--json` | style_score + verdict (advisory outside academic register) |
 | aigc_label_check.py | AIGC compliance labels | files: docx/pdf/png/txt | Per-file label verdict |
@@ -260,6 +255,7 @@ Monthly full pass: `python scripts/freshness_refresh.py` (schedule it with your 
 
 ## Version history (condensed)
 
+- **v4.9.0 (2026-10-08)** — mixed-document calibration release: paragraph thresholds calibrated on the 333-paragraph benchmark (best operating point P=0.60/coverage 63% — honestly below auto-verdict bar; ranking aid only); unified `pp.py` entry; atomic batch CSV; gate layer retry.
 - **v4.8.0 (2026-10-07)** — measurement & output-contract integrity (independent test round, 13 findings addressed): eval cache keys bind engine mode (rules-only reproducible: 0.8985/0.7149 bundled); journal+json purity; risk_bands surfaced; mixed_signal denoised; 5MB/batch CLI guards; real-world FPR & attribution limits disclosed in FAQ; corpus/terminology counting precision.
 - **v4.7.0 (2026-10-06)** — mixed-document special: controlled per-paragraph benchmark quantifies paragraph-level AUROC 0.69 (document-level 0.52-0.54); pp_workflow gains mixed_document assessment + prominent mixed flagging; description Trigger-on routing words; README China mirror link.
 - **v4.6.0 (2026-10-05)** — onboarding release: end-to-end workflow command (pp_workflow.py / pp_api.workflow); TL;DR layer; historical notes moved to CHANGELOG.md; consolidated anti-patterns section; eval archive cleanup; recovery hints in SDK errors.

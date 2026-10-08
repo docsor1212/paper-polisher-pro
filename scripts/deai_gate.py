@@ -21,6 +21,7 @@ import re
 import subprocess
 import sys
 import tempfile
+import time
 from pathlib import Path
 
 SCRIPTS = Path(__file__).parent
@@ -28,13 +29,26 @@ W_L2, W_L4, W_L3 = 0.35, 0.45, 0.20
 
 
 def run_py(script, args):
-    """运行同目录脚本, 返回 (returncode, stdout, stderr)。超时返回 rc=124(兜底闭环,不裸栈)。"""
-    try:
-        p = subprocess.run([sys.executable, str(SCRIPTS / script)] + args,
-                           capture_output=True, text=True, encoding="utf-8", timeout=120)
-        return p.returncode, p.stdout or "", p.stderr or ""
-    except subprocess.TimeoutExpired:
-        return 124, "", "layer timeout after 120s"
+    """运行同目录脚本, 返回 (returncode, stdout, stderr)。超时返回 rc=124(兜底闭环,不裸栈)。
+    v4.9.0: 失败重试一次（层偶发超时/负载抖动不再直接吃中性 50 分兜底）。"""
+    last = (1, "", "")
+    for attempt in (1, 2):
+        try:
+            p = subprocess.run([sys.executable, str(SCRIPTS / script)] + args,
+                               capture_output=True, text=True, encoding="utf-8", timeout=120)
+            last = (p.returncode, p.stdout or "", p.stderr or "")
+        except subprocess.TimeoutExpired:
+            last = (124, "", "layer timeout after 120s" + (" (retried)" if attempt == 2 else ""))
+            if attempt == 2:
+                return last
+            time.sleep(1.0)
+            continue
+        if last[0] in (0, 1):
+            return last  # 0=成功; 1=有合法产出（如 term_check 发现问题）
+        if attempt == 2:
+            return last  # rc>=2 崩溃：重试一次仍败则原样上抛
+        time.sleep(1.0)
+    return last
 
 
 def layer2_ai(text_file):

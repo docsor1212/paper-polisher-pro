@@ -101,6 +101,17 @@
 - **Mixed-document special**: a controlled mixed-writing benchmark with per-paragraph ground truth (54 synthesized docs built from held-out test-half sources only; `eval/build_mixed_bench.py`, results in `eval/results/mixed_para_20261005.json`) quantifies what the boundary matrix could only hint at: document-level AUROC 0.52-0.54 is an inherent averaging limitation, while **paragraph-level AUROC reaches 0.69** — paragraph attribution is triage-quality for locating suspect paragraphs (not an auto-verdict). `pp_workflow.py` now emits a `mixed_document` assessment (detection, AI-fraction estimate, guidance) and flags mixed documents prominently in the Markdown report.
 - **Discoverability**: description gained a "Trigger on" routing-word block; README gained the China mirror (ModelScope) link. No behavior change.
 
+## What's new in v4.8.0
+
+- **Measurement integrity fixes from an independent third-party test round** (13 findings, verified one by one; the real bugs are fixed here, the capability observations are disclosed honestly):
+  - `run_eval.py` cache keys now include the engine mode (`:nosup` suffix) — a rules-only evaluation could previously replay supervised-layer cached scores, making the base-engine numbers unreproducible. Reproducible now, fingerprint-and-mode-bound: rules-only **0.8985** old-gen / **0.7149** current-gen (bundled sample).
+  - `--profile journal --format json` now emits **pure JSON** (journal precheck embedded as a `journal_precheck` field with both statistics explained — distribution vs intensity口径 measure different things).
+  - `risk_bands` (active medium/high thresholds + calibration tier) is now surfaced in every report — the supervised and rules tiers carry independently calibrated thresholds, which fully explains score-band differences across modes.
+  - `mixed_signal` denoised: both extremes must each cover ≥25% of paragraphs (a pure-AI document with one low-scoring outlier no longer flags as mixed).
+  - Single files >5 MB now print a warning in single-file mode (batch still skips them); `--batch` directory requirement stated in the error message.
+- **Honest disclosures**: real-world medical papers (PDF→text) can score elevated even in full mode — paragraph attribution is the actionable signal; fingerprint attribution is heuristic (top-n, never scored) and may misattribute. See FAQ.
+- **Doc precision**: bundled-corpus scope clarified (n=1,304 sample vs n=5,251 full); terminology count corrected to 2,308 loaded; zero-network verification command made import-precise.
+
 ---
 
 # 更新日志（中文）
@@ -207,4 +218,13 @@
 
 - **混写文档专项**：构造带逐段真值的可控混写基准（54 篇合成文档，段落仅取自留出 test 半来源；`eval/build_mixed_bench.py`，结果 `eval/results/mixed_para_20261005.json`），把边界矩阵只能定性提示的局限定量化：**文档级 AUROC 0.52-0.54（平均原理性局限）vs 段落级 AUROC 0.69**——段落归因达到「人工复核定位」的 triage 质量而非自动判定。`pp_workflow.py` 新增 `mixed_document` 评估块（检测/AI 段占比估计/处置指引），混写文档在 Markdown 报告中醒目标注。
 - **可发现性**：description 新增 Trigger on 路由词块；README 新增中国镜像（魔搭）链接。行为零变更。
+
+
+## v4.8.0 更新内容
+
+- **测量与输出契约诚实版（第三方独立测试轮 13 项发现逐条核实，真缺陷全修，能力观察诚实披露）**：
+  `run_eval.py` 缓存键纳入引擎档位（`:nosup` 后缀）——此前规则档评测会重放监督层缓存分致基础引擎数字不可复现；现已可复现且指纹+档位双绑定：纯规则老代 **0.8985** / 当打代 **0.7149**（随包语料）。
+  `--profile journal --format json` 现输出**纯 JSON**（期刊口径以 `journal_precheck` 字段嵌入，双口径统计差异已内嵌解释）；每份报告透出 `risk_bands`（现行中/高风险带阈值+校准档位——监督档与规则档各自独立校准，跨档分带差异从此可解释）；`mixed_signal` 去噪（两端各 ≥25% 段占比才报混写）；单文件 >5MB 增加提示；`--batch` 目录要求写入报错信息。
+- **诚实披露**：真实期刊论文（PDF 转文本）即使全档也可能评分偏高——段落归因才是可用信号；指纹归因为启发式参考（top-n 不进分），存在误归因可能。详见 FAQ。
+- **文档精度**：随包语料口径澄清（抽样 1,304 vs 全量 5,251）；术语计数修正为加载 2,308 条；零网络验证命令改为 import 精确口径。
 

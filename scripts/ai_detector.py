@@ -1000,7 +1000,8 @@ def batch_detect(dir_path: str, fmt: str, out_path: str, csv_path: str = None,
               "integrity_notice": INTEG_ZH}
     if csv_path:
         import csv as _csv
-        with open(csv_path, "w", encoding="utf-8-sig", newline="") as cf:
+        _csv_tmp = csv_path + ".tmp"  # v4.9.0: 原子写（并发跑两个批任务不再互相踩踏同一 CSV）
+        with open(_csv_tmp, "w", encoding="utf-8-sig", newline="") as cf:
             w = _csv.writer(cf)
             w.writerow(["file", "ai_score", "risk", "language", "degraded_mode"])
             for r in rows:
@@ -1011,6 +1012,7 @@ def batch_detect(dir_path: str, fmt: str, out_path: str, csv_path: str = None,
                 else:
                     w.writerow([r["file"], r["overall_ai_score"], r["overall_risk"],
                                 r.get("language", ""), ""])
+        os.replace(_csv_tmp, csv_path)
     if fmt == "json" or out_path:
         out = json.dumps(result, ensure_ascii=False, indent=2)
     else:

@@ -72,16 +72,27 @@ def workflow(text: str, lang: str = "auto") -> dict:
     # 2b) 混写文档评估（v4.7.0）：段落双峰或引擎混写预警 → 给出段落级定位结论
     n_lo = len(rows) - n_hi - n_med
     mixed_detected = bool(getattr(rep, "mixed_signal", False)) or (len(rows) >= 3 and n_hi > 0 and n_lo > 0)
+    # v4.9.0: 段落阈值采用混写基准校准结果（references/para_thresholds.json）
+    para_thr = {}
+    _pt = HERE.parent / "references" / "para_thresholds.json"
+    try:
+        para_thr = json.load(open(_pt, encoding="utf-8"))
+    except Exception:
+        para_thr = {}
+    _cal = para_thr.get("recommended_high") or {}
+    _honest = para_thr.get("honest_conclusion") or (
+        "段落归因排序供人工复核；校准最优工作点精度有限，任何单段标记都需人工确认。")
     result["mixed_document"] = {
         "detected": mixed_detected,
         "hi": n_hi, "medium": n_med, "low": n_lo,
         "ai_paragraph_fraction_est": round((n_hi + 0.5 * n_med) / max(len(rows), 1), 2),
         "measured": {"document_level_auroc": "0.52-0.54",
                      "paragraph_level_auroc": 0.6883,
-                     "source": "eval/results/mixed_para_20261005.json (n=54 docs/333 paras, model_fp 2631df3d388b)"},
-        "guidance": ("文档级分数不可单独采信（混写会稀释/顶起文档级均分，实测文档级 AUROC 0.52-0.54）；"
-                     "上方段落级排序可用于人工复核定位（实测段落级 AUROC 0.69，triage 质量而非自动判定）。")
-        if mixed_detected else "",
+                     "calibrated_high_threshold": _cal.get("para_high"),
+                     "calibrated_precision": _cal.get("precision"),
+                     "source": "references/para_thresholds.json + eval/results/mixed_para_20261005.json"},
+        "guidance": ("文档级分数不可单独采信（混写会稀释/顶起文档级均分，实测文档级 AUROC 0.52-0.54）。"
+                     + _honest) if mixed_detected else "",
     }
 
     # 3) 四层门禁
