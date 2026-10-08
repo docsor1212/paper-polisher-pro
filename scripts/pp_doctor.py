@@ -93,6 +93,26 @@ def main():
     except Exception as e:
         chk("指纹库覆盖(家族数/最近挖掘日)", False, f"读取失败: {e}", required=False)
 
+    # 4b-2. 保鲜流水线执行记录（v5.0.0: 指纹定期更新机制的可见化——
+    #   月度保鲜由作者侧执行 freshness_refresh.py, 本行如实透出最近一次回归评测的时间锚点）
+    try:
+        _res = sorted((ROOT / "eval" / "results").glob("*.json"))
+        _latest, _latest_mtime = "", 0.0
+        for _f in _res:
+            if _f.name == "score_cache.json":
+                continue
+            _m = _f.stat().st_mtime
+            if _m > _latest_mtime:
+                _latest, _latest_mtime = _f.name, _m
+        import time as _time
+        _when = _time.strftime("%Y-%m-%d", _time.localtime(_latest_mtime)) if _latest_mtime else "无"
+        chk("最近留出集评测记录", bool(_latest),
+            f"{_latest or '无'}（{_when}）；保鲜流水线=freshness_refresh.py 月度执行，"
+            "回归评测随每次引擎改动重跑", required=False)
+    except Exception as e:
+        chk("最近留出集评测记录", False, f"读取失败: {e}", required=False)
+        chk("指纹库覆盖(家族数/最近挖掘日)", False, f"读取失败: {e}", required=False)
+
     # 5. 监督层模型
     onnx_p = CACHE_MODEL / "model.int8.onnx"
     tok_p = CACHE_MODEL / "tokenizer.json"

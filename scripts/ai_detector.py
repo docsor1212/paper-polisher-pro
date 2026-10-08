@@ -784,8 +784,18 @@ def detect(text: str, lang: str = "auto") -> DetectionReport:
         details += "\n" + mixed_notice
 
     # v3.8: 语域提示——口语/叙事语域超出学术校准域（能力边界矩阵的引擎侧落地）
+    # v5.0.0: 语域感知 2.0——文学叙事语域分型检测（对话/时间推进/心理描写/人物称谓
+    #   四类特征计类计数，≥3 类命中判为文学叙事）。该语域第三方实测可达 high 档
+    #   （文学名篇实测 79/high），提示明确「勿当作 AI 证据」。只披露，不改任何打分。
     register_hint = ""
-    if lang == "zh" and _COLLOQ_ZH.search(text):
+    _narr_cats = _narrative_categories(text) if lang == "zh" else []
+    if len(_narr_cats) >= 3:
+        register_hint = ("语域提示（文学叙事）：检测到" + "、".join(_narr_cats) +
+                         "等叙事特征，本篇属于文学叙事语域，超出学术校准域——"
+                         "实测文学名篇在本引擎可达 high 档，该结果请勿当作 AI 生成证据使用"
+                         "（见能力边界矩阵）。")
+        details += "\n" + ("ℹ️ " + register_hint)
+    elif lang == "zh" and _COLLOQ_ZH.search(text):
         register_hint = ("语域提示：检测到口语/叙事表达特征，文体与整体评分按学术语域校准，"
                          "本场景结论仅供参考（见能力边界矩阵）。")
         details += "\n" + ("ℹ️ " + register_hint)
@@ -850,6 +860,20 @@ _DISCOURSE_ZH = (
     ("情绪渲染", re.compile(r"扎心(?:了)?|破防(?:了)?|泪目|太真实了|细思极恐|狠狠(?:共情|破防)|绷不住了|直呼(?:内行|太)|绝了[!！]|离大谱")),
 )
 _COLLOQ_ZH = re.compile(r"[嘛呗哇啦咯嘿耶哟]|说实话|讲真|搞定|挺好的|蛮好|咱们|整点|一堆|贼好|超赞|靠谱|翻车|踩坑")
+
+# v5.0.0 语域感知 2.0：文学叙事特征四类（判据=≥3 类命中；词表刻意取叙事专属、
+# 避开学术语域常见词，防误触发——学术文本「表明/结果/患者」等均不在表内）
+_NARRATIVE_MARKERS = (
+    ("对话引号", re.compile(r"[「」『』]|“[^”]{2,}”")),
+    ("时间推进", re.compile(r"当时|那天|第二天|那年|后来|忽然|许久|翌日|入夜|天亮(?:的时)候?")),
+    ("心理描写", re.compile(r"心里|心想|觉得(?:委屈|害怕|暖)|舍不得|犹豫了|眼泪|心头一")),
+    ("人物称谓", re.compile(r"母亲|父亲|爷爷|奶奶|外婆|老太太|老头子|小孙女|他爹|她娘")),
+)
+
+
+def _narrative_categories(text: str) -> list:
+    """返回命中的文学叙事特征类别名（≥3 类=文学叙事语域，由调用方判定）。"""
+    return [name for name, rx in _NARRATIVE_MARKERS if rx.search(text)]
 
 
 def _build_summary(results: list, lang: str, risk: str, score: float) -> str:

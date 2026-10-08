@@ -2,9 +2,9 @@
 
 [![GitHub Stars](https://img.shields.io/github/stars/docsor1212/paper-polisher-pro?style=social&label=Star)](https://github.com/docsor1212/paper-polisher-pro)
 
-AI 痕迹检测（AI率）· 去AI化改写建议 · 术语标准化 · 翻译腔检查 · 质量报告 · AIGC 合规标识检查 · 段落级归因 · 期刊口径预检。
+AI 痕迹检测（AI率）· 去AI化改写建议 · 句子级改写建议（哪几句像AI、怎么改）· 术语标准化 · 翻译腔检查 · 质量报告 · AIGC 合规标识检查 · 段落级归因 · 期刊口径预检。
 
-**100% 本地运行，零上传，零凭证**——论文数据不出本机。
+**100% 本地运行，零上传，零凭证**——论文数据不出本机。零网络承诺可用包内 `pp_verify.py`（AST 结构化扫描）自行验证，行为契约可用随包 `tests/` 单元测试套件（44 用例）在自己机器上复跑。
 
 ## 这是什么
 
@@ -17,8 +17,14 @@ AI 痕迹检测（AI率）· 去AI化改写建议 · 术语标准化 · 翻译�
 ## 快速开始
 
 ```bash
+# 零模型零文件一键体验
+python scripts/pp.py quickstart
+
 # AI 痕迹检测（AI率）
 python scripts/ai_detector.py draft.txt --format json
+
+# 句子级改写建议（定位+策略，不代改）
+python scripts/pp_fix_suggest.py draft.txt --top 10
 
 # 四层融合门禁
 python scripts/deai_gate.py draft.txt
@@ -39,7 +45,7 @@ python scripts/pp_setup.py --model <作者签发模型.onnx>
 
 ## 安装
 
-克隆本仓库后直接使用，纯 Python 标准库即可运行（可选 onnxruntime 增强监督层）。
+克隆本仓库后直接使用，纯 Python 标准库即可运行（可选 onnxruntime 增强监督层，依赖声明见 `requirements.txt`）。
 
 ```bash
 git clone https://github.com/docsor1212/paper-polisher-pro

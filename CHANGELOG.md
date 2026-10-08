@@ -2,6 +2,44 @@
 
 > Historical release notes (moved out of SKILL.md in v4.6.0 so new users reach the workflow faster). Newest first. Condensed per-version summaries also live in SKILL.md § Version history.
 
+## What's new in v5.0.0
+
+- **Sentence-level rewrite suggestions (`scripts/pp_fix_suggest.py`, also `pp.py fix`)**: the natural next question after a score — which sentences, why, and how to improve them. Each flagged sentence lists its concrete features (AI clichés, filler phrases, template patterns, vague qualifiers, connective openers, dash/colon habits, uniform rhythm) with a per-type rewrite strategy. Guidance only: it locates and suggests, never auto-rewrites. Ships with `--json`, a built-in two-sample demo (`--demo`), and a `fix_suggest` block in `pp_workflow` reports.
+- **Bundled unit-test suite (`tests/`, `pp.py test`)**: 44 stdlib-unittest cases covering the iron laws (short text / empty / GBK), report field contracts, JSON purity, the gate, the workflow Markdown layout, data files, and the new tools — verifiable on your own machine without the model.
+- **Structured zero-network self-verification (`scripts/pp_verify.py`, also `pp.py verify`)**: an AST-level scan of every script — flags network imports/calls and curl/wget-style subprocess commands, while URL strings in report footers are correctly treated as data (the old grep advice could not tell the two apart). Exit 0 = zero network calls.
+- **Register awareness 2.0**: literary-narrative texts get a dedicated register notice (this register sits outside the academic calibration domain; measured literary classics can reach high band here) so the result is not mistaken for AI evidence. Disclosure only — no scoring change; all previously published numbers remain reproducible.
+- **Packaging**: `requirements.txt` ships (core zero-dependency; optional supervised-layer extras commented); `pp.py quickstart` (zero-model demo: detect → fix → doctor); `pp_doctor` reports the latest held-out evaluation record; quality_report row added to the script cheat sheet.
+
+## What's new in v4.9.0
+
+- **Mixed-document calibration (closing the v4.7.0 backlog)**: paragraph-level hi/med/lo thresholds calibrated on the controlled mixed benchmark (333 paragraphs with ground truth; best operating point ≥50: precision 0.60 at 63% coverage — honestly below the automatic-verdict bar, ranking aid only). Calibration semantics corrected mid-flight: the earlier grid excluded the middle band from the binary classification, inflating F1 to 0.85; recalculated with full-below-threshold semantics (true F1 0.6131). Ships as `references/para_thresholds.json` and surfaces in every `mixed_document` assessment.
+- **Unified entry (`scripts/pp.py`)**: one command routes all eleven subcommands — script-navigation cost zeroed.
+- **Reliability**: batch CSV writes are now atomic (temp+rename, concurrent batch runs safe); gate layers retry once on crash/timeout before the neutral fallback.
+
+## What's new in v4.8.0
+
+- **Measurement integrity fixes from an independent third-party test round** (13 findings, verified one by one; the real bugs are fixed here, the capability observations are disclosed honestly):
+  - `run_eval.py` cache keys now include the engine mode (`:nosup` suffix) — a rules-only evaluation could previously replay supervised-layer cached scores, making the base-engine numbers unreproducible. Reproducible now, fingerprint-and-mode-bound: rules-only **0.8985** old-gen / **0.7149** current-gen (bundled sample).
+  - `--profile journal --format json` now emits **pure JSON** (journal precheck embedded as a `journal_precheck` field with both statistics explained — distribution vs intensity口径 measure different things).
+  - `risk_bands` (active medium/high thresholds + calibration tier) is now surfaced in every report — the supervised and rules tiers carry independently calibrated thresholds, which fully explains score-band differences across modes.
+  - `mixed_signal` denoised: both extremes must each cover ≥25% of paragraphs (a pure-AI document with one low-scoring outlier no longer flags as mixed).
+  - Single files >5 MB now print a warning in single-file mode (batch still skips them); `--batch` directory requirement stated in the error message.
+- **Honest disclosures**: real-world medical papers (PDF→text) can score elevated even in full mode — paragraph attribution is the actionable signal; fingerprint attribution is heuristic (top-n, never scored) and may misattribute. See FAQ.
+- **Doc precision**: bundled-corpus scope clarified (n=1,304 sample vs n=5,251 full); terminology count corrected to 2,308 loaded; zero-network verification command made import-precise.
+
+---
+
+## What's new in v4.7.0
+
+- **Mixed-document special**: a controlled mixed-writing benchmark with per-paragraph ground truth (54 synthesized docs built from held-out test-half sources only; `eval/build_mixed_bench.py`, results in `eval/results/mixed_para_20261005.json`) quantifies what the boundary matrix could only hint at: document-level AUROC 0.52-0.54 is an inherent averaging limitation, while **paragraph-level AUROC reaches 0.69** — paragraph attribution is triage-quality for locating suspect paragraphs (not an auto-verdict). `pp_workflow.py` now emits a `mixed_document` assessment (detection, AI-fraction estimate, guidance) and flags mixed documents prominently in the Markdown report.
+- **Discoverability**: description gained a "Trigger on" routing-word block; README gained the China mirror (ModelScope) link. No behavior change.
+
+## What's new in v4.6.0
+
+- **End-to-end workflow (`scripts/pp_workflow.py` / `pp_api.workflow()`)**: one command runs the full self-check — AI-rate detection, paragraph-level attribution, 4-layer gate, terminology, translation-smell, style, quality report, AIGC label self-check — and writes a single Markdown report plus the full JSON. Worked example in § Quick start.
+- **TL;DR layer & docs restructure**: a 30-second orientation section now sits at the top; historical release notes moved to `CHANGELOG.md`; anti-pattern guidance is consolidated in one section; the English FAQ is now on par with the Chinese one.
+- **Cleaner eval archive & actionable errors**: superseded eval artifacts moved to `eval/results/archive/`; pp_api/pp_setup errors now carry recovery hints.
+
 ## What's new in v4.5.0
 
 - **Python API (`scripts/pp_api.py`)**: the engine is now importable. `detect_text(text)` runs the full detector in-process (same code path as the CLI — parity-checked) and returns a plain JSON-able dict; helpers cover the rest of the toolkit: `gate_text`, `term_report`, `smell_report`, `style_report`, `quality_report_file`, `attribution`, `model_fingerprint`, `doctor_summary`. Zero network, zero third-party dependencies, exceptions instead of silent failures. Programmatic integration no longer requires wrapping subprocess calls.
@@ -43,12 +81,12 @@
 - **Integrity notice on every report**: term_check / quality_report / style_distance / translation_smell outputs now carry the same academic-integrity notice as ai_detector/deai_gate — the "every report" claim is now literally true.
 - **Paragraph-count consistency**: quality_report now counts paragraphs with the same whitespace/short-segment filtering as ai_detector (trailing-newline mismatch fixed).
 - Negative results recorded: spectrum v2 blend (fresh-generation 0.15 mix) produced a bit-identical held-out AUROC — not adopted; L13 mid-length (300-800 chars) extension evaluated and declined (human-side evaluable sample too small, FPR 2/10 at threshold).
+
 ## What's new in v3.11.0
 
 - **Batch detection (`--batch DIR`)**: score every `.txt`/`.md` file in a directory in one run — per-file scores, aggregate stats (mean/max/high-risk count), deterministic, files >5 MB skipped. Built for thesis-scale self-review.
 - **Paragraph report consistency**: the HTML attribution report now carries the same academic-integrity notice as the CLI reports.
 - **Negative result, honestly recorded**: cross-family tier-2 n-gram mining over 285 fresh samples yielded nothing beyond topic-word noise after guards (the two real markers were already registered) — pattern-recall expansion via n-grams has hit its ceiling, consistent with the v3.0 recalibration. Fingerprint registrations this cycle: none qualified (quality gate held).
-
 
 ## What's new in v3.10.0
 
@@ -88,35 +126,44 @@
 - **`deai_gate.py` usage guard + closed fallback loop**: `--help` / missing file no longer run the gate on a bogus filename; layer timeouts are caught (neutral 50); a failed smell layer now falls back to a neutral 50 instead of 0, and a failed terminology layer no longer dumps tracebacks into notes.
 - **Chinese-Windows encoding hardening**: every entry point forces UTF-8 stdout/stderr and tolerates non-UTF-8 (e.g. GBK) input files — no more crashes on default zh-CN consoles (found by adversarial multi-expert testing).
 - Docs rebuilt in honest dual-language form (this file + SKILL_ZH.md); trigger words expanded (AI率 / 查AI率 / AIGC 检测 …).
-
-
-## What's new in v4.6.0
-
-- **End-to-end workflow (`scripts/pp_workflow.py` / `pp_api.workflow()`)**: one command runs the full self-check — AI-rate detection, paragraph-level attribution, 4-layer gate, terminology, translation-smell, style, quality report, AIGC label self-check — and writes a single Markdown report plus the full JSON. Worked example in § Quick start.
-- **TL;DR layer & docs restructure**: a 30-second orientation section now sits at the top; historical release notes moved to `CHANGELOG.md`; anti-pattern guidance is consolidated in one section; the English FAQ is now on par with the Chinese one.
-- **Cleaner eval archive & actionable errors**: superseded eval artifacts moved to `eval/results/archive/`; pp_api/pp_setup errors now carry recovery hints.
-
-## What's new in v4.7.0
-
-- **Mixed-document special**: a controlled mixed-writing benchmark with per-paragraph ground truth (54 synthesized docs built from held-out test-half sources only; `eval/build_mixed_bench.py`, results in `eval/results/mixed_para_20261005.json`) quantifies what the boundary matrix could only hint at: document-level AUROC 0.52-0.54 is an inherent averaging limitation, while **paragraph-level AUROC reaches 0.69** — paragraph attribution is triage-quality for locating suspect paragraphs (not an auto-verdict). `pp_workflow.py` now emits a `mixed_document` assessment (detection, AI-fraction estimate, guidance) and flags mixed documents prominently in the Markdown report.
-- **Discoverability**: description gained a "Trigger on" routing-word block; README gained the China mirror (ModelScope) link. No behavior change.
-
-## What's new in v4.8.0
-
-- **Measurement integrity fixes from an independent third-party test round** (13 findings, verified one by one; the real bugs are fixed here, the capability observations are disclosed honestly):
-  - `run_eval.py` cache keys now include the engine mode (`:nosup` suffix) — a rules-only evaluation could previously replay supervised-layer cached scores, making the base-engine numbers unreproducible. Reproducible now, fingerprint-and-mode-bound: rules-only **0.8985** old-gen / **0.7149** current-gen (bundled sample).
-  - `--profile journal --format json` now emits **pure JSON** (journal precheck embedded as a `journal_precheck` field with both statistics explained — distribution vs intensity口径 measure different things).
-  - `risk_bands` (active medium/high thresholds + calibration tier) is now surfaced in every report — the supervised and rules tiers carry independently calibrated thresholds, which fully explains score-band differences across modes.
-  - `mixed_signal` denoised: both extremes must each cover ≥25% of paragraphs (a pure-AI document with one low-scoring outlier no longer flags as mixed).
-  - Single files >5 MB now print a warning in single-file mode (batch still skips them); `--batch` directory requirement stated in the error message.
-- **Honest disclosures**: real-world medical papers (PDF→text) can score elevated even in full mode — paragraph attribution is the actionable signal; fingerprint attribution is heuristic (top-n, never scored) and may misattribute. See FAQ.
-- **Doc precision**: bundled-corpus scope clarified (n=1,304 sample vs n=5,251 full); terminology count corrected to 2,308 loaded; zero-network verification command made import-precise.
-
 ---
 
 # 更新日志（中文）
 
 > v4.6.0 起历史更新说明移出 SKILL_ZH.md（新用户更快触达工作流）。最新在前。各版本摘要亦见 SKILL_ZH.md § 版本历史。
+
+## v5.0.0 更新内容
+
+- **句子级改写建议（`scripts/pp_fix_suggest.py`，或 `pp.py fix`）**：分数之后的自然下一步——具体哪几句、因为什么、往哪个方向改。每个被标记的句子列出其具体特征（AI套话/填充短语/模板句式/模糊限定/连接词开头/破折号冒号习惯/均匀节律）并给出各类改写策略。只指位与策略、不代写不自动改写——改写决定权在作者本人。支持 `--json`、内置双样例演示（`--demo`），并已在 `pp_workflow` 报告中新增 `fix_suggest` 块。
+- **随包单元测试套件（`tests/`，`pp.py test`）**：44 个标准库 unittest 用例，覆盖铁律（短文本/空输入/GBK）、报告字段契约、JSON 纯净性、门禁、工作流 Markdown 布局、数据文件与新工具——不装模型也能在自己机器上验证行为。
+- **结构化零网络自证（`scripts/pp_verify.py`，或 `pp.py verify`）**：AST 级扫描全部脚本——网络 import/调用与 curl/wget 式子进程命令一律命中；报告页脚的 URL 字符串被正确视为数据（旧 grep 建议区分不了这两者）。exit 0=零网络调用。
+- **语域感知 2.0**：文学叙事文本获得专门语域提示（该语域超出学术校准域；实测文学名篇在本引擎可达 high 档），结果请勿当作 AI 证据。仅披露，不改任何打分；全部已发布数字保持可复现。
+- **打包**：`requirements.txt` 随包（核心零依赖；可选监督层依赖注释声明）；`pp.py quickstart` 零模型一键体验（detect → fix → doctor）；`pp_doctor` 新增最近留出集评测记录行；速查表补 quality_report 行。
+
+## v4.9.0 更新内容
+
+- **混写文档校准（收口 v4.7.0 backlog）**：段落级 hi/med/lo 阈值在可控混写基准（333 段逐段真值）上完成校准（最优工作点 ≥50 分：精度 0.60、覆盖 63%——诚实低于自动判定可用线，排序辅助）。校准口径中途修正：早先网格把中带剔出二分类导致 F1 虚高 0.85，按全带语义重算（真值 0.6131）。随包发布 `references/para_thresholds.json` 并在每次 `mixed_document` 评估中透出。
+- **统一入口（`scripts/pp.py`）**：一条命令路由全部 11 个子命令——脚本导航成本清零。
+- **可靠性**：批处理 CSV 改原子写（临时文件+改名，并发跑批安全）；门禁各层崩溃/超时先重试一次再兜底。
+
+## v4.8.0 更新内容
+
+- **测量与输出契约诚实版（第三方独立测试轮 13 项发现逐条核实，真缺陷全修，能力观察诚实披露）**：
+  `run_eval.py` 缓存键纳入引擎档位（`:nosup` 后缀）——此前规则档评测会重放监督层缓存分致基础引擎数字不可复现；现已可复现且指纹+档位双绑定：纯规则老代 **0.8985** / 当打代 **0.7149**（随包语料）。
+  `--profile journal --format json` 现输出**纯 JSON**（期刊口径以 `journal_precheck` 字段嵌入，双口径统计差异已内嵌解释）；每份报告透出 `risk_bands`（现行中/高风险带阈值+校准档位——监督档与规则档各自独立校准，跨档分带差异从此可解释）；`mixed_signal` 去噪（两端各 ≥25% 段占比才报混写）；单文件 >5MB 增加提示；`--batch` 目录要求写入报错信息。
+- **诚实披露**：真实期刊论文（PDF 转文本）即使全档也可能评分偏高——段落归因才是可用信号；指纹归因为启发式参考（top-n 不进分），存在误归因可能。详见 FAQ。
+- **文档精度**：随包语料口径澄清（抽样 1,304 vs 全量 5,251）；术语计数修正为加载 2,308 条；零网络验证命令改为 import 精确口径。
+
+## v4.7.0 更新内容
+
+- **混写文档专项**：构造带逐段真值的可控混写基准（54 篇合成文档，段落仅取自留出 test 半来源；`eval/build_mixed_bench.py`，结果 `eval/results/mixed_para_20261005.json`），把边界矩阵只能定性提示的局限定量化：**文档级 AUROC 0.52-0.54（平均原理性局限）vs 段落级 AUROC 0.69**——段落归因达到「人工复核定位」的 triage 质量而非自动判定。`pp_workflow.py` 新增 `mixed_document` 评估块（检测/AI 段占比估计/处置指引），混写文档在 Markdown 报告中醒目标注。
+- **可发现性**：description 新增 Trigger on 路由词块；README 新增中国镜像（魔搭）链接。行为零变更。
+
+## v4.6.0 更新内容
+
+- **端到端工作流（`scripts/pp_workflow.py` / `pp_api.workflow()`）**：一条命令跑完全部自查——AI 率检测、段落级归因、四层门禁、术语保护、翻译腔、文体、质量报告、AIGC 标识自查——产出单一 Markdown 报告+完整 JSON。示例见 § 快速开始。
+- **TL;DR 层与文档重构**：顶部新增 30 秒上手层；历史更新说明迁至 `CHANGELOG.md`；反模式集中成节；英文 FAQ 对齐中文版。
+- **评测存档整理与错误可行动化**：过时评测产物移入 `eval/results/archive/`；pp_api/pp_setup 错误信息附带恢复建议。
 
 ## v4.5.0 更新内容
 
@@ -204,27 +251,3 @@
 - **`deai_gate.py` 用法守卫与兜底闭环**：`--help`/缺失文件不再被当成文件名误跑门禁；层超时被捕获（中性 50）；翻译腔层解析失败改走中性 50 分而非 0 分（不再把垃圾输入推向 pass 带）；术语层失败不再把 Traceback 塞进 note。
 - **中文 Windows 编码加固**：全部入口强制 UTF-8 输出并容错非 UTF-8（如 GBK）输入文件——zh-CN 默认控制台不再崩溃（多专家对抗测试发现）。
 - 双语文档按诚实口径重建；触发词扩容（AI率/降AI/查AI率/论文AI率/降低AI率…）。
-
-
-## v4.6.0 更新内容
-
-- **端到端工作流（`scripts/pp_workflow.py` / `pp_api.workflow()`）**：一条命令跑完全部自查——AI 率检测、段落级归因、四层门禁、术语保护、翻译腔、文体、质量报告、AIGC 标识自查——产出单一 Markdown 报告+完整 JSON。示例见 § 快速开始。
-- **TL;DR 层与文档重构**：顶部新增 30 秒上手层；历史更新说明迁至 `CHANGELOG.md`；反模式集中成节；英文 FAQ 对齐中文版。
-- **评测存档整理与错误可行动化**：过时评测产物移入 `eval/results/archive/`；pp_api/pp_setup 错误信息附带恢复建议。
-
-
-
-## v4.7.0 更新内容
-
-- **混写文档专项**：构造带逐段真值的可控混写基准（54 篇合成文档，段落仅取自留出 test 半来源；`eval/build_mixed_bench.py`，结果 `eval/results/mixed_para_20261005.json`），把边界矩阵只能定性提示的局限定量化：**文档级 AUROC 0.52-0.54（平均原理性局限）vs 段落级 AUROC 0.69**——段落归因达到「人工复核定位」的 triage 质量而非自动判定。`pp_workflow.py` 新增 `mixed_document` 评估块（检测/AI 段占比估计/处置指引），混写文档在 Markdown 报告中醒目标注。
-- **可发现性**：description 新增 Trigger on 路由词块；README 新增中国镜像（魔搭）链接。行为零变更。
-
-
-## v4.8.0 更新内容
-
-- **测量与输出契约诚实版（第三方独立测试轮 13 项发现逐条核实，真缺陷全修，能力观察诚实披露）**：
-  `run_eval.py` 缓存键纳入引擎档位（`:nosup` 后缀）——此前规则档评测会重放监督层缓存分致基础引擎数字不可复现；现已可复现且指纹+档位双绑定：纯规则老代 **0.8985** / 当打代 **0.7149**（随包语料）。
-  `--profile journal --format json` 现输出**纯 JSON**（期刊口径以 `journal_precheck` 字段嵌入，双口径统计差异已内嵌解释）；每份报告透出 `risk_bands`（现行中/高风险带阈值+校准档位——监督档与规则档各自独立校准，跨档分带差异从此可解释）；`mixed_signal` 去噪（两端各 ≥25% 段占比才报混写）；单文件 >5MB 增加提示；`--batch` 目录要求写入报错信息。
-- **诚实披露**：真实期刊论文（PDF 转文本）即使全档也可能评分偏高——段落归因才是可用信号；指纹归因为启发式参考（top-n 不进分），存在误归因可能。详见 FAQ。
-- **文档精度**：随包语料口径澄清（抽样 1,304 vs 全量 5,251）；术语计数修正为加载 2,308 条；零网络验证命令改为 import 精确口径。
-

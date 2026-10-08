@@ -541,6 +541,146 @@ for _n in ("pp_api.py", "pp_setup.py"):
         _bad_net.append(_n)
 chk("SDK/装模零网络导入", not _bad_net, "; ".join(_bad_net))
 
+# ───────────────────────── G. 可信验证与改写建议（v5.0.0） ─────────────────────────
+# G1. pp_verify 结构化零网络自证：正例（本包 scripts）干净
+_rcv, _sov, _sev = run_py("pp_verify.py", ["--json"])
+try:
+    _vjson = json.loads(_sov)
+except Exception:
+    _vjson = {}
+chk("pp_verify: 本包零网络(AST)", _rcv == 0 and _vjson.get("zero_network") is True
+    and _vjson.get("files_scanned", 0) >= 20,
+    f"rc={_rcv} zero_network={_vjson.get('zero_network')} files={_vjson.get('files_scanned')}")
+
+# G2. pp_verify 负例：合成违规必须命中，URL 字符串必须放行
+import shutil as _shutil_g
+_tmpv = Path(tempfile.mkdtemp(prefix="smoke_v500_"))
+try:
+    (_tmpv / "bad.py").write_text("import urllib.request\nurllib.request.urlopen('http://x')\n",
+                                  encoding="utf-8")
+    _rcb, _sob, _ = run_py("pp_verify.py", ["--dir", str(_tmpv), "--json"])
+    (_tmpv / "bad.py").unlink()
+    (_tmpv / "ok.py").write_text('URL = "https://example.com/x"\nimport urllib.parse\n'
+                                 "print(URL, urllib.parse.quote('论文'))\n", encoding="utf-8")
+    _rco, _soo, _ = run_py("pp_verify.py", ["--dir", str(_tmpv), "--json"])
+    chk("pp_verify: 违规命中 rc=1", _rcb == 1, f"rc={_rcb}")
+    chk("pp_verify: URL字符串数据不误报 rc=0", _rco == 0, f"rc={_rco} out={_soo[:120]}")
+finally:
+    _shutil_g.rmtree(_tmpv, ignore_errors=True)
+
+# G3. pp_fix_suggest：AI 感样例命中、人类感样例零命中、短文本拒绝、demo 可跑
+_DEMO_AI = ("值得注意的是，随着人工智能技术的快速发展，其在医疗领域的应用日益受到关注。"
+            "具体而言，AI 不仅能够提高诊断效率，而且可以优化治疗方案的制定。"
+            "然而，与此同时，我们在享受技术红利的同时也面临着诸多挑战。"
+            "在一定程度上，数据安全问题的存在对行业发展产生了一定的制约。"
+            "综上所述，本研究为该领域的进一步探索提供了一定的参考价值。"
+            "此外，本研究仍存在一定局限性，未来需要进一步扩大样本量予以验证。")
+with tempfile.NamedTemporaryFile("w", suffix=".txt", delete=False, encoding="utf-8") as _f:
+    _f.write(_DEMO_AI); _fx_ai = _f.name
+_rcf1, _sof1, _ = run_py("pp_fix_suggest.py", [_fx_ai, "--json"])
+Path(_fx_ai).unlink(missing_ok=True)
+try:
+    _fx = json.loads(_sof1)
+except Exception:
+    _fx = {}
+_fs = (_fx.get("stats") or {})
+chk("fix_suggest: AI样例命中", _rcf1 == 0 and _fs.get("flagged_sentences", 0) >= 3
+    and "integrity_notice" in _fx,
+    f"flagged={_fs.get('flagged_sentences')}/{_fs.get('total_sentences')}")
+_HUMAN_DEMO = ZH_HUMAN
+with tempfile.NamedTemporaryFile("w", suffix=".txt", delete=False, encoding="utf-8") as _f:
+    _f.write(_HUMAN_DEMO); _fx_hu = _f.name
+_rcf2, _sof2, _ = run_py("pp_fix_suggest.py", [_fx_hu, "--json"])
+Path(_fx_hu).unlink(missing_ok=True)
+try:
+    _fsh = json.loads(_sof2).get("stats") or {}
+except Exception:
+    _fsh = {}
+chk("fix_suggest: 学术人类样例零命中", _rcf2 == 0 and _fsh.get("flagged_sentences") == 0,
+    f"flagged={_fsh.get('flagged_sentences')}")
+with tempfile.NamedTemporaryFile("w", suffix=".txt", delete=False, encoding="utf-8") as _f:
+    _f.write("太短。"); _fx_st = _f.name
+_rcf3, _, _sef3 = run_py("pp_fix_suggest.py", [_fx_st])
+Path(_fx_st).unlink(missing_ok=True)
+chk("fix_suggest: 短文本拒绝(rc=2)", _rcf3 == 2 and "100" in _sef3, f"rc={_rcf3}")
+_rcf4, _sof4, _ = run_py("pp_fix_suggest.py", ["--demo"])
+chk("fix_suggest: --demo 双样例可跑", _rcf4 == 0 and "样例 A" in _sof4 and "样例 B" in _sof4,
+    f"rc={_rcf4}")
+
+# G4. workflow 的 fix_suggest 块 + MD 第 3 节
+try:
+    _wfr = _API.workflow(_DEMO_AI)
+    _wfstats = ((_wfr.get("fix_suggest") or {}).get("stats") or {})
+    chk("workflow: fix_suggest 块在位", bool(_wfstats), f"keys={bool(_wfstats)}")
+except Exception as _e:
+    chk("workflow: fix_suggest 块在位", False, f"exception: {_e}")
+
+# G5. pp.py 路由：新子命令注册 + 未知命令 rc=2 + quickstart 三步
+_ppe = subprocess.run([sys.executable, str(SCRIPTS / "pp.py")], capture_output=True,
+                      text=True, encoding="utf-8")
+chk("pp.py 入口: fix/verify/test/quickstart 已注册",
+    _ppe.returncode == 0 and all(w in _ppe.stdout for w in ("fix", "verify", "test", "quickstart")))
+_ppu = subprocess.run([sys.executable, str(SCRIPTS / "pp.py"), "no-such"], capture_output=True,
+                      text=True, encoding="utf-8")
+chk("pp.py 未知子命令 rc=2", _ppu.returncode == 2)
+
+# G6. 语域感知 2.0：文学叙事提示、学术样本不受扰
+_NARR = ("我翻开历史一查，这历史没有年代，歪歪斜斜的每页上都写着仁义道德几个字。"
+         "我横竖睡不着，仔细看了半夜，才从字缝里看出字来，满本都写着两个字是吃人！"
+         "那时候，大哥还在。母亲常对我说：你应当去。那天他忽然来了，"
+         "我心里一沉，眼泪几乎要落下来。老爷说这没有什么可笑。"
+         "第二天一早，他拎着包走了，我到现在还记得那天清晨的凉。")
+with tempfile.NamedTemporaryFile("w", suffix=".txt", delete=False, encoding="utf-8") as _f:
+    _f.write(_NARR); _nr = _f.name
+_rcn2, _son2, _ = run_py("ai_detector.py", [_nr, "--format", "json"])
+Path(_nr).unlink(missing_ok=True)
+try:
+    _rn2 = json.loads(_son2)
+except Exception:
+    _rn2 = {}
+chk("语域2.0: 文学叙事提示触发", _rcn2 == 0 and "文学叙事" in (_rn2.get("register_hint") or "")
+    and "勿当作 AI 生成证据" in (_rn2.get("register_hint") or ""))
+chk("语域2.0: 学术样本无叙事提示", "文学叙事" not in (r1.get("register_hint") or ""))
+
+# G7. doctor 保鲜可见化 + requirements.txt 在位
+_rcd2, _sod2, _ = run_py("pp_doctor.py", [])
+chk("doctor: 最近评测记录行", _rcd2 == 0 and "最近留出集评测记录" in _sod2)
+chk("requirements.txt 在位且声明可选依赖",
+    (ROOT / "requirements.txt").exists()
+    and "onnxruntime" in (ROOT / "requirements.txt").read_text(encoding="utf-8"))
+
+# G8. CHANGELOG 节序锁（英/中两区均严格降序 + 顶部为当前版本）
+import re as _re2
+_tcl = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
+
+def _vk(_s):
+    _m = _re2.search(r"(\d+)\.(\d+)\.(\d+)", _s)
+    return tuple(map(int, _m.groups())) if _m else (0, 0, 0)
+
+def _order_ok(_body):
+    _vs = [_vk(m.group(0)) for m in _re2.finditer(r"^## .+$", _body, _re2.M)]
+    return len(_vs) >= 10 and all(_vs[i] > _vs[i + 1] for i in range(len(_vs) - 1)), _vs[:3]
+
+_zh_i = _tcl.index("# 更新日志（中文）")
+_en_ok, _en_top = _order_ok(_tcl[:_zh_i])
+_zh_ok, _zh_top = _order_ok(_tcl[_zh_i:])
+chk("CHANGELOG 双语节序严格降序", _en_ok and _zh_ok, f"EN top={_en_top} ZH top={_zh_top}")
+_cur = _vk("5.0.0")
+chk("CHANGELOG 顶部为当前版本(EN/ZH)", _en_top[:1] == [_cur] and _zh_top[:1] == [_cur],
+    f"EN={_en_top[:1]} ZH={_zh_top[:1]}")
+
+# G9. 包内测试套件可发现且全绿（计数只看规模下限，避免脆弱绑定）
+try:
+    _ut = subprocess.run([sys.executable, "-m", "unittest", "discover", "-s", "tests",
+                          "-t", "."], capture_output=True, text=True, encoding="utf-8",
+                         cwd=str(ROOT), timeout=420)
+    _m = _re2.search(r"Ran (\d+) tests", _ut.stderr + _ut.stdout)
+    _ntests = int(_m.group(1)) if _m else 0
+    chk("包内单测全绿", _ut.returncode == 0 and _ntests >= 40,
+        f"rc={_ut.returncode} ran={_ntests}")
+except Exception as _e:
+    chk("包内单测全绿", False, f"exception: {_e}")
+
 # ───────────────────────── 汇总 ─────────────────────────
 failed = [r for r in results if not r[1]]
 print("────────────────────────────────")

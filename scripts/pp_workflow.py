@@ -97,6 +97,20 @@ def workflow(text: str, lang: str = "auto") -> dict:
 
     # 3) 四层门禁
     result["gate"] = pp_api.gate_text(text)
+    # 3b) 句子级改写建议（v5.0.0）：检测之后的自然下一步——具体哪几句、因为什么、往哪改
+    try:
+        import pp_fix_suggest
+        _sug, _stats, _slang = pp_fix_suggest.analyze(text, lang=lang if lang != "auto" else "auto")
+        result["fix_suggest"] = {"stats": _stats, "language": _slang,
+                                 "top_issues": [
+                                     {"index": s["index"] + 1, "sentence": s["sentence"],
+                                      "issues": [{"type": x["type"], "evidence": x["evidence"]}
+                                                 for x in s["issues"]]}
+                                     for s in _sug[:5]],
+                                 "notice": ("改写建议是排序辅助：指位与策略供人工润稿参考，"
+                                            "完整版见 pp.py fix（不代写，改写决定权在作者）。")}
+    except Exception as e:  # 建议生成失败不阻断工作流（主链路照常交付）
+        result["fix_suggest"] = {"stats": None, "error": str(e)}
     # 4-6) 术语 / 翻译腔 / 文体
     result["terms"] = pp_api.term_report(text)
     result["smell"] = pp_api.smell_report(text)
@@ -158,19 +172,45 @@ def to_markdown(r: dict) -> str:
         "",
         "- 复合风险: %s ｜ 判定: %s" % (r["gate"].get("composite_ai_risk"), r["gate"].get("verdict")),
         "",
-        "## 3. 术语保护",
+    ]
+    fx = r.get("fix_suggest") or {}
+    _fs = fx.get("stats") or {}
+    if _fs:
+        try:
+            from pp_fix_suggest import _TYPE_ZH as _fx_names
+        except Exception:
+            _fx_names = {}
+        lines += ["## 3. 句子级改写建议（top5，完整版见 pp.py fix）", ""]
+        if _fs.get("flagged_sentences"):
+            lines.append("共 %d 句中 %d 句含可改进特征；特征分布：%s" % (
+                _fs.get("total_sentences"), _fs.get("flagged_sentences"),
+                "、".join(f"{_fx_names.get(k, k)}×{v}" for k, v in
+                          sorted((_fs.get("type_counts") or {}).items(), key=lambda kv: -kv[1]))
+                or "无"))
+            lines.append("")
+            for s in fx.get("top_issues", []):
+                lines.append("- 句%d「%s…」：%s" % (
+                    s["index"], s["sentence"][:24],
+                    "；".join(_fx_names.get(x["type"], x["type"]) for x in s["issues"])))
+            lines.append("")
+        else:
+            lines.append("未发现可改进特征句（引擎模式库口径；不构成「无需润色」结论）。")
+            lines.append("")
+    # 后续节号顺延
+    lines += [
+        "## 4. 术语保护",
         "",
         "- 标准率: %s%% ｜ 待处理: %s 处" % (r["terms"].get("standardization_rate"), r["terms"].get("total_issues")),
         "",
-        "## 4. 翻译腔",
+        "## 5. 翻译腔",
         "",
         "- 命中: %s 处" % r["smell"].get("total_hits"),
         "",
-        "## 5. 文体距离",
+        "## 6. 文体距离",
         "",
         "- 文体分: %s（%s）" % (r["style"].get("style_score"), r["style"].get("verdict")),
         "",
-        "## 6. 质量报告",
+        "## 7. 质量报告",
         "",
     ]
     q = r.get("quality") or {}
@@ -181,7 +221,7 @@ def to_markdown(r: dict) -> str:
             lines.append("- %s: %s" % (lab, q[k]))
     lines += [
         "",
-        "## 7. AIGC 合规标识自查",
+        "## 8. AIGC 合规标识自查",
         "",
         "- 显式标识证据: %d 条" % len((r.get("aigc_label") or {}).get("evidence", [])),
         "",

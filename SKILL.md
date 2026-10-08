@@ -1,18 +1,21 @@
 ---
 name: paper-polisher
-version: 4.9.0
+version: 5.0.0
 author: DoctorQ Lab
 description: >-
   AI-rate self-check for academic writing, polish guidance (style, terminology, translation-smell),
   metaphor audit, quality report, AIGC compliance label check (China 2025-09
-  labeling rules), paragraph-level attribution, journal precheck, plus `--batch DIR` for thesis-scale batch rewriting guidance (per-file AI-rate scores and polish suggestions across a whole directory). Bilingual
-  CN/EN, 100% local, zero upload, zero credentials. v3 delivers a recalibrated multi-layer
+  labeling rules), paragraph-level attribution, journal precheck, sentence-level
+  rewrite suggestions (locates and advises, never auto-rewrites), plus `--batch DIR`
+  for thesis-scale batch rewriting (per-file AI-rate scores directory-wide).
+  Bilingual CN/EN, 100% local, zero upload, zero credentials; bundled unit-test suite
+  + AST-based zero-network self-verification.
+  v3 delivers a recalibrated multi-layer
   rule engine (11 core layers + discourse/smoothness heuristics) + token-spectrum layer + length-routed fusion + optional
   supervised Qwen3-0.6B ONNX layer (AUROC 1.0 on held-out test) + LLM
-  fingerprint attribution (GLM / DeepSeek / Qwen / Kimi / MiniMax / GPT /
-  Claude / Gemini) + freshness pipeline. Base-engine numbers reproduce from the
-  bundled held-out evaluation; supervised-layer columns are author-side held-out
-  measurements (the model itself is not bundled).
+  fingerprint attribution (GLM/DeepSeek/Qwen/Kimi/MiniMax/GPT/Claude/Gemini) +
+  freshness pipeline. Base-engine numbers reproduce from the bundled held-out
+  evaluation; supervised columns are author-side measurements (model not bundled).
 tags: [ai-detection, deai, academic-writing, paraphrase, paper-polish]
 ---
 
@@ -30,7 +33,7 @@ AI writing detection (AI-rate self-check for authors) · academic polishing guid
 ## TL;DR
 
 - **What**: 100% local AI-rate self-check + academic polishing toolkit for Chinese academic text (optional supervised model for best accuracy; English gets advisory rules-only scores).
-- **30-second start**: `python3 scripts/pp.py detect draft.txt --format json` · full self-check report: `python3 scripts/pp.py workflow draft.txt` · environment: `python3 scripts/pp.py doctor` (one entry routes all subcommands)
+- **30-second start**: `python3 scripts/pp.py quickstart` (zero-model, zero-file demo) · `python3 scripts/pp.py detect draft.txt --format json` · sentence-level rewrite suggestions: `python3 scripts/pp.py fix draft.txt` · full self-check report: `python3 scripts/pp.py workflow draft.txt` · environment: `python3 scripts/pp.py doctor` (one entry routes all subcommands)
 - **Measured** (held-out, fingerprint-bound md5 2631df3d388b): AUROC 0.9998 pre-2026 / 0.9400 current-generation; human FPR@medium 2.3%.
 - **Know the limits**: texts <100 chars get `risk=unknown` by design · medical text in degraded mode is over-scored · authors' self-check only — never for evading institutional AI detection.
 - **Where to look next**: capability boundary matrix below · end-to-end example in § Quick start · FAQ near the end · full history in `CHANGELOG.md`.
@@ -71,12 +74,22 @@ This tool is for **authors self-reviewing and improving their own writing qualit
 
 ## Safety and behavior statement
 
-- **100% local**: every feature runs on-device. The codebase makes zero network calls — no network client libraries, no network utilities. Verify: `grep -rEin "urllib|requests|socket|import http" scripts/` (expected: zero hits; plain `https://` URL strings inside generated-report footers are data, not network code).
+- **100% local**: every feature runs on-device. The codebase makes zero network calls — no network client libraries, no network utilities. Verify structurally: `python3 scripts/pp_verify.py` (AST-level scan; exit 0 = zero network calls, all scripts compile). Legacy text grep `grep -rEin "urllib|requests|socket|import http" scripts/` may show a few URL *strings* in report footers — those are data in string constants, not network code; the AST verifier distinguishes the two.
 - **No upload, no credentials**: reads and transmits no credentials, keys, or personal data; the only environment variable, `PP_NO_SUP`, is a local behavior toggle.
 - **No persistence**: creates no scheduled tasks, autostart entries, or system config changes; temp files (inter-layer JSON, probe text) are deleted after use.
 - **No remote code**: loads no remote models or scripts; the optional supervised model is placed by the user at a local path.
 - **Data boundary**: reads/writes only user-specified files, the system temp dir, and its own package data directories (calibration/freshness artifacts); reports go only where the user points them.
 - **Academic integrity**: see the section above — for author self-review and quality improvement with policy-compliant disclosure; not for evading detection.
+
+## What's new in v5.0.0
+
+- **Sentence-level rewrite suggestions (`scripts/pp_fix_suggest.py`, also `pp.py fix`)**: the natural next question after a score — *which sentences, why, and how to improve them*. Each flagged sentence lists its concrete features (AI clichés, filler phrases, template patterns, vague qualifiers, connective openers, dash/colon habits, uniform rhythm) with a per-type rewrite strategy. Guidance only: it locates and suggests, never auto-rewrites — the editing decision stays with the author. Ships with `--json` for programmatic use and a built-in two-sample demo (`--demo`).
+- **Bundled unit-test suite (`tests/`, `pp.py test`)**: 44 stdlib-unittest cases covering the iron laws (short text/empty/GBK), report field contracts, JSON purity, the gate, the workflow Markdown layout, data files, and the new tools — runnable in seconds without the model, so anyone can verify behavior on their own machine.
+- **Structured zero-network self-verification (`scripts/pp_verify.py`, also `pp.py verify`)**: replaces the old grep advice with an AST-level scan of every script — catches network imports/calls and curl/wget-style subprocess commands, while URL *strings* in report footers are correctly treated as data. Exit 0 = clean; `--json` for pipelines.
+- **Register awareness 2.0**: literary-narrative texts (dialogue quotes + time progression + inner monologue cues) now get a dedicated register notice explaining that this register sits outside the academic calibration domain — measured literary classics can reach high band in this engine — so the result is not mistaken for AI evidence. Disclosure only; no scoring change.
+- **`requirements.txt`** ships with the package: core = zero third-party dependencies; the two optional supervised-layer deps (onnxruntime/numpy) are declared and commented.
+- **`pp.py quickstart`**: zero-model, zero-file one-command demo (detect → fix → doctor) on a built-in sample.
+- **Freshness visible in `pp_doctor`**: the doctor now reports the latest held-out evaluation record alongside the fingerprint-registry coverage row.
 
 ## What's new in v4.9.0
 
@@ -111,15 +124,23 @@ fingerprint_miner.py      Fingerprint mining (new model drop → sample → mine
 pattern_recalibrator.py   Data-driven pattern recalibration (human-hit filtering)
 build_spectrum.py / calibrate_v3.py   Spectrum build / weight calibration
 freshness_refresh.py         Monthly freshness pipeline (sample → rebuild → calibrate → regression)
-pp_doctor.py              Environment self-check (v3.5)
+pp_doctor.py              Environment self-check (v3.5; v5.0.0 adds latest-eval-record row)
+pp_verify.py              AST-level structured zero-network self-verification (v5.0.0)
+pp_fix_suggest.py         Sentence-level rewrite suggestions (v5.0.0: locate + strategy, no auto-rewrite)
+tests/                    Bundled unit-test suite, `python3 -m unittest discover -s tests -t .` (v5.0.0)
+requirements.txt          Dependency declaration: core zero-dep; optional supervised-layer extras (v5.0.0)
 eval/                     corpus_builder / attack_gen / run_eval (AUROC, TPR@FPR, per-model, attack decay)
 ```
 
 ## Quick start
 
 ```bash
+# Zero-model, zero-file one-command demo (v5.0.0)
+python scripts/pp.py quickstart
 # AI writing detection (probability + layered evidence + fingerprint attribution)
 python scripts/ai_detector.py draft.txt --format json
+# Sentence-level rewrite suggestions (v5.0.0: which sentences, why, how to improve)
+python scripts/pp_fix_suggest.py draft.txt --top 10
 # Journal precheck (suspected-AIGC ratio vs the 20-25% reference line, non-interchangeable disclaimer)
 python scripts/ai_detector.py draft.txt --profile journal
 # Paragraph-level attribution (locate human/AI collaboration)
@@ -132,6 +153,9 @@ python scripts/translation_smell_check.py draft.txt
 python scripts/deai_gate.py draft.txt
 # Environment self-check
 python scripts/pp_doctor.py
+# Structured zero-network self-verification + bundled unit tests (v5.0.0)
+python scripts/pp_verify.py
+python -m unittest discover -s tests -t .          # or: python scripts/pp.py test
 # Held-out regression (mandatory after any engine change)
 python eval/run_eval.py --split test --tag mytag
 ```
@@ -218,12 +242,21 @@ Attribution is heuristic (top-n candidates, never scored) and may misattribute �
 **Q: How do I use the AIGC label check?**
 `python scripts/aigc_label_check.py manuscript.docx figures/*.png` — checks metadata / C2PA watermark / explicit declaration (China 2025-09 labeling rules). Exit 0 = labeled, 1 = unlabeled; both are normal runs.
 
+**Q: How can I verify the "100% local / zero upload" claim myself?**
+Run `python3 scripts/pp_verify.py` — an AST-level structural scan of every script. It flags network imports/calls and curl/wget-style subprocess commands, while URL strings in report footers are correctly treated as data (the old grep advice could not tell the two apart). Exit 0 = zero network calls. For behavior-level checks, the bundled test suite (`python -m unittest discover -s tests -t .`) exercises the iron laws and report contracts on your own machine.
+
+**Q: What do the rewrite suggestions do — do they change my text?**
+No. `pp_fix_suggest.py` (`pp.py fix`) only locates sentences carrying improvable features and explains the improvement strategy per feature type (e.g., replace an AI cliché with a concrete claim, split a template sentence). It never edits your file; the editing decision and execution stay with the author. `--demo` shows a built-in two-sample walkthrough.
+
 ### Script cheat sheet
 
 | Script | Purpose | Key flags | Output |
 |---|---|---|---|
 | ai_detector.py | Main AI-writing detector | `--lang auto\|zh\|en` `--format json\|text\|summary` `--profile journal` `--batch DIR` | Score + paragraph detail + fingerprints (JSON incl. degraded_mode/integrity_notice) |
+| pp_fix_suggest.py | Sentence-level rewrite suggestions (v5.0.0) | `--top N` `--json` `--demo` | Per-sentence features + rewrite strategies (locates and suggests, never auto-rewrites) |
 | pp_doctor.py | Environment self-check | `--json` | Data/deps/model probes; exit 0 = green |
+| pp_verify.py | Structured zero-network self-verification (v5.0.0) | `--json` | AST-level scan verdict; exit 0 = zero network calls |
+| quality_report.py | Overall quality report | `--json` | Readability/quality dimensions for the manuscript |
 | deai_gate.py | 4-layer fused gate | `--json` | composite score + verdict band (<35 pass / 35-55 review / ≥55 suspect) |
 | paragraph_report.py | Paragraph attribution | `--output report.html` | HTML report |
 | term_check.py | Terminology (2,308 terms) | `--auto-fix` `--output` | Standardization rate + fixed file |
@@ -255,6 +288,7 @@ Monthly full pass: `python scripts/freshness_refresh.py` (schedule it with your 
 
 ## Version history (condensed)
 
+- **v5.0.0 (2026-10-09)** — verification & rewrite-suggestions release: bundled unit-test suite (44 stdlib cases, `pp.py test`); AST-level zero-network self-verification (`pp_verify.py`); sentence-level rewrite suggestion engine (`pp_fix_suggest.py` — locate + strategy, never auto-rewrite, also wired into `pp_workflow` and `pp.py fix`); literary-narrative register notice (disclosure only, no scoring change); `requirements.txt`; `pp.py quickstart`; doctor freshness row.
 - **v4.9.0 (2026-10-08)** — mixed-document calibration release: paragraph thresholds calibrated on the 333-paragraph benchmark (best operating point P=0.60/coverage 63% — honestly below auto-verdict bar; ranking aid only); unified `pp.py` entry; atomic batch CSV; gate layer retry.
 - **v4.8.0 (2026-10-07)** — measurement & output-contract integrity (independent test round, 13 findings addressed): eval cache keys bind engine mode (rules-only reproducible: 0.8985/0.7149 bundled); journal+json purity; risk_bands surfaced; mixed_signal denoised; 5MB/batch CLI guards; real-world FPR & attribution limits disclosed in FAQ; corpus/terminology counting precision.
 - **v4.7.0 (2026-10-06)** — mixed-document special: controlled per-paragraph benchmark quantifies paragraph-level AUROC 0.69 (document-level 0.52-0.54); pp_workflow gains mixed_document assessment + prominent mixed flagging; description Trigger-on routing words; README China mirror link.
