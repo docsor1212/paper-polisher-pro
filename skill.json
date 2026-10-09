@@ -1,8 +1,8 @@
 {
   "name": "paper-polisher-pro",
-  "version": "5.0.0",
+  "version": "5.1.0",
   "description": "AI writing detector (author self-check) + academic polishing guidance + terminology protection, 100% local. 11-layer recalibrated rule engine + token-spectrum layer + length-routed fusion + optional supervised Qwen3-0.6B ONNX layer (AUROC 1.0 held-out) + LLM fingerprint attribution (GLM/DeepSeek/Qwen/Kimi/MiniMax/GPT/Claude/Gemini) + journal precheck + AIGC compliance label check + paragraph attribution + sentence-level rewrite suggestions (guidance, never auto-rewrite). Eval-driven: base-engine numbers reproduce via the bundled held-out evaluation; supervised-layer figures are author-side held-out measurements.",
   "author": "DoctorQ Lab",
-  "changelog": "v5.0.0: verification & rewrite-suggestions release — bundled unit-test suite (44 stdlib cases, pp.py test); AST-level structured zero-network self-verification (pp_verify.py, replaces the grep advice — URL strings in report footers are data, not code); sentence-level rewrite suggestion engine (pp_fix_suggest.py: which sentences, why, how to improve — locate & strategy, never auto-rewrite; also wired into pp_workflow and pp.py fix); literary-narrative register notice (disclosure only, no scoring change); requirements.txt; pp.py quickstart zero-model demo; pp_doctor latest-eval-record row. 查论文润色、智能降重、学术表达优化等口径与 FAQ 保持不变。零新增依赖（核心功能）。",
+  "changelog": "v5.1.0: rewrite-closure & batch-report release — rewrite-effect regression check (pp_rewrite_check.py: original vs revised engine-source comparison — document score/risk-band migration, paragraph-level difflib-aligned deltas, feature-type clears vs remaining, edit extent; relative reference under this engine's criteria only; pp.py rewrite-check + pp_api.rewrite_check); batch HTML summary report (pp_batch_report.py: totals/mean/band cards, score histogram, per-file table; renders the existing --batch --csv, no engine re-run); batch-CSV concurrency semantics and degraded_notice reading guide documented in FAQ. 查论文润色、智能降重、学术表达优化等口径与 FAQ 保持不变。零新增依赖。",
   "license": "MIT-0"
 }

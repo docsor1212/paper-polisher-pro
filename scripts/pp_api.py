@@ -190,6 +190,28 @@ def workflow(text: str, lang: str = "auto") -> dict:
                            "再逐项 pp_api.detect_text/term_report 定位失败子检查）" % e) from e
 
 
+def rewrite_check(original: str, revised: str, lang: str = "auto") -> dict:
+    """改写效果回归验证（v5.1.0）：原稿 vs 改稿的引擎同源对比。
+
+    返回 {document: 分数/风险带迁移, edit_extent: 幅度, features: 特征类型增减,
+          paragraphs: 段落级配对 delta, integrity_notice, notice}。
+    分数变化是本引擎口径的相对参考，不与任何机构检测器互换。
+    完整语义见 scripts/pp_rewrite_check.py（--demo 有内置样例）。
+    """
+    if not isinstance(original, str) or not original.strip():
+        raise ValueError("original 必须是非空字符串")
+    if not isinstance(revised, str) or not revised.strip():
+        raise ValueError("revised 必须是非空字符串")
+    import pp_rewrite_check
+    try:
+        return pp_rewrite_check.rewrite_check(original, revised, lang=lang)
+    except ValueError:
+        raise
+    except Exception as e:
+        raise RuntimeError("rewrite_check 失败: %s（恢复建议: 分别对两稿跑 "
+                           "pp_api.detect_text 确认引擎可用后再试）" % e) from e
+
+
 def doctor_summary() -> dict:
     """环境自检摘要（pp_doctor 关键项的进程内子集）。
 

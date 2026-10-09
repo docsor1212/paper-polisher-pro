@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""pp.py — paper-polisher-pro 统一命令入口（v4.9.0 新增；v5.0.0 扩至 15 子命令）
+"""pp.py — paper-polisher-pro 统一命令入口（v4.9.0 新增；v5.1.0 扩至 17 子命令）
 
 多脚本入口导航成本高：一个入口路由全部子命令，
 参数原样透传给对应脚本（用法 = 各脚本自己的 --help）。
@@ -29,6 +29,8 @@ COMMANDS = {
     "detect": ("ai_detector.py", "AI 率检测（单文件或 --batch 目录 + --recursive/--csv）"),
     "gate": ("deai_gate.py", "四层降AI门禁（词级/文体/翻译腔/术语 → 复合分）"),
     "fix": ("pp_fix_suggest.py", "句子级改写建议（指位+策略，不代改；v5.0.0）"),
+    "rewrite-check": ("pp_rewrite_check.py", "改写效果对比（原稿 vs 改稿，引擎同源；v5.1.0）"),
+    "batch-report": ("pp_batch_report.py", "批量 CSV → HTML 汇总报告（v5.1.0）"),
     "workflow": ("pp_workflow.py", "端到端自查工作流（Markdown + JSON 报告）"),
     "term": ("term_check.py", "术语保护检查（--auto-fix 可自动修复）"),
     "smell": ("translation_smell_check.py", "翻译腔检查（--json）"),

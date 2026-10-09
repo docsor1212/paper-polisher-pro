@@ -665,7 +665,7 @@ _zh_i = _tcl.index("# 更新日志（中文）")
 _en_ok, _en_top = _order_ok(_tcl[:_zh_i])
 _zh_ok, _zh_top = _order_ok(_tcl[_zh_i:])
 chk("CHANGELOG 双语节序严格降序", _en_ok and _zh_ok, f"EN top={_en_top} ZH top={_zh_top}")
-_cur = _vk("5.0.0")
+_cur = _vk(json.load(open(ROOT / "skill.json", encoding="utf-8"))["version"])
 chk("CHANGELOG 顶部为当前版本(EN/ZH)", _en_top[:1] == [_cur] and _zh_top[:1] == [_cur],
     f"EN={_en_top[:1]} ZH={_zh_top[:1]}")
 
@@ -680,6 +680,69 @@ try:
         f"rc={_ut.returncode} ran={_ntests}")
 except Exception as _e:
     chk("包内单测全绿", False, f"exception: {_e}")
+
+# ───────────────────────── H. 改写闭环与批量报告（v5.1.0） ─────────────────────────
+# H1. rewrite_check：演示对（AI 稿→具体化重写稿，实测 98.1/high→30.4/low）应降分且风险带迁移；同稿对比零变化
+try:
+    import pp_rewrite_check as _rwc_mod
+    _rwc = _API.rewrite_check(_rwc_mod._DEMO_ORIG, _rwc_mod._DEMO_REV)
+    _rwd = _rwc["document"]
+    chk("rewrite_check: 改稿降分+风险带迁移",
+        _rwd["original_score"] > _rwd["revised_score"] and _rwd["risk_moved"] is True,
+        f"{_rwd['original_score']}({_rwd['original_risk']}) → {_rwd['revised_score']}({_rwd['revised_risk']})")
+    _rwc2 = _API.rewrite_check(ZH_HUMAN, ZH_HUMAN)
+    chk("rewrite_check: 同稿对比零变化", _rwc2["document"]["delta"] == 0.0
+        and _rwc2["document"]["risk_moved"] is False)
+    chk("rewrite_check: 特征 delta 键齐全",
+        all(all(k in x for k in ("type", "original", "revised", "change"))
+            for x in _rwc["features"]["delta_by_type"]))
+except Exception as _e:
+    chk("rewrite_check: 改稿降分+风险带迁移", False, f"exception: {_e}")
+
+# H2. rewrite_check CLI：--json 与短文本拒绝
+with tempfile.NamedTemporaryFile("w", suffix=".txt", delete=False, encoding="utf-8") as _f:
+    _f.write(_DEMO_AI); _rw_o = _f.name
+with tempfile.NamedTemporaryFile("w", suffix=".txt", delete=False, encoding="utf-8") as _f:
+    _f.write(ZH_HUMAN); _rw_r = _f.name
+with tempfile.NamedTemporaryFile("w", suffix=".txt", delete=False, encoding="utf-8") as _f:
+    _f.write("短"); _rw_s = _f.name
+_rwr1, _sow1, _ = run_py("pp_rewrite_check.py", [_rw_o, _rw_r, "--json"])
+try:
+    _rwj = json.loads(_sow1)
+except Exception:
+    _rwj = {}
+chk("rewrite_check CLI: --json 契约", _rwr1 == 0 and "edit_extent" in _rwj
+    and "integrity_notice" in _rwj, f"rc={_rwr1}")
+_rwr2, _, _sew2 = run_py("pp_rewrite_check.py", [_rw_s, _rw_r])
+Path(_rw_o).unlink(missing_ok=True); Path(_rw_r).unlink(missing_ok=True); Path(_rw_s).unlink(missing_ok=True)
+chk("rewrite_check CLI: 短文本拒绝 rc=2", _rwr2 == 2 and "100" in _sew2, f"rc={_rwr2}")
+
+# H3. batch_report：合成 CSV 直测渲染器（确定性，不依赖引擎给样例打的分数）
+_tmpb = Path(tempfile.mkdtemp(prefix="smoke_v510_"))
+try:
+    with open(_tmpb / "scores.csv", "w", encoding="utf-8-sig", newline="") as _cf:
+        import csv as _csv_h
+        _w = _csv_h.writer(_cf)
+        _w.writerow(["file", "ai_score", "risk", "language", "degraded_mode"])
+        _w.writerow(["high_first.txt", "90.0", "high", "zh", ""])
+        _w.writerow(["low_second.txt", "40.0", "medium", "zh", "true"])
+        _w.writerow(["short_unknown.txt", "", "unknown", "", "insufficient text (<100 chars)"])
+    _rbb, _sob2, _ = run_py("pp_batch_report.py", [str(_tmpb / "scores.csv"),
+                                                   "-o", str(_tmpb / "r.html")])
+    _hb = (_tmpb / "r.html").read_text(encoding="utf-8") if (_tmpb / "r.html").exists() else ""
+    _ok_rows = all(m in _hb for m in ("high_first.txt", "low_second.txt", "short_unknown.txt",
+                                      "unknown", "学术诚信", "分数分布"))
+    _ok_order = _hb.index("high_first.txt") < _hb.index("low_second.txt") if _ok_rows else False
+    _ok_degraded_note = "降级档" in _hb
+    chk("batch_report: CSV→HTML 全 marker+降序+降级注记",
+        _rbb == 0 and _ok_rows and _ok_order and _ok_degraded_note,
+        f"rc={_rbb} rows={_ok_rows} order={_ok_order} deg={_ok_degraded_note}")
+finally:
+    _shutil_g.rmtree(_tmpb, ignore_errors=True)
+
+# H4. pp.py 新子命令注册
+chk("pp.py 入口: rewrite-check/batch-report 已注册",
+    "rewrite-check" in _ppe.stdout and "batch-report" in _ppe.stdout)
 
 # ───────────────────────── 汇总 ─────────────────────────
 failed = [r for r in results if not r[1]]

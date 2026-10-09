@@ -2,6 +2,12 @@
 
 > Historical release notes (moved out of SKILL.md in v4.6.0 so new users reach the workflow faster). Newest first. Condensed per-version summaries also live in SKILL.md § Version history.
 
+## What's new in v5.1.0
+
+- **Rewrite-effect regression check (`scripts/pp_rewrite_check.py`, also `pp.py rewrite-check`)**: engine-source comparison of the original vs the revised draft — document-level score and risk-band migration, paragraph-level difflib-aligned per-paragraph deltas, feature-type counts cleared vs remaining (same seven types as `pp_fix_suggest`), edit extent (char ratio + replaced-paragraph rate). A relative reference under this engine's criteria only — never an institutional verdict. Ships with `--json`, `--demo`, and `pp_api.rewrite_check()`.
+- **Batch HTML summary report (`scripts/pp_batch_report.py`, also `pp.py batch-report`)**: renders `--batch --csv` output into a single self-contained HTML — totals/mean/risk-band cards, a score histogram, and a per-file table sorted by score with ERROR/unknown rows surfaced. Zero dependencies; renders the existing CSV without re-running the engine.
+- **Docs**: batch CSV concurrency semantics (atomic temp+rename since v4.9.0) and a `degraded_notice` reading guide are now explicit in the FAQ.
+
 ## What's new in v5.0.0
 
 - **Sentence-level rewrite suggestions (`scripts/pp_fix_suggest.py`, also `pp.py fix`)**: the natural next question after a score — which sentences, why, and how to improve them. Each flagged sentence lists its concrete features (AI clichés, filler phrases, template patterns, vague qualifiers, connective openers, dash/colon habits, uniform rhythm) with a per-type rewrite strategy. Guidance only: it locates and suggests, never auto-rewrites. Ships with `--json`, a built-in two-sample demo (`--demo`), and a `fix_suggest` block in `pp_workflow` reports.
@@ -127,10 +133,17 @@
 - **Chinese-Windows encoding hardening**: every entry point forces UTF-8 stdout/stderr and tolerates non-UTF-8 (e.g. GBK) input files — no more crashes on default zh-CN consoles (found by adversarial multi-expert testing).
 - Docs rebuilt in honest dual-language form (this file + SKILL_ZH.md); trigger words expanded (AI率 / 查AI率 / AIGC 检测 …).
 ---
+---
 
 # 更新日志（中文）
 
 > v4.6.0 起历史更新说明移出 SKILL_ZH.md（新用户更快触达工作流）。最新在前。各版本摘要亦见 SKILL_ZH.md § 版本历史。
+
+## v5.1.0 更新内容
+
+- **改写效果回归验证（`scripts/pp_rewrite_check.py`，或 `pp.py rewrite-check`）**：引擎同源对比原稿与改稿——文档级分数与风险带迁移、段落级 difflib 对齐逐段 delta、七类特征清除/残留清单（与 pp_fix_suggest 同口径）、编辑幅度（字数比+段落替换率）。仅为本引擎口径下的相对参考，不构成任何机构判定。支持 `--json`、`--demo` 与 `pp_api.rewrite_check()`。
+- **批量 HTML 汇总报告（`scripts/pp_batch_report.py`，或 `pp.py batch-report`）**：`--batch --csv` 产物渲染为单文件 HTML——总数/均分/风险分档卡片、分数分布直方图、按分数降序逐文件表（ERROR/unknown 置顶提示）。零依赖，不重跑引擎（只渲染既有 CSV）。
+- **文档补全**：batch CSV 并发语义（v4.9.0 起原子写）与 `degraded_notice` 阅读指引显式入 FAQ。
 
 ## v5.0.0 更新内容
 

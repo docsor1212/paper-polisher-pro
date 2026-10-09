@@ -31,13 +31,23 @@ class TestDataFiles(unittest.TestCase):
 
 
 class TestVersionConsistency(unittest.TestCase):
-    def test_skill_md_version_is_500(self):
-        head = (PKG / "SKILL.md").read_text(encoding="utf-8")[:4000]
-        self.assertIn("5.0.0", head)
+    """版本一致性读运行时真值互证（不硬编码版本号——每日 1-2 更新节奏下防脆断言）。"""
 
-    def test_changelog_has_500_entry(self):
+    def test_frontmatter_matches_skill_json(self):
+        import re
+        import json
+        head = (PKG / "SKILL.md").read_text(encoding="utf-8")[:4000]
+        v_md = re.search(r"^version:\s*(\S+)", head, re.M).group(1)
+        v_json = json.load(open(PKG / "skill.json", encoding="utf-8"))["version"]
+        self.assertEqual(v_md, v_json, f"SKILL.md({v_md}) != skill.json({v_json})")
+        self.assertGreaterEqual(int(v_md.split(".")[0]), 5)
+
+    def test_changelog_has_current_entry(self):
+        import re
+        import json
         t = (PKG / "CHANGELOG.md").read_text(encoding="utf-8")
-        self.assertIn("5.0.0", t[:3000])
+        v_json = json.load(open(PKG / "skill.json", encoding="utf-8"))["version"]
+        self.assertIn(v_json, t[:3000], f"CHANGELOG 顶部缺当前版本 {v_json}")
 
 
 if __name__ == "__main__":

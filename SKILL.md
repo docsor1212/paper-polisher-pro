@@ -1,6 +1,6 @@
 ---
 name: paper-polisher
-version: 5.0.0
+version: 5.1.0
 author: DoctorQ Lab
 description: >-
   AI-rate self-check for academic writing, polish guidance (style, terminology, translation-smell),
@@ -81,6 +81,12 @@ This tool is for **authors self-reviewing and improving their own writing qualit
 - **Data boundary**: reads/writes only user-specified files, the system temp dir, and its own package data directories (calibration/freshness artifacts); reports go only where the user points them.
 - **Academic integrity**: see the section above — for author self-review and quality improvement with policy-compliant disclosure; not for evading detection.
 
+## What's new in v5.1.0
+
+- **Rewrite-effect regression check (`scripts/pp_rewrite_check.py`, also `pp.py rewrite-check`)**: the loop-closer after the rewrite suggestions — *how much did your revision actually change?* Engine-source comparison of the original vs the revised draft: document-level score and risk-band migration, paragraph-level difflib-aligned per-paragraph deltas, feature-type counts cleared vs remaining (same seven types as `pp_fix_suggest`), and edit extent (char ratio + replaced-paragraph rate). Relative reference under this engine's criteria only — never an institutional verdict; ships with `--json`, `--demo`, and `pp_api.rewrite_check()` for programmatic use.
+- **Batch HTML summary report (`scripts/pp_batch_report.py`, also `pp.py batch-report`)**: `--batch --csv` now renders into a single self-contained HTML — totals/mean/risk-band cards, a score histogram, and a per-file table sorted by score with ERROR/unknown rows surfaced. Zero dependencies, no engine re-run (renders the existing CSV).
+- **Docs**: the batch CSV concurrency semantics (atomic temp+rename since v4.9.0 — concurrent batch runs cannot clobber each other's CSV) and a reading guide for `degraded_notice` are now stated explicitly (see FAQ).
+
 ## What's new in v5.0.0
 
 - **Sentence-level rewrite suggestions (`scripts/pp_fix_suggest.py`, also `pp.py fix`)**: the natural next question after a score — *which sentences, why, and how to improve them*. Each flagged sentence lists its concrete features (AI clichés, filler phrases, template patterns, vague qualifiers, connective openers, dash/colon habits, uniform rhythm) with a per-type rewrite strategy. Guidance only: it locates and suggests, never auto-rewrites — the editing decision stays with the author. Ships with `--json` for programmatic use and a built-in two-sample demo (`--demo`).
@@ -141,6 +147,10 @@ python scripts/pp.py quickstart
 python scripts/ai_detector.py draft.txt --format json
 # Sentence-level rewrite suggestions (v5.0.0: which sentences, why, how to improve)
 python scripts/pp_fix_suggest.py draft.txt --top 10
+# Rewrite-effect regression check (v5.1.0: original vs revised, engine-source comparison)
+python scripts/pp_rewrite_check.py draft_original.txt draft_revised.txt
+# Batch CSV -> self-contained HTML summary (v5.1.0)
+python scripts/pp_batch_report.py scores.csv -o report.html
 # Journal precheck (suspected-AIGC ratio vs the 20-25% reference line, non-interchangeable disclaimer)
 python scripts/ai_detector.py draft.txt --profile journal
 # Paragraph-level attribution (locate human/AI collaboration)
@@ -245,6 +255,12 @@ Attribution is heuristic (top-n candidates, never scored) and may misattribute �
 **Q: How can I verify the "100% local / zero upload" claim myself?**
 Run `python3 scripts/pp_verify.py` — an AST-level structural scan of every script. It flags network imports/calls and curl/wget-style subprocess commands, while URL strings in report footers are correctly treated as data (the old grep advice could not tell the two apart). Exit 0 = zero network calls. For behavior-level checks, the bundled test suite (`python -m unittest discover -s tests -t .`) exercises the iron laws and report contracts on your own machine.
 
+**Q: Can several batch runs write to the same CSV safely?**
+Yes — since v4.9.0 batch CSV writes are atomic (write to a temp file, then rename into place). Two concurrent batch runs pointing at the same CSV cannot interleave or clobber each other's rows; the file always contains one complete run's output.
+
+**Q: How should I read `degraded_notice`?**
+It tells you which full-mode ingredient was skipped and why: supervised model missing, `PP_NO_SUP=1`, or English language gating. Consequences differ — degraded rules-only mode systematically over-scores medical register (see the boundary matrix), while English gating only means the Chinese-trained supervised layer does not apply. The notice names the reason so you can decide whether to install the model, unset the toggle, or treat scores as advisory.
+
 **Q: What do the rewrite suggestions do — do they change my text?**
 No. `pp_fix_suggest.py` (`pp.py fix`) only locates sentences carrying improvable features and explains the improvement strategy per feature type (e.g., replace an AI cliché with a concrete claim, split a template sentence). It never edits your file; the editing decision and execution stay with the author. `--demo` shows a built-in two-sample walkthrough.
 
@@ -255,6 +271,8 @@ No. `pp_fix_suggest.py` (`pp.py fix`) only locates sentences carrying improvable
 | ai_detector.py | Main AI-writing detector | `--lang auto\|zh\|en` `--format json\|text\|summary` `--profile journal` `--batch DIR` | Score + paragraph detail + fingerprints (JSON incl. degraded_mode/integrity_notice) |
 | pp_fix_suggest.py | Sentence-level rewrite suggestions (v5.0.0) | `--top N` `--json` `--demo` | Per-sentence features + rewrite strategies (locates and suggests, never auto-rewrites) |
 | pp_doctor.py | Environment self-check | `--json` | Data/deps/model probes; exit 0 = green |
+| pp_rewrite_check.py | Rewrite-effect regression check (v5.1.0) | `original revised` `--json` `--demo` | Score/risk-band migration + paragraph deltas + feature-type clears/remaining |
+| pp_batch_report.py | Batch CSV → HTML summary (v5.1.0) | `csv_file` `-o out.html` | Totals/mean/band cards + histogram + per-file table |
 | pp_verify.py | Structured zero-network self-verification (v5.0.0) | `--json` | AST-level scan verdict; exit 0 = zero network calls |
 | quality_report.py | Overall quality report | `--json` | Readability/quality dimensions for the manuscript |
 | deai_gate.py | 4-layer fused gate | `--json` | composite score + verdict band (<35 pass / 35-55 review / ≥55 suspect) |
@@ -288,6 +306,7 @@ Monthly full pass: `python scripts/freshness_refresh.py` (schedule it with your 
 
 ## Version history (condensed)
 
+- **v5.1.0 (2026-10-10)** — rewrite-closure & batch-report release: rewrite-effect regression check (`pp_rewrite_check.py`, engine-source original-vs-revised comparison); batch HTML summary report (`pp_batch_report.py`); batch-CSV concurrency and degraded_notice reading guide documented.
 - **v5.0.0 (2026-10-09)** — verification & rewrite-suggestions release: bundled unit-test suite (44 stdlib cases, `pp.py test`); AST-level zero-network self-verification (`pp_verify.py`); sentence-level rewrite suggestion engine (`pp_fix_suggest.py` — locate + strategy, never auto-rewrite, also wired into `pp_workflow` and `pp.py fix`); literary-narrative register notice (disclosure only, no scoring change); `requirements.txt`; `pp.py quickstart`; doctor freshness row.
 - **v4.9.0 (2026-10-08)** — mixed-document calibration release: paragraph thresholds calibrated on the 333-paragraph benchmark (best operating point P=0.60/coverage 63% — honestly below auto-verdict bar; ranking aid only); unified `pp.py` entry; atomic batch CSV; gate layer retry.
 - **v4.8.0 (2026-10-07)** — measurement & output-contract integrity (independent test round, 13 findings addressed): eval cache keys bind engine mode (rules-only reproducible: 0.8985/0.7149 bundled); journal+json purity; risk_bands surfaced; mixed_signal denoised; 5MB/batch CLI guards; real-world FPR & attribution limits disclosed in FAQ; corpus/terminology counting precision.
