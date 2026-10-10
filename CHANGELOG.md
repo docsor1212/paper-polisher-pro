@@ -2,6 +2,12 @@
 
 > Historical release notes (moved out of SKILL.md in v4.6.0 so new users reach the workflow faster). Newest first. Condensed per-version summaries also live in SKILL.md § Version history.
 
+## What's new in v5.2.0
+
+- **Academic style-norm self-check (`scripts/pp_style_norm.py`, also `pp.py norm`)**: mechanical formatting conventions rather than AI-flavor — full/half-width mixing, number-usage consistency, abbreviation first-use definitions (with a common exempt list), unit formatting including the invisible U+03BC/U+00B5 mu mixing. Findings with concrete advice only; no score, no risk band, independent of AI-rate detection. Wired into `pp_workflow` (§9) and exposed as `pp_api.style_norm()`.
+- **`--batch --report` direct output**: `ai_detector --batch DIR --csv scores.csv --report report.html` renders the HTML summary in the same run.
+- **Eval archive hygiene**: `eval/results/archive/README.md` explains the `STALE-cache-poisoned` filename markers — deliberately-kept voided results of the 2026-10-02 cache-poisoning incident (evidence, not live data; incident and structural fix in CHANGELOG v4.4.0).
+
 ## What's new in v5.1.0
 
 - **Rewrite-effect regression check (`scripts/pp_rewrite_check.py`, also `pp.py rewrite-check`)**: engine-source comparison of the original vs the revised draft — document-level score and risk-band migration, paragraph-level difflib-aligned per-paragraph deltas, feature-type counts cleared vs remaining (same seven types as `pp_fix_suggest`), edit extent (char ratio + replaced-paragraph rate). A relative reference under this engine's criteria only — never an institutional verdict. Ships with `--json`, `--demo`, and `pp_api.rewrite_check()`.
@@ -134,10 +140,17 @@
 - Docs rebuilt in honest dual-language form (this file + SKILL_ZH.md); trigger words expanded (AI率 / 查AI率 / AIGC 检测 …).
 ---
 ---
+---
 
 # 更新日志（中文）
 
 > v4.6.0 起历史更新说明移出 SKILL_ZH.md（新用户更快触达工作流）。最新在前。各版本摘要亦见 SKILL_ZH.md § 版本历史。
+
+## v5.2.0 更新内容
+
+- **学术写作规范自查（`scripts/pp_style_norm.py`，或 `pp.py norm`）**：机械体例核对而非 AI 痕迹——全半角混用、数字用法一致性、缩写首次定义（含惯用豁免表）、单位格式（含 μ U+03BC/µ U+00B5 隐形混用）。仅输出带具体改法的 findings；不评分、无风险带，与 AI 率检测相互独立。已并入 `pp_workflow`（§9），SDK 暴露 `pp_api.style_norm()`。
+- **`--batch --report` 直出**：`ai_detector --batch DIR --csv scores.csv --report report.html` 同一次跑完即渲染 HTML 汇总。
+- **评测存档卫生**：`eval/results/archive/README.md` 解释 `STALE-cache-poisoned` 文件名标记——2026-10-02 缓存污染事故的作废结果（证据性保留；事故与结构性修复见 CHANGELOG v4.4.0）。
 
 ## v5.1.0 更新内容
 

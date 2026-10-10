@@ -744,6 +744,61 @@ finally:
 chk("pp.py 入口: rewrite-check/batch-report 已注册",
     "rewrite-check" in _ppe.stdout and "batch-report" in _ppe.stdout)
 
+# ───────────────────────── I. 学术规范自查（v5.2.0） ─────────────────────────
+_NORM_BAD = ("本研究纳入了156例患者，其中五例随访脱落。所有患者均接受 5 mg 剂量治疗，"
+             "另取 10mg 作为对照组。SLE 患者的 CRP 水平明显升高，CRP 与病情活动度相关。"
+             "结果表明 SLE 组 50％ 达标，百分之三十部分缓解。"
+             "计量资料采用ｔ检验，Ｐ<0.05 为差异有统计学意义。"
+             "用量为 5 μg 与 2 µg 两组对比,结果如下。")
+try:
+    _snr = _API.style_norm(_NORM_BAD)
+    _sn_checks = {f["check"] for f in _snr["findings"]}
+    chk("style_norm: 富问题样本四查齐发",
+        _snr["finding_count"] >= 5 and _sn_checks == {"fullwidth", "numbers", "abbrev", "units"},
+        f"findings={_snr['finding_count']} checks={_sn_checks}")
+    _snc = _API.style_norm("本研究纳入156例患者，其中5例随访脱落。患者接受5 mg剂量治疗。"
+                           "炎症标志物（C反应蛋白，CRP）水平升高。结果显示62%达标。")
+    chk("style_norm: 干净样本零全半角误报",
+        not any(f["check"] == "fullwidth" for f in _snc["findings"]),
+        f"findings={_snc['finding_count']}")
+    chk("style_norm: 无判定类字段",
+        all(k not in _snr for k in ("score", "risk", "verdict", "overall")))
+except Exception as _e:
+    chk("style_norm: 富问题样本四查齐发", False, f"exception: {_e}")
+
+# I2. CLI + workflow §9 + --batch --report 直出
+with tempfile.NamedTemporaryFile("w", suffix=".txt", delete=False, encoding="utf-8") as _f:
+    _f.write(_NORM_BAD); _sn_f = _f.name
+_rcs, _sos, _ = run_py("pp_style_norm.py", [_sn_f, "--json"])
+try:
+    _snj = json.loads(_sos)
+except Exception:
+    _snj = {}
+Path(_sn_f).unlink(missing_ok=True)
+chk("style_norm CLI: --json 契约", _rcs == 0 and "findings" in _snj
+    and "integrity_notice" in _snj, f"rc={_rcs}")
+try:
+    _snw = _API.workflow(_NORM_BAD)
+    chk("workflow §9: style_norm 块在位", _snw.get("style_norm", {}).get("finding_count", 0) >= 5)
+except Exception as _e:
+    chk("workflow §9: style_norm 块在位", False, f"exception: {_e}")
+
+_tmpn = Path(tempfile.mkdtemp(prefix="smoke_v520_"))
+try:
+    (_tmpn / "x.txt").write_text(ZH_HUMAN, encoding="utf-8")
+    run_py("ai_detector.py", ["--batch", str(_tmpn), "--csv", str(_tmpn / "s.csv"),
+                              "--report", str(_tmpn / "r.html")])
+    _hr = (_tmpn / "r.html").read_text(encoding="utf-8") if (_tmpn / "r.html").exists() else ""
+    chk("--batch --report: 直出 HTML", "逐文件明细" in _hr and "学术诚信" in _hr,
+        f"html_size={len(_hr)}")
+finally:
+    _shutil_g.rmtree(_tmpn, ignore_errors=True)
+
+# I3. 存档 README 解释化（评监委点名的 STALE 标记感知问题）
+_arch_readme = ROOT / "eval" / "results" / "archive" / "README.md"
+chk("评测存档: STALE 标记解释化 README 在位",
+    _arch_readme.exists() and "STALE-cache-poisoned" in _arch_readme.read_text(encoding="utf-8"))
+
 # ───────────────────────── 汇总 ─────────────────────────
 failed = [r for r in results if not r[1]]
 print("────────────────────────────────")

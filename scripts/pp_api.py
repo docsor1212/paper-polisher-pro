@@ -190,6 +190,23 @@ def workflow(text: str, lang: str = "auto") -> dict:
                            "再逐项 pp_api.detect_text/term_report 定位失败子检查）" % e) from e
 
 
+def style_norm(text: str, checks: list = None) -> dict:
+    """学术写作规范自查（v5.2.0）：全半角/数字用法/缩写定义/单位格式的机械体例核对。
+
+    返回 findings 建议（不评分、无风险带，与 AI 率检测相互独立）。
+    完整语义见 scripts/pp_style_norm.py。
+    """
+    if not isinstance(text, str) or not text.strip():
+        raise ValueError("text 必须是非空字符串")
+    import pp_style_norm
+    try:
+        return pp_style_norm.style_norm(text, checks=checks)
+    except ValueError:
+        raise
+    except Exception as e:
+        raise RuntimeError("style_norm 失败: %s" % e) from e
+
+
 def rewrite_check(original: str, revised: str, lang: str = "auto") -> dict:
     """改写效果回归验证（v5.1.0）：原稿 vs 改稿的引擎同源对比。
 

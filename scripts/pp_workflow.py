@@ -130,6 +130,18 @@ def workflow(text: str, lang: str = "auto") -> dict:
     finally:
         Path(tmp).unlink(missing_ok=True)
 
+    # 9) 学术写作规范自查（v5.2.0）：体例核对，不评分
+    try:
+        import pp_style_norm
+        result["style_norm"] = {"finding_count": 0, "findings": []}
+        _nr = pp_style_norm.style_norm(text)
+        result["style_norm"] = {"finding_count": _nr["finding_count"],
+                                "findings": [{"check": f["check"], "severity": f["severity"],
+                                              "count": f["count"], "examples": f["examples"],
+                                              "advice": f["advice"]} for f in _nr["findings"]]}
+    except Exception as e:  # 规范自查失败不阻断工作流
+        result["style_norm"] = {"finding_count": 0, "findings": [], "error": str(e)}
+
     result["integrity_notice"] = ("本工作流供作者自查与改进写作质量，不用于规避机构 AIGC 检测；"
                                   "请遵循所在机构 AI 使用与披露政策。")
     return result
@@ -225,6 +237,21 @@ def to_markdown(r: dict) -> str:
         "",
         "- 显式标识证据: %d 条" % len((r.get("aigc_label") or {}).get("evidence", [])),
         "",
+    ]
+    _sn = r.get("style_norm") or {}
+    if _sn.get("findings"):
+        _sn_names = {"fullwidth": "全半角", "numbers": "数字用法",
+                     "abbrev": "缩写定义", "units": "单位格式"}
+        lines += [
+            "## 9. 学术写作规范自查（建议，不评分）",
+            "",
+        ]
+        for _f in _sn["findings"][:8]:
+            _ex = "、".join(str(x) for x in _f["examples"][:3])
+            lines.append("- %s ×%d（%s）" % (_sn_names.get(_f["check"], _f["check"]),
+                                             _f["count"], _ex[:40]))
+        lines += [""]
+    lines += [
         "---",
         "逐项完整数据见同名 .workflow.json。",
         "",

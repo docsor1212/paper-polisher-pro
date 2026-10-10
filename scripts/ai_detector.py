@@ -1075,11 +1075,27 @@ def main():
                         help="With --batch: also write per-file results as CSV")
     parser.add_argument("--recursive", action="store_true",
                         help="With --batch: recurse into subdirectories")
+    parser.add_argument("--report", metavar="PATH",
+                        help="With --batch --csv: also render the CSV into a self-contained "
+                             "HTML summary (v5.2.0; same as running pp_batch_report.py after)")
     args = parser.parse_args()
 
     if args.batch:
         batch_detect(args.batch, args.format, args.output, csv_path=args.csv,
                      recursive=args.recursive)
+        if getattr(args, "report", None):
+            if not args.csv:
+                print("Warning: --report 需要 --csv 先落盘逐文件结果，本次跳过 HTML 渲染。",
+                      file=sys.stderr)
+            else:
+                try:
+                    import pp_batch_report
+                    _rows = pp_batch_report.read_csv(args.csv)
+                    Path(args.report).write_text(pp_batch_report.render(_rows, args.csv),
+                                                 encoding="utf-8")
+                    print(f"HTML 报告: {args.report}")
+                except Exception as _e:
+                    print(f"HTML 报告生成失败（CSV 已正常落盘）: {_e}", file=sys.stderr)
         return
 
     if not args.input:
