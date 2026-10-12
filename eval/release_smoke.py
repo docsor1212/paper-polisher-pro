@@ -120,7 +120,7 @@ chk("相关工具节在位(双语)", "## Related tools" in skill_md and "## 相�
 _ADTALK = ["全家桶", "搜招牌名直达", "五件套", "论文工具家族", "Paper Toolbox family"]
 _adtalk_hits = [w for w in _ADTALK if w in skill_md or w in skill_zh]
 chk("导流叫卖词零残留(家族/全家桶/搜招牌名/五件套)", not _adtalk_hits, "; ".join(_adtalk_hits))
-chk("FAQ 专节在位(评测C维驱动,双语)", "## 常见问题（FAQ）" in skill_zh and "## FAQ" in skill_md)
+chk("FAQ 专节在位(评测C维驱动,双语)", "常见问题（FAQ" in skill_zh and "## FAQ" in skill_md)
 chk("脚本速查表在位(评测C维驱动,双语)", "各脚本速查" in skill_zh and "Script cheat sheet" in skill_md)
 chk("FAQ 覆盖高频问法", "知网" in skill_zh and "degraded_mode" in skill_zh and "100 字" in skill_zh)
 for ref in set(re.findall(r"`?(\w+\.(?:py|json))`?", skill_md)):
@@ -798,6 +798,66 @@ finally:
 _arch_readme = ROOT / "eval" / "results" / "archive" / "README.md"
 chk("评测存档: STALE 标记解释化 README 在位",
     _arch_readme.exists() and "STALE-cache-poisoned" in _arch_readme.read_text(encoding="utf-8"))
+
+# ───────────────────────── J. Word 直读与自查包（v5.3.0） ─────────────────────────
+def _smoke_make_docx(path, paras):
+    import zipfile as _zip
+    _W = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+    _body = "".join(f'<w:p xmlns:w="{_W}"><w:r><w:t xml:space="preserve">{x}</w:t></w:r></w:p>'
+                    for x in paras)
+    _doc = (f'<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+            f'<w:document xmlns:w="{_W}">{_body}</w:document>')
+    with _zip.ZipFile(path, "w", _zip.ZIP_DEFLATED) as _z:
+        _z.writestr("[Content_Types].xml", '<?xml version="1.0"?><Types/>')
+        _z.writestr("word/document.xml", _doc)
+
+
+# J1. docx 单文件检测
+_tmpd = Path(tempfile.mkdtemp(prefix="smoke_v530_"))
+try:
+    _dx = _tmpd / "w.docx"
+    _smoke_make_docx(_dx, [ZH_HUMAN])
+    _rcd3, _sod3, _ = run_py("ai_detector.py", [str(_dx), "--format", "json"])
+    try:
+        _rj3 = json.loads(_sod3)
+    except Exception:
+        _rj3 = {}
+    chk("docx 直读: 单文件检测出分", _rcd3 == 0 and isinstance(_rj3.get("overall_ai_score"), (int, float)),
+        f"rc={_rcd3} score={_rj3.get('overall_ai_score')}")
+
+    # J2. batch 收 docx
+    (_tmpd / "n.txt").write_text(ZH_HUMAN, encoding="utf-8")
+    run_py("ai_detector.py", ["--batch", str(_tmpd), "--csv", str(_tmpd / "s.csv")])
+    _csvt = (_tmpd / "s.csv").read_text(encoding="utf-8-sig") if (_tmpd / "s.csv").exists() else ""
+    chk("docx 直读: --batch 自动收集 *.docx", "w.docx" in _csvt and "n.txt" in _csvt)
+
+    # J3. 投稿自查包（docx 输入）
+    _rcb3, _sob3, _ = run_py("pp_report_bundle.py", [str(_dx), "--outdir", str(_tmpd)])
+    _bundles = list(_tmpd.glob("selfcheck_*/README.md"))
+    _bok = False
+    if _bundles:
+        _mt = _bundles[0].read_text(encoding="utf-8")
+        _bok = ("阅读顺序" in _mt and "学术诚信" in _mt
+                and (_bundles[0].parent / "workflow.md").exists()
+                and (_bundles[0].parent / "paragraph_report.html").exists())
+    chk("自查包: 一条命令产出全件+清单", _rcb3 == 0 and _bok, f"rc={_rcb3} ok={_bok}")
+
+    # J4. 假 docx 拒绝
+    (_tmpd / "fake.docx").write_text("not a zip")
+    _rcf5, _, _sef5 = run_py("ai_detector.py", [str(_tmpd / "fake.docx")])
+    chk("docx 直读: 假 docx 报错不抛栈", _rcf5 != 0 and "Traceback" not in _sef5, f"rc={_rcf5}")
+finally:
+    _shutil_g.rmtree(_tmpd, ignore_errors=True)
+
+# J5. 文档面（评监委 10-12 双靶点）：子功能适用域矩阵 + FAQ 分组
+_skill_md = (ROOT / "SKILL.md").read_text(encoding="utf-8")
+_skill_zh = (ROOT / "SKILL_ZH.md").read_text(encoding="utf-8")
+chk("文档: 子功能适用域矩阵在位(双语)",
+    "Sub-tool scope matrix" in _skill_md and "子功能适用域矩阵" in _skill_zh
+    and "translation_smell_check" in _skill_md)
+chk("文档: FAQ 分组编号(双语)",
+    "### Tools & workflow" in _skill_md and "### 工具与工作流" in _skill_zh
+    and "### Verdicts & boundaries" in _skill_md and "### 判定与边界" in _skill_zh)
 
 # ───────────────────────── 汇总 ─────────────────────────
 failed = [r for r in results if not r[1]]

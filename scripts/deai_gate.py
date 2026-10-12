@@ -17,6 +17,7 @@
   python3 deai_gate.py <file> [--json]
 """
 import json
+import os
 import re
 import subprocess
 import sys
@@ -125,6 +126,26 @@ def layer1_term(text_file):
 
 
 def gate(text_file, json_out=False):
+    # v5.3.0: .docx 输入先抽取到临时 txt，再走原四层管线（用后即删）
+    if str(text_file).lower().endswith(".docx"):
+        from docx_text import read_text_any, DocxError
+        import tempfile as _tf
+        try:
+            _txt = read_text_any(text_file)
+        except DocxError as _e:
+            print(f"ERROR: {_e}", file=sys.stderr)
+            return {"error": str(_e)} if json_out else None
+        _fd, _tmp = _tf.mkstemp(suffix=".txt")
+        with os.fdopen(_fd, "w", encoding="utf-8") as _f:
+            _f.write(_txt)
+        try:
+            return _gate_impl(_tmp, json_out=json_out)
+        finally:
+            Path(_tmp).unlink(missing_ok=True)
+    return _gate_impl(text_file, json_out=json_out)
+
+
+def _gate_impl(text_file, json_out=False):
     ai, ai_note = layer2_ai(text_file)
     style, style_note = layer4_style(text_file)
     smell, smell_note = layer3_smell(text_file)

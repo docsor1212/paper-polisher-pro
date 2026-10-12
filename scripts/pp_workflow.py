@@ -271,7 +271,11 @@ def main():
     if not p.is_file():
         print("ERROR: 文件不存在: %s" % p, file=sys.stderr)
         return 2
-    text = p.read_text(encoding="utf-8", errors="replace")
+    if p.suffix.lower() == ".docx":
+        from docx_text import read_text_any
+        text = read_text_any(p)
+    else:
+        text = p.read_text(encoding="utf-8", errors="replace")
     if len(text.strip()) < 100:
         print("ERROR: 文本不足 100 字（铁律 2：短文本不出判定）——请提交 100 字以上（建议 300+）", file=sys.stderr)
         return 2

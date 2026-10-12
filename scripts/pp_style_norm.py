@@ -58,11 +58,8 @@ def _reads(path):
     p = Path(path)
     if not p.exists():
         raise FileNotFoundError(f"文件不存在: {p}")
-    raw = p.read_bytes()
-    try:
-        return raw.decode("utf-8")
-    except UnicodeDecodeError:
-        return raw.decode("gbk", errors="replace")
+    from docx_text import read_text_any
+    return read_text_any(p)
 
 
 def check_fullwidth(text):

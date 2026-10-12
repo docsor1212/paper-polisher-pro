@@ -2,6 +2,12 @@
 
 > Historical release notes (moved out of SKILL.md in v4.6.0 so new users reach the workflow faster). Newest first. Condensed per-version summaries also live in SKILL.md § Version history.
 
+## What's new in v5.3.0
+
+- **Word documents as first-class input (`scripts/docx_text.py`)**: every entry point now reads .docx directly — single-file detection, `--batch` (auto-collects `*.docx`), `pp_workflow`, `pp_fix_suggest`, `pp_style_norm`, `pp_rewrite_check`, `deai_gate`, and the bundle command. Zero dependencies (stdlib zipfile + XML), paragraph-preserving extraction, zip-bomb guards (uncompressed-size / member-count caps).
+- **Submission self-check bundle (`scripts/pp_report_bundle.py`, also `pp.py bundle`)**: one command produces a dated self-check directory — workflow report (MD+JSON), paragraph-attribution HTML, rewrite suggestions, style-norm findings, README manifest with reading order and the integrity notice.
+- **Docs**: Sub-tool scope matrix (each sub-tool's calibrated domain and outside-domain behavior — terminology bank scope, translation-smell coverage honesty, stylometry register limits); FAQ reorganized into grouped numbered sections (verdicts → modes → output → safety → tools).
+
 ## What's new in v5.2.0
 
 - **Academic style-norm self-check (`scripts/pp_style_norm.py`, also `pp.py norm`)**: mechanical formatting conventions rather than AI-flavor — full/half-width mixing, number-usage consistency, abbreviation first-use definitions (with a common exempt list), unit formatting including the invisible U+03BC/U+00B5 mu mixing. Findings with concrete advice only; no score, no risk band, independent of AI-rate detection. Wired into `pp_workflow` (§9) and exposed as `pp_api.style_norm()`.
@@ -141,10 +147,17 @@
 ---
 ---
 ---
+---
 
 # 更新日志（中文）
 
 > v4.6.0 起历史更新说明移出 SKILL_ZH.md（新用户更快触达工作流）。最新在前。各版本摘要亦见 SKILL_ZH.md § 版本历史。
+
+## v5.3.0 更新内容
+
+- **Word 文档一等公民输入（`scripts/docx_text.py`）**：所有入口直读 .docx——单文件检测、`--batch` 自动收集、`pp_workflow`、`pp_fix_suggest`、`pp_style_norm`、`pp_rewrite_check`、`deai_gate` 与自查包命令。零依赖（标准库 zipfile+XML），按段落保留文本，解压炸弹防护。
+- **投稿前自查包（`scripts/pp_report_bundle.py`，或 `pp.py bundle`）**：一条命令产出带时间戳自查目录——workflow 报告（MD+JSON）、段落归因 HTML、改写建议、规范自查 findings、README 清单。
+- **文档**：子功能适用域矩阵（每个子工具的校准域与域外行为逐一明示）；FAQ 重组为分组编号章节。
 
 ## v5.2.0 更新内容
 

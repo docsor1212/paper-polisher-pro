@@ -293,11 +293,8 @@ def main():
     if not p.exists():
         print(f"文件不存在: {p}", file=sys.stderr)
         return 2
-    raw = p.read_bytes()
-    try:
-        text = raw.decode("utf-8")
-    except UnicodeDecodeError:
-        text = raw.decode("gbk", errors="replace")
+    from docx_text import read_text_any
+    text = read_text_any(p)
     if len(text.strip()) < 100:
         print("文本不足 100 字符：按铁律不输出任何判定类结论（含改写建议）。", file=sys.stderr)
         return 2

@@ -990,6 +990,16 @@ def journal_profile(report, text=None) -> str:
     ])
 
 
+def _read_input_text(path):
+    """v5.3.0: 统一输入读取——.docx 走零依赖抽取，其余 UTF-8(GBK 容错)。"""
+    from docx_text import read_text_any, DocxError
+    try:
+        return read_text_any(path)
+    except DocxError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(1)
+
+
 def batch_detect(dir_path: str, fmt: str, out_path: str, csv_path: str = None,
                  recursive: bool = False):
     """v3.11: 目录批处理——逐文件检测, 输出每文件分数+聚合。确定性、零网络。"""
@@ -1000,11 +1010,12 @@ def batch_detect(dir_path: str, fmt: str, out_path: str, csv_path: str = None,
         sys.exit(1)
     it = d.rglob("*") if recursive else d.iterdir()
     files = sorted(f for f in it
-                   if f.is_file() and f.suffix.lower() in (".txt", ".md") and f.stat().st_size < 5 * 1024 * 1024)
+                   if f.is_file() and f.suffix.lower() in (".txt", ".md", ".docx")
+                   and f.stat().st_size < 5 * 1024 * 1024)
     rows = []
     for f in files:
         try:
-            text = f.read_text(encoding="utf-8", errors="replace")
+            text = _read_input_text(f)
             if len(text.strip()) < 100:
                 rows.append({"file": str(f.relative_to(d)), "overall_ai_score": None, "overall_risk": "unknown",
                              "note": "insufficient text (<100 chars)"})
@@ -1069,7 +1080,7 @@ def main():
                         help="journal=期刊口径预检(疑似AIGC比例, 对标20-25%%参考线)")
     parser.add_argument("--output", help="Output file (default: stdout)")
     parser.add_argument("--batch", metavar="DIR",
-                        help="Batch mode: detect all .txt/.md files in DIR (non-recursive), "
+                        help="Batch mode: detect all .txt/.md/.docx files in DIR (non-recursive), "
                              "output per-file scores + aggregate; ignores --input/--profile")
     parser.add_argument("--csv", metavar="PATH",
                         help="With --batch: also write per-file results as CSV")
@@ -1103,8 +1114,7 @@ def main():
     if not os.path.exists(args.input):
         print(f"Error: File not found: {args.input}", file=sys.stderr)
         sys.exit(1)
-    with open(args.input, "r", encoding="utf-8", errors="replace") as f:
-        text = f.read()
+    text = _read_input_text(args.input)
     if os.path.getsize(args.input) > 5 * 1024 * 1024:
         print("⚠️ 单文件超过 5MB（批处理模式会跳过该口径的文件）；处理耗时可能显著增加，结果不受影响。",
               file=sys.stderr)
