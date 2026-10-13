@@ -2,6 +2,12 @@
 
 > Historical release notes (moved out of SKILL.md in v4.6.0 so new users reach the workflow faster). Newest first. Condensed per-version summaries also live in SKILL.md § Version history.
 
+## What's new in v5.4.0
+
+- **Journal precheck 2.0 — discipline context**: the journal profile now detects the text's discipline (medical / engineering & CS / social sciences & humanities / general; keyword-density heuristic, `--discipline` override) and adds a per-discipline reading guide. Honest boundary explicit: the 20-25% reference line stays the cross-discipline convention — per-discipline thresholds have no recognized standard and this tool does not invent them.
+- **Fingerprint freshness status (`freshness_refresh.py --status`, also `pp.py freshness`)**: last pipeline run, latest held-out evaluation record, bit-exact drift check against the four published baselines, due indicator (35-day interval); `--json` for pipelines, exit 1 on drift.
+- **Binary-input guard**: PDF/image/zip at any text entry point → clear explanation with conversion advice (zero-dependency Chinese PDF extraction cannot be guaranteed — the tool says so and exits cleanly).
+
 ## What's new in v5.3.0
 
 - **Word documents as first-class input (`scripts/docx_text.py`)**: every entry point now reads .docx directly — single-file detection, `--batch` (auto-collects `*.docx`), `pp_workflow`, `pp_fix_suggest`, `pp_style_norm`, `pp_rewrite_check`, `deai_gate`, and the bundle command. Zero dependencies (stdlib zipfile + XML), paragraph-preserving extraction, zip-bomb guards (uncompressed-size / member-count caps).
@@ -148,10 +154,17 @@
 ---
 ---
 ---
+---
 
 # 更新日志（中文）
 
 > v4.6.0 起历史更新说明移出 SKILL_ZH.md（新用户更快触达工作流）。最新在前。各版本摘要亦见 SKILL_ZH.md § 版本历史。
+
+## v5.4.0 更新内容
+
+- **期刊口径 2.0——分学科语境**：期刊口径预检自动识别学科（`--discipline` 可覆盖）并给出分学科解读指引；20-25% 参考线不变，明示不虚构分学科数字。
+- **指纹保鲜状态（`freshness_refresh.py --status`，或 `pp.py freshness`）**：最近执行/最新评测记录/四条已发布基线逐位漂移检查/到期提醒；`--json` 供管道，漂移 exit 1。
+- **二进制输入护栏**：PDF/图片/zip 在任意文本入口得到明确解释与转存建议，不再静默乱码。
 
 ## v5.3.0 更新内容
 

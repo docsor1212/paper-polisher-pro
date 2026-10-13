@@ -859,6 +859,52 @@ chk("文档: FAQ 分组编号(双语)",
     "### Tools & workflow" in _skill_md and "### 工具与工作流" in _skill_zh
     and "### Verdicts & boundaries" in _skill_md and "### 判定与边界" in _skill_zh)
 
+# ───────────────────────── K. 期刊语境与保鲜状态（v5.4.0） ─────────────────────────
+# K1. journal 2.0：学科自动识别 + 分学科语境 + --discipline 覆盖 + JSON 纯度
+with tempfile.NamedTemporaryFile("w", suffix=".txt", delete=False, encoding="utf-8") as _f:
+    _f.write(ZH_HUMAN); _jp_f = _f.name
+_rcj1, _soj1, _ = run_py("ai_detector.py", [_jp_f, "--profile", "journal", "--format", "json"])
+try:
+    _jp1 = json.loads(_soj1).get("journal_precheck", {})
+except Exception:
+    _jp1 = {}
+chk("journal 2.0: 学科识别+语境字段", _rcj1 == 0 and _jp1.get("discipline") in
+    ("medical", "engineering", "social", "general")
+    and bool(_jp1.get("discipline_context"))
+    and "不虚构" in (_jp1.get("reference_line_discipline_note") or ""),
+    f"discipline={_jp1.get('discipline')}")
+_rcj2, _soj2, _ = run_py("ai_detector.py", [_jp_f, "--profile", "journal", "--format", "json",
+                                            "--discipline", "social"])
+try:
+    _jp2 = json.loads(_soj2).get("journal_precheck", {})
+except Exception:
+    _jp2 = {}
+Path(_jp_f).unlink(missing_ok=True)
+chk("journal 2.0: --discipline 覆盖生效", _rcj2 == 0 and _jp2.get("discipline") == "social",
+    f"discipline={_jp2.get('discipline')}")
+
+# K2. freshness --status：契约 + 基线零漂移
+_rcf6, _sof6, _ = run_py("freshness_refresh.py", ["--status", "--json"])
+try:
+    _frj = json.loads(_sof6)
+except Exception:
+    _frj = {}
+chk("freshness: 状态契约齐全", _rcf6 == 0 and
+    all(k in _frj for k in ("last_refresh", "latest_eval_record", "baseline_drift",
+                            "due_for_refresh", "baselines_expected"))
+    and _frj.get("baselines_expected", {}).get("fused_oldgen") == 0.9998,
+    f"rc={_rcf6}")
+chk("freshness: 四基线零漂移", _frj.get("baseline_drift") == [], f"drift={_frj.get('baseline_drift')}")
+
+# K3. 二进制输入护栏：PDF 干净拒绝+转存建议
+with tempfile.NamedTemporaryFile("w", suffix=".pdf", delete=False) as _f:
+    _f.write("%PDF-1.4 smoke fake")
+    _pdf_f = _f.name
+_rcp1, _, _sep1 = run_py("ai_detector.py", [_pdf_f])
+Path(_pdf_f).unlink(missing_ok=True)
+chk("二进制护栏: PDF 干净拒绝+转存指引", _rcp1 != 0 and "Traceback" not in _sep1
+    and "PDF" in _sep1 and "docx" in _sep1, f"rc={_rcp1}")
+
 # ───────────────────────── 汇总 ─────────────────────────
 failed = [r for r in results if not r[1]]
 print("────────────────────────────────")

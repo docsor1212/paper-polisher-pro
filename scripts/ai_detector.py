@@ -943,7 +943,43 @@ def blended_paragraph_scores(text: str, report=None) -> list:
                 for p in report.paragraph_scores]
 
 
-def journal_profile_data(report, text=None) -> dict:
+_DISCIPLINE_KEYWORDS = {
+    "medical": ["患者", "临床", "治疗", "诊断", "疗效", "随访", "剂量", "症状", "证", "用药",
+                "病例", "手术", "病理", "护理", "医院", "meta分析", "随机对照", "内镜", "化疗", "免疫"],
+    "engineering": ["算法", "模型", "系统", "网络", "数据集", "实验", "性能", "电路", "材料", "结构",
+                    "工程", "仿真", "代码", "芯片", "图像识别", "深度学习", "传感器", "精度", "优化"],
+    "social": ["社会", "经济", "政策", "调查", "问卷", "访谈", "文化", "教育", "管理", "法律",
+               "市场", "行为", "心理", "制度", "实证", "样本", "回归分析"],
+}
+
+
+def detect_discipline(text: str, override: str = None) -> str:
+    """v5.4.0: 学科语境启发分类（关键词密度，取密度最高且 ≥1 次者；否则 general）。"""
+    valid = set(_DISCIPLINE_KEYWORDS) | {"general"}
+    if override:
+        o = override.strip().lower()
+        if o in valid:
+            return o
+    best, best_n = "general", 0
+    for name, kws in _DISCIPLINE_KEYWORDS.items():
+        n = sum(text.count(k) for k in kws)
+        if n > best_n:
+            best, best_n = name, n
+    return best if best_n >= 3 else "general"
+
+
+_DISCIPLINE_CONTEXT = {
+    "medical": ("医学语境：统计与流程段（方法/纳入排除/随访）模板化表述常见，规则引擎易计为疑似——"
+                "建议结合段落归因逐段确认，重点看引言与讨论的论证段。"),
+    "engineering": ("理工/计算机语境：方法与公式段语言痕迹天然少，AI 痕迹更多出现在引言与讨论；"
+                    "建议分节自查，公式/代码段不计入口语域判断。"),
+    "social": ("人文社科语境：论证性长句密集，规则引擎校准域以学术散文为主，"
+               "本口径结果仅供参考（见能力边界矩阵）。"),
+    "general": ("通用语境：未检出显著学科特征；参考线为跨学科通行口径。"),
+}
+
+
+def journal_profile_data(report, text=None, discipline_override=None) -> dict:
     """v4.8.0: 期刊口径预检的结构化数据（JSON 模式嵌入 report.journal_precheck）。
 
     两个口径说明（回应真实测试发现#9 的口径矛盾）：
@@ -965,7 +1001,12 @@ def journal_profile_data(report, text=None) -> dict:
     pct, wpct = 100 * flagged / len(paras), 100 * w_flagged / w_total
     verdict = ("高于参考线，投稿前建议逐段处理" if wpct > 25 else
                ("处于参考线附近，建议人工复核存疑段落" if wpct > 15 else "低于参考线"))
-    return {"suspected_paragraph_pct": round(pct),
+    _disc = detect_discipline(text or "", override=discipline_override)
+    return {"discipline": _disc,
+            "discipline_context": _DISCIPLINE_CONTEXT[_disc],
+            "reference_line_discipline_note": ("20-25% 为跨学科通行参考口径；分学科阈值尚无公认标准，"
+                                               "本工具不虚构分学科数字，语境行仅作解读指引。"),
+            "suspected_paragraph_pct": round(pct),
             "suspected_char_weighted_pct": round(wpct),
             "flagged_paragraphs": flagged, "total_paragraphs": len(paras),
             "verdict": verdict, "reference_line": "期刊通行阈值约 20-25%",
@@ -1086,6 +1127,9 @@ def main():
                         help="With --batch: also write per-file results as CSV")
     parser.add_argument("--recursive", action="store_true",
                         help="With --batch: recurse into subdirectories")
+    parser.add_argument("--discipline", default=None,
+                        help="With --profile journal: force the discipline context "
+                             "(medical/engineering/social/general; default: auto-detect)")
     parser.add_argument("--report", metavar="PATH",
                         help="With --batch --csv: also render the CSV into a self-contained "
                              "HTML summary (v5.2.0; same as running pp_batch_report.py after)")
@@ -1124,7 +1168,8 @@ def main():
     use_json = args.format == "json" or (args.output and args.format == "summary")
     journal_data = None
     if args.profile == "journal":
-        journal_data = journal_profile_data(report, text)
+        journal_data = journal_profile_data(report, text,
+                                            discipline_override=getattr(args, "discipline", None))
         if not use_json:
             print(journal_profile(report, text))
 

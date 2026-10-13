@@ -32,6 +32,10 @@ python scripts/pp_style_norm.py draft.txt
 # Word 文档直读 + 投稿前自查包
 python scripts/pp_report_bundle.py thesis.docx --outdir ~/selfcheck
 
+# 期刊口径预检（分学科语境）+ 指纹保鲜状态
+python scripts/ai_detector.py draft.txt --profile journal --format json
+python scripts/pp.py freshness --status
+
 # 四层融合门禁
 python scripts/deai_gate.py draft.txt
 

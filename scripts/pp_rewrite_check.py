@@ -238,7 +238,7 @@ def main():
         return 2
     try:
         orig, rev = _read(args.original), _read(args.revised)
-    except FileNotFoundError as e:
+    except (FileNotFoundError, ValueError) as e:
         print(f"ERROR: {e}", file=sys.stderr)
         return 2
     for name, t in (("原稿", orig), ("改稿", rev)):

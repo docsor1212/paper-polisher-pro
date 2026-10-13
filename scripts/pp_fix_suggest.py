@@ -293,8 +293,12 @@ def main():
     if not p.exists():
         print(f"文件不存在: {p}", file=sys.stderr)
         return 2
-    from docx_text import read_text_any
-    text = read_text_any(p)
+    from docx_text import read_text_any, DocxError
+    try:
+        text = read_text_any(p)
+    except (DocxError, OSError) as e:
+        print(f"ERROR: {e}", file=sys.stderr)
+        return 2
     if len(text.strip()) < 100:
         print("文本不足 100 字符：按铁律不输出任何判定类结论（含改写建议）。", file=sys.stderr)
         return 2

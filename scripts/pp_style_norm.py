@@ -59,7 +59,7 @@ def _reads(path):
     if not p.exists():
         raise FileNotFoundError(f"文件不存在: {p}")
     from docx_text import read_text_any
-    return read_text_any(p)
+    return read_text_any(p)  # DocxError(ValueError 族) 由 main 统一转干净报错
 
 
 def check_fullwidth(text):
@@ -234,13 +234,13 @@ def main():
     args = ap.parse_args()
     try:
         text = _reads(args.file)
-    except FileNotFoundError as e:
+    except (FileNotFoundError, ValueError) as e:
         print(f"ERROR: {e}", file=sys.stderr)
         return 2
     checks = args.checks.split(",") if args.checks else None
     try:
         r = style_norm(text, checks=checks)
-    except ValueError as e:
+    except (ValueError, FileNotFoundError) as e:
         print(f"ERROR: {e}", file=sys.stderr)
         return 2
     if args.json:

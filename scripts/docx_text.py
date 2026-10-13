@@ -84,8 +84,19 @@ def is_docx(path) -> bool:
     return str(path).lower().endswith(".docx")
 
 
+_BINARY_MAGICS = (
+    (b"%PDF-", "PDF 不受支持：零依赖解析无法保证中文文本抽取的正确性，"
+               "请先将 PDF 转存为 .docx 或 .txt 再检测（Word「另存为」或任意转换工具均可）。"),
+    (b"\x89PNG", "PNG 图片不受支持：请先转存为文本格式（.txt/.docx）。"),
+    (b"\xff\xd8\xff", "JPEG 图片不受支持：请先转存为文本格式（.txt/.docx）。"),
+    (b"PK\x03\x04", "ZIP 容器不是 .docx（如 .zip/.pptx/.xlsx）：本工具仅支持 .docx 文本抽取，"
+                  "请先另存为 .docx 或 .txt。"),
+)
+
+
 def read_text_any(path):
-    """统一文本读取入口：.docx 走抽取，其余按 UTF-8（GBK 容错）读。
+    """统一文本读取入口：.docx 走抽取，其余按 UTF-8（GBK 容错）读；
+    二进制格式（PDF/图片等）按魔数识别并给出明确转存建议（v5.4.0），拒绝静默乱码。
 
     供各入口脚本共用——调用方不再各自处理 docx 分支。
     """
@@ -93,6 +104,9 @@ def read_text_any(path):
     if is_docx(p):
         return docx_to_text(p)
     raw = p.read_bytes()
+    for magic, msg in _BINARY_MAGICS:
+        if raw[:len(magic)] == magic:
+            raise DocxError(msg)
     try:
         return raw.decode("utf-8")
     except UnicodeDecodeError:

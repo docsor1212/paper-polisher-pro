@@ -1,6 +1,6 @@
 ---
 name: paper-polisher
-version: 5.3.0
+version: 5.4.0
 author: DoctorQ Lab
 description: >-
   AI-rate self-check for academic writing, polish guidance (style, terminology, translation-smell),
@@ -94,6 +94,12 @@ This tool is for **authors self-reviewing and improving their own writing qualit
 - **Data boundary**: reads/writes only user-specified files, the system temp dir, and its own package data directories (calibration/freshness artifacts); reports go only where the user points them.
 - **Academic integrity**: see the section above — for author self-review and quality improvement with policy-compliant disclosure; not for evading detection.
 
+## What's new in v5.4.0
+
+- **Journal precheck 2.0 — discipline context**: the journal profile now detects the text's discipline (medical / engineering & CS / social sciences & humanities / general, keyword-density heuristic with a `--discipline` override) and adds a per-discipline reading guide (where AI traces typically concentrate in that discipline, which sections deserve manual attention). Honest boundary kept explicit: the 20-25% reference line stays the cross-discipline convention — per-discipline thresholds have no recognized standard, and this tool does not invent them; the context lines are interpretation guidance, not data.
+- **Fingerprint freshness status (`freshness_refresh.py --status`, also `pp.py freshness`)**: one command answers "is the fingerprint layer up to date?" — last pipeline run, latest held-out evaluation record, a bit-exact drift check against the four published baselines (fused 0.9998/0.9400, rules-only 0.8985/0.7149), and a due indicator (35-day interval). `--json` for pipelines; exit 1 on drift.
+- **Binary-input guard**: feeding a PDF/image/zip to any text entry point now produces a clear explanation and conversion advice (PDF text extraction cannot be done reliably with zero dependencies for Chinese — the tool says so and exits cleanly instead of emitting silent mojibake).
+
 ## What's new in v5.3.0
 
 - **Word documents as first-class input (`scripts/docx_text.py`)**: thesis drafts live in .docx — now every entry point reads them directly: single-file detection, `--batch` (auto-collects `*.docx` alongside .txt/.md), `pp_workflow`, `pp_fix_suggest`, `pp_style_norm`, `pp_rewrite_check`, `deai_gate`, and the new bundle command. Zero dependencies (stdlib zipfile + XML), paragraph-preserving extraction, and zip-bomb guards (uncompressed-size / member-count caps).
@@ -177,6 +183,10 @@ python scripts/pp_style_norm.py draft.txt
 # Word documents: read directly (.docx into any entry point)
 python scripts/ai_detector.py thesis.docx --format json
 # Submission self-check bundle (v5.3.0: one command -> dated directory with all artifacts)
+# Journal precheck with discipline context (v5.4.0; --discipline to override)
+python scripts/ai_detector.py draft.txt --profile journal --format json
+# Fingerprint freshness status (v5.4.0: baselines drift check + due indicator)
+python scripts/pp.py freshness --status
 python scripts/pp_report_bundle.py thesis.docx --outdir ~/selfcheck
 # Rewrite-effect regression check (v5.1.0: original vs revised, engine-source comparison)
 python scripts/pp_rewrite_check.py draft_original.txt draft_revised.txt
@@ -316,6 +326,7 @@ No. `pp_fix_suggest.py` (`pp.py fix`) only locates sentences carrying improvable
 | pp_fix_suggest.py | Sentence-level rewrite suggestions (v5.0.0) | `--top N` `--json` `--demo` | Per-sentence features + rewrite strategies (locates and suggests, never auto-rewrites) |
 | pp_doctor.py | Environment self-check | `--json` | Data/deps/model probes; exit 0 = green |
 | docx_text.py | .docx → text extraction (v5.3.0) | `file` `--output` | Paragraph-preserving text; zip-bomb guarded |
+| freshness_refresh.py | Monthly freshness pipeline / status (v5.4.0) | `--status` `--json` | Last run, latest eval record, baseline drift, due flag |
 | pp_report_bundle.py | Submission self-check bundle (v5.3.0) | `file` `--outdir` | Dated directory: workflow + paragraph HTML + suggestions + norm + manifest |
 | pp_style_norm.py | Academic style-norm self-check (v5.2.0) | `--json` `--checks a,b` | Findings with advice (fullwidth/numbers/abbrev/units); no score |
 | pp_rewrite_check.py | Rewrite-effect regression check (v5.1.0) | `original revised` `--json` `--demo` | Score/risk-band migration + paragraph deltas + feature-type clears/remaining |
@@ -353,6 +364,7 @@ Monthly full pass: `python scripts/freshness_refresh.py` (schedule it with your 
 
 ## Version history (condensed)
 
+- **v5.4.0 (2026-10-13)** — journal-context release: journal precheck 2.0 (discipline detection + per-discipline reading guide, reference line unchanged and honesty stated); freshness status command with four-baseline drift check; binary-input guard (PDF/image/zip rejected with conversion advice).
 - **v5.3.0 (2026-10-13)** — Word-input & bundle release: .docx as first-class input across all entry points (zero-dependency extraction, zip-bomb guards); submission self-check bundle command; sub-tool scope matrix; FAQ regrouped into numbered sections.
 - **v5.2.0 (2026-10-11)** — style-norm release: academic writing convention self-check (`pp_style_norm.py`, four checks, no score); `--batch --report` direct HTML; eval-archive README (STALE markers explained).
 - **v5.1.0 (2026-10-10)** — rewrite-closure & batch-report release: rewrite-effect regression check (`pp_rewrite_check.py`, engine-source original-vs-revised comparison); batch HTML summary report (`pp_batch_report.py`); batch-CSV concurrency and degraded_notice reading guide documented.
