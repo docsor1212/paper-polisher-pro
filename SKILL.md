@@ -1,6 +1,6 @@
 ---
 name: paper-polisher
-version: 5.4.0
+version: 5.4.1
 author: DoctorQ Lab
 description: >-
   AI-rate self-check for academic writing, polish guidance (style, terminology, translation-smell),
@@ -364,6 +364,7 @@ Monthly full pass: `python scripts/freshness_refresh.py` (schedule it with your 
 
 ## Version history (condensed)
 
+- **v5.4.1 (2026-10-14)** — icon release: new skill icon (family flat style), shipped as `assets/icon-512.png`.
 - **v5.4.0 (2026-10-13)** — journal-context release: journal precheck 2.0 (discipline detection + per-discipline reading guide, reference line unchanged and honesty stated); freshness status command with four-baseline drift check; binary-input guard (PDF/image/zip rejected with conversion advice).
 - **v5.3.0 (2026-10-13)** — Word-input & bundle release: .docx as first-class input across all entry points (zero-dependency extraction, zip-bomb guards); submission self-check bundle command; sub-tool scope matrix; FAQ regrouped into numbered sections.
 - **v5.2.0 (2026-10-11)** — style-norm release: academic writing convention self-check (`pp_style_norm.py`, four checks, no score); `--batch --report` direct HTML; eval-archive README (STALE markers explained).

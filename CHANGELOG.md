@@ -2,6 +2,10 @@
 
 > Historical release notes (moved out of SKILL.md in v4.6.0 so new users reach the workflow faster). Newest first. Condensed per-version summaries also live in SKILL.md § Version history.
 
+## What's new in v5.4.1
+
+- **Icon release**: new skill icon in the family flat style (white ground, steel-blue frame, signal-yellow hatch, bold "AI%" badge), shipped as `assets/icon-512.png`. No code changes.
+
 ## What's new in v5.4.0
 
 - **Journal precheck 2.0 — discipline context**: the journal profile now detects the text's discipline (medical / engineering & CS / social sciences & humanities / general; keyword-density heuristic, `--discipline` override) and adds a per-discipline reading guide. Honest boundary explicit: the 20-25% reference line stays the cross-discipline convention — per-discipline thresholds have no recognized standard and this tool does not invent them.
@@ -155,10 +159,15 @@
 ---
 ---
 ---
+---
 
 # 更新日志（中文）
 
 > v4.6.0 起历史更新说明移出 SKILL_ZH.md（新用户更快触达工作流）。最新在前。各版本摘要亦见 SKILL_ZH.md § 版本历史。
+
+## v5.4.1 更新内容
+
+- **图标版**：全新技能图标（家族扁平风：白底+钢蓝框+信号黄斜纹+特粗 AI% 徽章），随包 `assets/icon-512.png`。零代码变更。
 
 ## v5.4.0 更新内容
 
