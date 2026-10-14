@@ -1,21 +1,21 @@
 ---
 name: paper-polisher
-version: 5.4.1
+version: 5.5.0
 author: DoctorQ Lab
 description: >-
-  AI-rate self-check for academic writing, polish guidance (style, terminology, translation-smell),
-  metaphor audit, quality report, AIGC compliance label check (China 2025-09
-  labeling rules), paragraph-level attribution, journal precheck, sentence-level
-  rewrite suggestions (locates and advises, never auto-rewrites), plus `--batch DIR`
-  for thesis-scale batch rewriting (per-file AI-rate scores directory-wide).
-  Bilingual CN/EN, 100% local, zero upload, zero credentials; bundled unit-test suite
-  + AST-based zero-network self-verification.
-  v3 delivers a recalibrated multi-layer
-  rule engine (11 core layers + discourse/smoothness heuristics) + token-spectrum layer + length-routed fusion + optional
-  supervised Qwen3-0.6B ONNX layer (AUROC 1.0 on held-out test) + LLM
-  fingerprint attribution (GLM/DeepSeek/Qwen/Kimi/MiniMax/GPT/Claude/Gemini) +
-  freshness pipeline. Base-engine numbers reproduce from the bundled held-out
-  evaluation; supervised columns are author-side measurements (model not bundled).
+  AI-rate self-check and polish guidance for academic writing: sentence-level rewrite
+  suggestions (locates and advises, never auto-rewrites), terminology and consistency
+  checks, translation-smell, paragraph attribution, journal precheck with discipline
+  context, style-norm conventions check, quality report, AIGC label check, plus
+  `--batch DIR` with HTML summary. Reads .docx directly.
+  Not for: document/PDF translation (doc-holmes), plagiarism checking (institutional
+  systems), ghost-writing or executing rewrites (paper-rewriter); texts under 100
+  chars get no verdict by design.
+  100% local, zero upload; bundled tests + AST zero-network self-verification.
+  Multi-layer rule engine + token spectrum + optional supervised Qwen3-0.6B ONNX
+  layer + LLM fingerprint attribution + freshness pipeline. Base-engine numbers
+  reproduce from bundled held-out evals; supervised columns are author-side
+  (model not bundled).
 tags: [ai-detection, deai, academic-writing, paraphrase, paper-polish]
 ---
 
@@ -38,6 +38,20 @@ AI writing detection (AI-rate self-check for authors) · academic polishing guid
 - **Know the limits**: texts <100 chars get `risk=unknown` by design · medical text in degraded mode is over-scored · authors' self-check only — never for evading institutional AI detection.
 - **Where to look next**: capability boundary matrix below · end-to-end example in § Quick start · FAQ near the end · full history in `CHANGELOG.md`.
 
+### 30-second task routing
+
+| You want to… | Run | Deep doc |
+|---|---|---|
+| Check AI-rate of a draft | `pp.py detect draft.txt --format json` | § Measured performance + boundary matrix below |
+| See which sentences read AI-like | `pp.py fix draft.txt` | `pp_fix_suggest.py --help` |
+| Compare before/after your rewrite | `pp.py rewrite-check orig.txt rev.txt` | FAQ: rewrite suggestions |
+| Translate a PDF keeping layout | `pp.py bundle` not this — use doc-holmes | Related tools |
+| Check writing conventions | `pp.py norm draft.txt` | FAQ: style-norm |
+| Batch a whole thesis folder | `ai_detector.py --batch DIR --csv s.csv --report r.html` | FAQ: batch CSV |
+| Verify the zero-upload claim | `pp.py verify` + `pp.py test` | Safety statement |
+| Journal precheck (discipline context) | `ai_detector.py draft.txt --profile journal` | § journal precheck |
+| Environment trouble-shooting | `pp.py doctor` / `pp.py freshness --status` | FAQ: modes |
+
 ## Academic integrity
 
 This tool is for **authors self-reviewing and improving their own writing quality** — clearer sentences, consistent terminology, natural style. It is not designed to evade institutional AI-detection systems, and it must not be used to misrepresent AI-generated work as human-written. Follow your institution's AI-use and disclosure policies; the bundled `aigc_label_check.py` exists to help you **comply** with disclosure and labeling rules (e.g., China's 2025-09 labeling measures) — to declare AI assistance properly, not to hide it. Every AI-risk report (`ai_detector.py` / `deai_gate.py`) carries an explicit `integrity_notice` to this effect.
@@ -46,7 +60,7 @@ This tool is for **authors self-reviewing and improving their own writing qualit
 
 > Corpus scope note (v4.8.0): the v3.0-era table below was measured on the **full** held-out test half (n=5,251). The **bundled** sample corpus is a subset — its test half is n=1,304; reproducible per-corpus numbers: rules-only (PP_NO_SUP) 0.8985 old-gen / 0.7149 current-gen, fused 0.9998 / 0.9400 (`eval/results/v480_rules_*.json`, `v35ctl_*.json`; cache keys bind model fingerprint AND engine mode).
 
-| Metric | v2.0 baseline | v3.0 rules+spectrum | v3.1 +supervised | **v3.4 supervised + edit-regression v2** |
+| Metric | v2.0 baseline | v3.0 rules+spectrum | v3.1 +supervised | v3.4 supervised（版本时代记录，现行见下方重测行） |
 |---|---|---|---|---|
 | AUROC (test half) | 0.7046 | 0.9187 | 0.9997 | **1.0** |
 | TPR@FPR5% | 30.4% | 49.0% | 99.95% | **100%** |
@@ -84,6 +98,9 @@ This tool is for **authors self-reviewing and improving their own writing qualit
 | style_distance | Academic prose stylometry | Outside the academic register the style score is advisory only (stated in the output) |
 | style_norm | Mechanical conventions — register-independent | No score by design; statistical checks (numbers/abbreviations) are weak on short samples and say so |
 | aigc_label_check | File metadata / C2PA / explicit label statements | Not a content detector; verifies labeling compliance, not authorship |
+| quality_report | Readability/quality dimensions for the manuscript | Not an AI-rate measure; scoring heuristics are generic, not journal-tuned |
+| docx_text | .docx text extraction (paragraph-preserving) | Not a PDF converter — PDFs are rejected with conversion advice (zero-dep Chinese PDF extraction cannot be guaranteed) |
+| batch mode (--batch) | .txt/.md/.docx <5 MB per file | >5 MB skipped by design; encrypted/image-only docx yield an explicit error, not silent empty output |
 
 ## Safety and behavior statement
 
@@ -100,48 +117,21 @@ This tool is for **authors self-reviewing and improving their own writing qualit
 - **Fingerprint freshness status (`freshness_refresh.py --status`, also `pp.py freshness`)**: one command answers "is the fingerprint layer up to date?" — last pipeline run, latest held-out evaluation record, a bit-exact drift check against the four published baselines (fused 0.9998/0.9400, rules-only 0.8985/0.7149), and a due indicator (35-day interval). `--json` for pipelines; exit 1 on drift.
 - **Binary-input guard**: feeding a PDF/image/zip to any text entry point now produces a clear explanation and conversion advice (PDF text extraction cannot be done reliably with zero dependencies for Chinese — the tool says so and exits cleanly instead of emitting silent mojibake).
 
-## What's new in v5.3.0
-
-- **Word documents as first-class input (`scripts/docx_text.py`)**: thesis drafts live in .docx — now every entry point reads them directly: single-file detection, `--batch` (auto-collects `*.docx` alongside .txt/.md), `pp_workflow`, `pp_fix_suggest`, `pp_style_norm`, `pp_rewrite_check`, `deai_gate`, and the new bundle command. Zero dependencies (stdlib zipfile + XML), paragraph-preserving extraction, and zip-bomb guards (uncompressed-size / member-count caps).
-- **Submission self-check bundle (`scripts/pp_report_bundle.py`, also `pp.py bundle`)**: one command produces a dated self-check directory — workflow report (MD+JSON), paragraph-attribution HTML, rewrite suggestions, style-norm findings, and a README manifest with reading order and the integrity notice.
-- **Docs**: a Sub-tool scope matrix now states each sub-tool's calibrated domain and outside-domain behavior (terminology bank scope, translation-smell coverage honesty, stylometry register limits); the FAQ is reorganized into grouped, numbered sections (verdicts & boundaries / modes & install / output & interpretation / safety & verification / tools & workflow).
-
-## What's new in v5.2.0
-
-- **Academic style-norm self-check (`scripts/pp_style_norm.py`, also `pp.py norm`)**: a different kind of self-check — mechanical formatting conventions rather than AI-flavor. Four checks: full/half-width mixing (fullwidth letters/digits; half-width punctuation in CJK context), number-usage consistency (Chinese-numeral vs Arabic counting forms; percent styles), abbreviation first-use definitions (recurring `[A-Z]{2,6}` with no definition pattern; common exempt list), and unit formatting (digit-unit spacing consistency; invisible μ U+03BC vs µ U+00B5 mixing; × vs x). No score, no risk band — findings with concrete advice only; independent of AI-rate detection. Also wired into `pp_workflow` (§9) and `pp_api.style_norm()`.
-- **`--batch --report` direct output**: `ai_detector --batch DIR --csv scores.csv --report report.html` now renders the HTML summary in the same run (previously a separate `pp_batch_report.py` call).
-- **Eval archive hygiene**: `eval/results/archive/` gained a README explaining the `STALE-cache-poisoned` filename markers — those are the deliberately-kept voided results of the 2026-10-02 cache-poisoning incident (evidence, not live data; the incident and its structural fix are documented in CHANGELOG v4.4.0).
-
-## What's new in v5.1.0
-
-- **Rewrite-effect regression check (`scripts/pp_rewrite_check.py`, also `pp.py rewrite-check`)**: the loop-closer after the rewrite suggestions — *how much did your revision actually change?* Engine-source comparison of the original vs the revised draft: document-level score and risk-band migration, paragraph-level difflib-aligned per-paragraph deltas, feature-type counts cleared vs remaining (same seven types as `pp_fix_suggest`), and edit extent (char ratio + replaced-paragraph rate). Relative reference under this engine's criteria only — never an institutional verdict; ships with `--json`, `--demo`, and `pp_api.rewrite_check()` for programmatic use.
-- **Batch HTML summary report (`scripts/pp_batch_report.py`, also `pp.py batch-report`)**: `--batch --csv` now renders into a single self-contained HTML — totals/mean/risk-band cards, a score histogram, and a per-file table sorted by score with ERROR/unknown rows surfaced. Zero dependencies, no engine re-run (renders the existing CSV).
-- **Docs**: the batch CSV concurrency semantics (atomic temp+rename since v4.9.0 — concurrent batch runs cannot clobber each other's CSV) and a reading guide for `degraded_notice` are now stated explicitly (see FAQ).
-
-## What's new in v5.0.0
-
-- **Sentence-level rewrite suggestions (`scripts/pp_fix_suggest.py`, also `pp.py fix`)**: the natural next question after a score — *which sentences, why, and how to improve them*. Each flagged sentence lists its concrete features (AI clichés, filler phrases, template patterns, vague qualifiers, connective openers, dash/colon habits, uniform rhythm) with a per-type rewrite strategy. Guidance only: it locates and suggests, never auto-rewrites — the editing decision stays with the author. Ships with `--json` for programmatic use and a built-in two-sample demo (`--demo`).
-- **Bundled unit-test suite (`tests/`, `pp.py test`)**: 44 stdlib-unittest cases covering the iron laws (short text/empty/GBK), report field contracts, JSON purity, the gate, the workflow Markdown layout, data files, and the new tools — runnable in seconds without the model, so anyone can verify behavior on their own machine.
-- **Structured zero-network self-verification (`scripts/pp_verify.py`, also `pp.py verify`)**: replaces the old grep advice with an AST-level scan of every script — catches network imports/calls and curl/wget-style subprocess commands, while URL *strings* in report footers are correctly treated as data. Exit 0 = clean; `--json` for pipelines.
-- **Register awareness 2.0**: literary-narrative texts (dialogue quotes + time progression + inner monologue cues) now get a dedicated register notice explaining that this register sits outside the academic calibration domain — measured literary classics can reach high band in this engine — so the result is not mistaken for AI evidence. Disclosure only; no scoring change.
-- **`requirements.txt`** ships with the package: core = zero third-party dependencies; the two optional supervised-layer deps (onnxruntime/numpy) are declared and commented.
-- **`pp.py quickstart`**: zero-model, zero-file one-command demo (detect → fix → doctor) on a built-in sample.
-- **Freshness visible in `pp_doctor`**: the doctor now reports the latest held-out evaluation record alongside the fingerprint-registry coverage row.
-
 ## What's new in v4.9.0
 
 - **Mixed-document calibration (closing the v4.7.0 backlog)**: paragraph-level hi/med/lo thresholds are now calibrated on the controlled mixed benchmark (333 paragraphs with ground truth; `eval/calibrate_mixed_para.py` → `references/para_thresholds.json`). Honest result: the best operating point (≥50) reaches precision 0.60 at 63% AI-paragraph coverage — below the automatic-verdict bar, so paragraph attribution remains a ranking aid for human review; the calibrated numbers and their scope ship in `references/para_thresholds.json` and surface in every `mixed_document` assessment.
 - **Unified entry (`scripts/pp.py`)**: one command routes all eleven subcommands (detect/gate/workflow/term/smell/style/quality/aigc/paragraph/setup/doctor) — no more script-navigation cost.
 - **Reliability**: batch CSV writes are now atomic (temp+rename — concurrent batch runs no longer clobber the same CSV); gate layers retry once on crash/timeout before falling back.
 
-## Anti-patterns (avoid these)
+## Anti-patterns (each with the right way)
 
-- **Don't feed <100 chars** and expect a verdict — `risk=unknown` is by design (short-text false positives are uncontrollable); 300+ chars recommended.
-- **Don't trust degraded-mode scores on medical text** — rules-only over-scores medical register (~59% human FPR @medium); install the supervised model or trust only `@high`.
-- **Don't treat scores as CNKI/Wanfang equivalents** — thresholds are calibrated on our own held-out corpus; self-check only.
-- **Don't substitute or re-quantize the model file** — measured probability drift; only author-signed fingerprints pass `pp_setup.py`.
-- **Don't use it to evade institutional AI detection** — the integrity notice ships on every report; disclose per your institution's policy.
-- **Don't run batch on >5 MB files** — skipped by design; split first.
+- **Don't feed <100 chars** and expect a verdict — `risk=unknown` is by design (short-text false positives are uncontrollable). ✅ Instead: submit 300+ chars, or use the style-norm check (`pp.py norm`) which has no verdict and works on short samples.
+- **Don't trust degraded-mode scores on medical text** — rules-only over-scores medical register (~59% human FPR @medium). ✅ Instead: install the supervised model, or trust only `@high` verdicts and lean on paragraph attribution.
+- **Don't treat scores as CNKI/Wanfang equivalents** — thresholds are calibrated on our own held-out corpus. ✅ Instead: use scores as relative triage and let the journal precheck give the distribution view.
+- **Don't substitute or re-quantize the model file** — measured probability drift. ✅ Instead: only author-signed fingerprints pass `pp_setup.py`; if unavailable, stay in documented degraded mode.
+- **Don't use it to evade institutional AI detection** — the integrity notice ships on every report. ✅ Instead: use findings to improve the writing itself and disclose per your institution's policy.
+- **Don't run batch on >5 MB files** — skipped by design. ✅ Instead: split first, or point the batch at the exported text/docx versions.
+- **Don't repeat the same analysis on unchanged input, or re-run a call that was already rejected** — it burns time without new information. ✅ Instead: change one input (text, engine mode, check scope) or resolve the blocker (missing model, encoding) before retrying.
 
 ## Architecture (v3)
 
@@ -242,7 +232,7 @@ python3 scripts/pp_setup.py --model <author-signed model.onnx>   # verify md5 ->
 python3 scripts/pp_setup.py --check                              # current installation status
 ```
 
-Only author-signed fingerprints (`references/supervised_models.json`) are accepted; unknown weights are rejected before anything is touched. Nothing is downloaded — the model always comes from the authors' channel as a local file.
+Only author-signed fingerprints (`references/supervised_models.json`) are accepted; unknown weights are rejected before anything is touched. Nothing is downloaded — the model always comes from the authors' channel as a local file. Model acquisition: the author-signed files are not publicly downloadable — open an issue at the GitHub repo (docsor1212/paper-polisher-pro) to request the current signed build; until then the package runs in documented degraded mode with full functionality minus the accuracy uplift.
 
 ### End-to-end workflow (one command)
 
@@ -328,7 +318,7 @@ No. `pp_fix_suggest.py` (`pp.py fix`) only locates sentences carrying improvable
 | docx_text.py | .docx → text extraction (v5.3.0) | `file` `--output` | Paragraph-preserving text; zip-bomb guarded |
 | freshness_refresh.py | Monthly freshness pipeline / status (v5.4.0) | `--status` `--json` | Last run, latest eval record, baseline drift, due flag |
 | pp_report_bundle.py | Submission self-check bundle (v5.3.0) | `file` `--outdir` | Dated directory: workflow + paragraph HTML + suggestions + norm + manifest |
-| pp_style_norm.py | Academic style-norm self-check (v5.2.0) | `--json` `--checks a,b` | Findings with advice (fullwidth/numbers/abbrev/units); no score |
+| pp_style_norm.py | Academic style-norm self-check (v5.2.0; v5.5.0 +consistency) | `--json` `--checks a,b` | Findings with advice (fullwidth/numbers/abbrev/units); no score |
 | pp_rewrite_check.py | Rewrite-effect regression check (v5.1.0) | `original revised` `--json` `--demo` | Score/risk-band migration + paragraph deltas + feature-type clears/remaining |
 | pp_batch_report.py | Batch CSV → HTML summary (v5.1.0) | `csv_file` `-o out.html` | Totals/mean/band cards + histogram + per-file table |
 | pp_verify.py | Structured zero-network self-verification (v5.0.0) | `--json` | AST-level scan verdict; exit 0 = zero network calls |
@@ -364,6 +354,7 @@ Monthly full pass: `python scripts/freshness_refresh.py` (schedule it with your 
 
 ## Version history (condensed)
 
+- **v5.5.0 (2026-10-14)** — style-norm & ledger release: term-consistency check (23-group variant bank, mixing-not-correctness); findings ledger in workflow reports (§10); sub-tool matrix completion; supervised-model acquisition stated; SKILL.md condensed.
 - **v5.4.1 (2026-10-14)** — icon release: new skill icon (family flat style), shipped as `assets/icon-512.png`.
 - **v5.4.0 (2026-10-13)** — journal-context release: journal precheck 2.0 (discipline detection + per-discipline reading guide, reference line unchanged and honesty stated); freshness status command with four-baseline drift check; binary-input guard (PDF/image/zip rejected with conversion advice).
 - **v5.3.0 (2026-10-13)** — Word-input & bundle release: .docx as first-class input across all entry points (zero-dependency extraction, zip-bomb guards); submission self-check bundle command; sub-tool scope matrix; FAQ regrouped into numbered sections.

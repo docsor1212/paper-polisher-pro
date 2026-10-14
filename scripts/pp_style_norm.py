@@ -167,8 +167,38 @@ def check_units(text):
     return findings
 
 
+def check_consistency(text):
+    """v5.5.0: 同概念异写混用检测（references/term_variants.json 变体组）。
+
+    检测的是「混用」而非对错——组内写法本身都合法，同文档并存才提示统一。
+    """
+    import json as _json
+    bank_p = HERE.parent / "references" / "term_variants.json"
+    findings = []
+    try:
+        bank = _json.load(open(bank_p, encoding="utf-8")).get("groups", [])
+    except Exception as e:
+        return [{"check": "consistency", "severity": "suggest", "count": 0,
+                 "examples": [], "advice": f"变体组词库读取失败（{e}），本检查跳过。"}]
+    for grp in bank:
+        variants = grp.get("variants") or []
+        present = [(v, text.count(v)) for v in variants if v and text.count(v) > 0]
+        if len(present) >= 2:
+            top = sorted(present, key=lambda x: -x[1])
+            findings.append({
+                "check": "consistency", "severity": "suggest",
+                "count": sum(n for _, n in present),
+                "examples": [f"{v}×{n}" for v, n in top[:4]],
+                "advice": f"同概念异写混用（组：{grp.get('canonical')}）："
+                          f"全文统一为其中一种（建议「{top[0][0]}」，占比最高；"
+                          + (grp.get("note", "组内写法等价。") if grp.get("note") else "组内写法等价。") + "）",
+            })
+    return findings
+
+
 _CHECKS = {"fullwidth": check_fullwidth, "numbers": check_numbers,
-           "abbrev": check_abbrev, "units": check_units}
+           "abbrev": check_abbrev, "units": check_units,
+           "consistency": check_consistency}
 
 
 def style_norm(text: str, checks=None) -> dict:
@@ -230,7 +260,7 @@ def main():
     ap.add_argument("file")
     ap.add_argument("--json", action="store_true")
     ap.add_argument("--checks", default=None,
-                    help="逗号分隔子集：fullwidth,numbers,abbrev,units（默认全部）")
+                    help="逗号分隔子集：fullwidth,numbers,abbrev,units,consistency（默认全部）")
     args = ap.parse_args()
     try:
         text = _reads(args.file)

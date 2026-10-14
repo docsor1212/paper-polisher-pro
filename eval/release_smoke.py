@@ -905,6 +905,57 @@ Path(_pdf_f).unlink(missing_ok=True)
 chk("二进制护栏: PDF 干净拒绝+转存指引", _rcp1 != 0 and "Traceback" not in _sep1
     and "PDF" in _sep1 and "docx" in _sep1, f"rc={_rcp1}")
 
+# ───────────────────────── L. 卡片转化/文档模式（v5.5.0，模块 2+3） ─────────────────────────
+_skill_zh2 = (ROOT / "SKILL_ZH.md").read_text(encoding="utf-8")
+_zh_desc_m = re.search(r"description: >-?\n((?:  .+\n)+)", _skill_zh2)
+_zh_desc = " ".join(x.strip() for x in (_zh_desc_m.group(1).splitlines())) if _zh_desc_m else ""
+# L1. desc 首行需求词（模块 2.1：头 120 字符逐字覆盖；品牌词不在首 60）
+chk("desc 首行需求词在头 120 字符",
+    "论文润色" in _zh_desc[:120] and "AI率" in _zh_desc[:120],
+    f"head120={_zh_desc[:120]!r}")
+chk("desc 品牌词不在首 60 字符",
+    "Paper Polisher Pro" not in _zh_desc[:60] and "polisher" not in _zh_desc[:60].lower())
+# L2. Skip when 负触发器（模块 3.4，置换式在位）
+chk("desc Skip-when 负触发器（双语）",
+    "不适用" in _zh_desc and "Not for:" in (re.search(r"description: >-?\n((?:  .+\n)+)",
+     (ROOT / "SKILL.md").read_text(encoding="utf-8")).group(1)))
+# L3. 反模式替代方案 + 重试纪律（模块 3.3，双语）
+chk("反模式每条带替代方案（双语）",
+    "✅ 替代" in _skill_zh2 and "✅ Instead" in _skill_md)
+chk("重试纪律反模式在位（双语）",
+    "重复同一分析" in _skill_zh2 and "repeat the same analysis" in _skill_md)
+# L4. 30 秒任务路由 + 深文档指针（模块 3.2）
+chk("30 秒任务路由表（双语）",
+    "30-second task routing" in _skill_md and "30 秒任务路由" in _skill_zh2)
+chk("article-review-workflow.md 入口指针",
+    "何时读我" in (ROOT / "references" / "article-review-workflow.md").read_text(encoding="utf-8"))
+# L5. 子功能矩阵补全（boundary 自查发现）
+chk("子功能矩阵含 quality_report/docx_text/batch 行",
+    "quality_report" in _skill_md and "docx_text" in _skill_md
+    and "5 MB skipped by design" in _skill_md)
+# L6. workflow findings ledger（模块 3.5）
+try:
+    _flw = _API.workflow(_DEMO_AI)
+    _fli = (_flw.get("findings_ledger") or {}).get("items") or []
+    _fstat = [x["status"] for x in _fli]
+    chk("workflow: findings ledger 在位（answered/partially/unresolved）",
+        len(_fli) >= 5 and all(s in ("answered", "partially", "unresolved") for s in _fstat),
+        f"items={len(_fli)}")
+except Exception as _e:
+    chk("workflow: findings ledger 在位", False, f"exception: {_e}")
+# L7. 术语一致性检查（v5.5.0 新查）
+try:
+    _snc2 = _API.style_norm("本研究纳入156例患者，病人均签署知情同意。患者随访12个月，病人无失访。")
+    _sc_types = [f for f in _snc2["findings"] if f["check"] == "consistency"]
+    chk("style_norm: 同概念异写混用检出（患者/病人）",
+        len(_sc_types) >= 1 and "患者" in str(_sc_types[0]["examples"]),
+        f"findings={len(_sc_types)}")
+    _snc3 = _API.style_norm(ZH_HUMAN)
+    chk("style_norm: 干净学术样本零一致性误报",
+        not any(f["check"] == "consistency" for f in _snc3["findings"]))
+except Exception as _e:
+    chk("style_norm: 同概念异写混用检出", False, f"exception: {_e}")
+
 # ───────────────────────── 汇总 ─────────────────────────
 failed = [r for r in results if not r[1]]
 print("────────────────────────────────")

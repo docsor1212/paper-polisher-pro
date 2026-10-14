@@ -2,6 +2,12 @@
 
 > Historical release notes (moved out of SKILL.md in v4.6.0 so new users reach the workflow faster). Newest first. Condensed per-version summaries also live in SKILL.md § Version history.
 
+## What's new in v5.5.0
+
+- **Term-consistency check (`pp_style_norm.py` check 5, `--checks consistency`)**: same-concept variant mixing detection driven by a curated bank (`references/term_variants.json`, 23 groups) — flags mixing within one document (never correctness) with per-group unification advice; wired into `pp_workflow` §9.
+- **Findings ledger in workflow reports (§10)**: each check marked answered / partially answered / unresolved (mixed-writing stays partially — calibrated attribution is triage-quality) with a budget note.
+- **Docs**: sub-tool scope matrix extended; supervised-model acquisition stated; performance-table legend; deep-doc entry header; What's-new condensed into CHANGELOG.
+
 ## What's new in v5.4.1
 
 - **Icon release**: new skill icon in the family flat style (white ground, steel-blue frame, signal-yellow hatch, bold "AI%" badge), shipped as `assets/icon-512.png`. No code changes.
@@ -160,10 +166,17 @@
 ---
 ---
 ---
+---
 
 # 更新日志（中文）
 
 > v4.6.0 起历史更新说明移出 SKILL_ZH.md（新用户更快触达工作流）。最新在前。各版本摘要亦见 SKILL_ZH.md § 版本历史。
+
+## v5.5.0 更新内容
+
+- **术语一致性检查（`pp_style_norm.py` 第 5 查）**：同概念异写混用检测，词库 23 组（患者/病人、禁忌证/禁忌症、数据/资料、approximately/~…）；检测混用非对错，按组给统一建议；已并入 `pp_workflow` §9。
+- **Findings Ledger（§10）**：workflow 报告每项检查标记 answered / partially / unresolved（混写判定恒 partially——校准即 triage 级）+ 预算说明。
+- **文档**：子功能适用域矩阵补全；监督模型获取方式明示；性能表版本时代标注；深文档入口头；What's new 收敛入 CHANGELOG。
 
 ## v5.4.1 更新内容
 

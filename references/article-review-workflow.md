@@ -1,3 +1,7 @@
+<!-- 何时读我：想把本工具的检测/建议嵌入一篇论文的完整审阅流程时。
+     最短路径：SKILL.md § Quick start → 本文的四步流程。
+     回 INDEX：SKILL.md § 30-second task routing -->
+
 # Article Review Workflow (Terminology + AI Detection + Metaphor Audit)
 
 > Three-task parallel review for medical/scientific articles before publication.

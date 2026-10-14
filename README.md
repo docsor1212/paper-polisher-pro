@@ -26,7 +26,7 @@ python scripts/ai_detector.py draft.txt --format json
 # 句子级改写建议（定位+策略，不代改）
 python scripts/pp_fix_suggest.py draft.txt --top 10
 
-# 学术写作规范自查（全半角/数字/缩写/单位，不评分）
+# 学术写作规范自查（全半角/数字/缩写/单位/同概念异写一致性，不评分）
 python scripts/pp_style_norm.py draft.txt
 
 # Word 文档直读 + 投稿前自查包

@@ -142,6 +142,32 @@ def workflow(text: str, lang: str = "auto") -> dict:
     except Exception as e:  # 规范自查失败不阻断工作流
         result["style_norm"] = {"finding_count": 0, "findings": [], "error": str(e)}
 
+    # 10) findings ledger（v5.5.0，模块 3.5）：各项检查的结论状态一览
+    _fx_ok = bool((result.get("fix_suggest") or {}).get("stats"))
+    result["findings_ledger"] = {
+        "items": [
+            {"check": "AI 率检测", "status": "answered",
+             "detail": f"文档级 {result['detect'].get('overall_ai_score')}/{result['detect'].get('overall_risk')}"},
+            {"check": "段落级归因", "status": "answered",
+             "detail": f"hi {result['paragraphs'].get('high')} / medium {result['paragraphs'].get('medium')} / 共 {result['paragraphs'].get('total')}"},
+            {"check": "人机混写判定", "status":
+                "partially" if (result.get("mixed_document") or {}).get("detected") else "answered",
+             "detail": ("混写判定仅排序辅助（校准精度有限，需逐段人工复核）"
+                        if (result.get("mixed_document") or {}).get("detected")
+                        else "未检出混写信号") },
+            {"check": "句子级改写建议", "status": "answered" if _fx_ok else "unresolved",
+             "detail": "已生成 top 特征句" if _fx_ok else "生成失败"},
+            {"check": "术语/翻译腔/文体/质量", "status": "answered", "detail": "见 §4-§7 数值"},
+            {"check": "学术规范自查", "status": "answered" if result.get("style_norm") else "unresolved",
+             "detail": f"findings {result.get('style_norm', {}).get('finding_count')}"},
+            {"check": "合规标识自查", "status": "answered",
+             "detail": "显式标识证据见 §8；元数据/C2PA 用 aigc_label_check 对成品文件复核"},
+        ],
+        "budget": {"checks_run": 9, "note": "一次工作流调用完成全部检查；无迭代轮次消耗"},
+        "note": ("answered=结论已给出；partially=有结论但精度受限（需人工复核）；"
+                 "unresolved=该子检查失败，可单独重跑对应脚本。"),
+    }
+
     result["integrity_notice"] = ("本工作流供作者自查与改进写作质量，不用于规避机构 AIGC 检测；"
                                   "请遵循所在机构 AI 使用与披露政策。")
     return result
@@ -251,6 +277,15 @@ def to_markdown(r: dict) -> str:
             lines.append("- %s ×%d（%s）" % (_sn_names.get(_f["check"], _f["check"]),
                                              _f["count"], _ex[:40]))
         lines += [""]
+    _fl = r.get("findings_ledger") or {}
+    if _fl.get("items"):
+        lines += [
+            "## 10. Findings Ledger（结论状态一览）",
+            "",
+        ]
+        for _it in _fl["items"]:
+            lines.append(f"- {_it['check']}：**{_it['status']}**（{_it['detail']}）")
+        lines += ["", _fl.get("note", ""), ""]
     lines += [
         "---",
         "逐项完整数据见同名 .workflow.json。",
