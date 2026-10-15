@@ -196,9 +196,82 @@ def check_consistency(text):
     return findings
 
 
+_JARGON_L1 = ("兜底 兜住 抓手 赋能 闭环 打通 落地 对齐 拉齐 颗粒度 底层逻辑 赛道 打法 组合拳 护城河 卡点 痛点 "
+              "拆解 沉淀 复盘 顶层设计 叙事 图景 蓝图 密码 钥匙 答卷 命题 画像 注脚 伏笔 终章 序章 篇章 乐章 "
+              "交响 变奏 涟漪 回响 回声 底色 基调 底座 收拢 读懂 讲透 带走 串成 串起 编织 勾勒 面孔 账单 领土 "
+              "探针 破门 一网打尽 浮出水面 洪流 底细 主场 接力棒 命运 互相渗透 另一面 多管齐下 对号入座 零件 "
+              "出厂 车间 拼图 版图 主角 配角 剧本 舞台 破防 失守 失灵 塌方 点燃 登场 送进 站上 行动清单 "
+              "窗口前移 主力人群 第一站").split()
+_JARGON_L2 = ("克制 口径 边界 维度 格局 图谱 锚定 倒逼 亟待 彰显 范式 重塑 重构 生态 至关重要 举足轻重 "
+              "毋庸置疑 不言而喻 众所周知 里程碑 革命性 颠覆 窗口 支柱 主线 陷阱").split()
+_JARGON_L3 = ["不是…而是…", "与其说…不如说", "首先…其次", "综上所述", "总而言之",
+              "值得注意的是", "更重要的是", "与此同时", "由此可见"]
+
+
+def check_llm_jargon(text):
+    """v5.6.0 第 7 查：LLM 中文输出高频 AI 腔（三层词表+判例库对照）。
+
+    词表与判例来源=免疫深读产线 2026-08-31 真实判废复盘（跨线移植）：
+    L1 隐喻滥用（命中即改）／L2 语气词（评审判断）／L3 句式模式。
+    只提示不计分；判例库给「原句→改句」对照。白名单句式另附。
+    """
+    import json as _json
+    findings = []
+    l1 = sorted({w for w in _JARGON_L1 if w in text})
+    l2 = sorted({w for w in _JARGON_L2 if w in text})
+    l3 = [s for s in _JARGON_L3
+          if (s.split("…")[0] in text and (len(s.split("…")) < 2 or s.split("…")[-1] in text))]
+    cases = []
+    cases_p = HERE.parent / "references" / "style_guard_cases.json"
+    try:
+        cases = _json.load(open(cases_p, encoding="utf-8")).get("cases", [])
+    except Exception:
+        cases = []
+
+    if l1:
+        hit_cases = [c for c in cases if c.get("word") in l1][:4]
+        extra = "；判例对照：" + "；".join(
+            f"「{c['wrong']}」→「{c['right']}」" for c in hit_cases) if hit_cases else ""
+        findings.append({
+            "check": "llm_jargon", "severity": "inconsistent",
+            "count": len(l1) + sum(text.count(w) for w in l1),
+            "examples": l1[:8],
+            "advice": ("L1 隐喻滥用词（LLM 中文输出高频特征，命中即改）：" + "、".join(l1[:10]) + "。"
+                       + "策略：隐喻改直陈——保留医学事实，去掉拟人/战争/工厂/旅程类比喻。" + extra),
+        })
+    if l2:
+        findings.append({
+            "check": "llm_jargon", "severity": "suggest",
+            "count": len(l2),
+            "examples": l2[:8],
+            "advice": ("L2 语气词（语境敏感，逐处评审）：底线是别用空泛强调替代证据——"
+                       "「至关重要/毋庸置疑/众所周知」类改为给出具体依据或直接删除；"
+                       "「范式/重塑/生态」类仅在术语本义使用。"),
+        })
+    if l3:
+        findings.append({
+            "check": "llm_jargon", "severity": "suggest",
+            "count": len(l3),
+            "examples": l3[:5],
+            "advice": ("L3 句式模式（AI 高频句式）：拆掉对仗结构——"
+                       "「不是A而是B」改为直接陈述B；「首先…其次」改为按逻辑分段；"
+                       "「综上所述」改为一句具体的结论句。"),
+        })
+    if l1 or l2 or l3:
+        wl = []
+        cp = HERE.parent / "references" / "style_guard_cases.json"
+        try:
+            wl = _json.load(open(cp, encoding="utf-8")).get("whitelist_styles", [])
+        except Exception:
+            pass
+        if wl:
+            findings[-1]["advice"] += "医学语体推荐句式（白名单）：" + "／".join(wl[:6]) + "。"
+    return findings
+
+
 _CHECKS = {"fullwidth": check_fullwidth, "numbers": check_numbers,
            "abbrev": check_abbrev, "units": check_units,
-           "consistency": check_consistency}
+           "consistency": check_consistency, "llm_jargon": check_llm_jargon}
 
 
 def style_norm(text: str, checks=None) -> dict:
@@ -260,7 +333,7 @@ def main():
     ap.add_argument("file")
     ap.add_argument("--json", action="store_true")
     ap.add_argument("--checks", default=None,
-                    help="逗号分隔子集：fullwidth,numbers,abbrev,units,consistency（默认全部）")
+                    help="逗号分隔子集：fullwidth,numbers,abbrev,units,consistency,llm_jargon（默认全部）")
     args = ap.parse_args()
     try:
         text = _reads(args.file)

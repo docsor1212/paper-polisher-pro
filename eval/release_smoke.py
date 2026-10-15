@@ -956,6 +956,34 @@ try:
 except Exception as _e:
     chk("style_norm: 同概念异写混用检出", False, f"exception: {_e}")
 
+# ───────────────────────── M. LLM 腔自查与负结果披露（v5.6.0） ─────────────────────────
+try:
+    _mj = _API.style_norm("免疫系统的某一个零件出厂即缺失，机会性病原最先破门。家族史是探针，把这条主线收拢。"
+                          "先兜底再根治需要克制。六张面孔背后是同一机制，一网打尽并不现实。"
+                          "风湿科是第一站，把治疗窗口前移至关重要。综上所述，检出要把另一面讲透。")
+    _mj_l1 = [f for f in _mj["findings"] if f["check"] == "llm_jargon" and "L1" in f["advice"]]
+    chk("style_norm 第7查: L1 隐喻滥用检出", len(_mj_l1) >= 1,
+        f"findings={_mj['finding_count']}")
+    _mjc = (ROOT / "references" / "style_guard_cases.json")
+    chk("判例库随包（18 对原句→改句）",
+        _mjc.exists() and len(json.load(open(_mjc, encoding="utf-8")).get("cases", [])) >= 18)
+except Exception as _e:
+    chk("style_norm 第7查: L1 隐喻滥用检出", False, f"exception: {_e}")
+
+try:
+    import ai_detector as _ad
+    _mjrep = _ad.detect("免疫系统的某一个零件出厂即缺失，机会性病原最先破门。家族史是探针，把这条主线收拢。"
+                        "先兜底再根治需要克制。六张面孔背后是同一机制，一网打尽并不现实。"
+                        "风湿科是第一站，把治疗窗口前移至关重要。综上所述，检出要把另一面讲透，"
+                        "免疫力失守就会塌方，车轮般的命运碾压而至，叙事至此收束。", lang="zh")
+    chk("负结果披露: 检测器报命中不计分",
+        bool(_mjrep.jargon_hits) and _mjrep.jargon_bonus == 0.0,
+        f"hits={len(_mjrep.jargon_hits)} bonus={_mjrep.jargon_bonus}")
+    chk("负结果工件随包",
+        (ROOT / "eval" / "results" / "meddocs_20261014.json").exists())
+except Exception as _e:
+    chk("负结果披露: 检测器报命中不计分", False, f"exception: {_e}")
+
 # ───────────────────────── 汇总 ─────────────────────────
 failed = [r for r in results if not r[1]]
 print("────────────────────────────────")

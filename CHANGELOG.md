@@ -2,6 +2,11 @@
 
 > Historical release notes (moved out of SKILL.md in v4.6.0 so new users reach the workflow faster). Newest first. Condensed per-version summaries also live in SKILL.md § Version history.
 
+## What's new in v5.6.0
+
+- **LLM-jargon self-check (`pp_style_norm.py` check 7, `--checks llm_jargon`)**: three-tier detection of high-frequency AI-flavor phrasing in Chinese output — L1 metaphor-abuse blacklist, L2 tone words, L3 sentence patterns; findings carry case-library 原句→改句 contrasts and medical-register whitelist phrasings. Cross-line port credited to the immunology deep-read line's 2026-08-31 rejection post-mortem; ported corpus summarized in `eval/results/meddocs_20261014.json`.
+- **Honest negative result**: engine scoring of these signals was tried and reverted same-day (held-out: human FPR@medium +1.5pt, current-gen AUROC −1pt). The detector reports hits (`jargon_hits`) without scoring; retry conditions documented in source.
+
 ## What's new in v5.5.0
 
 - **Term-consistency check (`pp_style_norm.py` check 5, `--checks consistency`)**: same-concept variant mixing detection driven by a curated bank (`references/term_variants.json`, 23 groups) — flags mixing within one document (never correctness) with per-group unification advice; wired into `pp_workflow` §9.
@@ -167,10 +172,16 @@
 ---
 ---
 ---
+---
 
 # 更新日志（中文）
 
 > v4.6.0 起历史更新说明移出 SKILL_ZH.md（新用户更快触达工作流）。最新在前。各版本摘要亦见 SKILL_ZH.md § 版本历史。
+
+## v5.6.0 更新内容
+
+- **LLM 腔自查（第 7 查）**：中文输出高频 AI 腔三层检测（L1 隐喻滥用黑名单/L2 语气词/L3 句式模式），findings 附判例库「原句→改句」对照与医学语体白名单；跨线移植注明来源（免疫深读线判废复盘），摸底语料汇总随包 `eval/results/meddocs_20261014.json`。
+- **诚实负结果**：引擎计分当日试当日回退（留出集人类 FPR@medium +1.5pt、当打代 AUROC −1pt）；检测器只报命中不计分，重试条件写入源码。
 
 ## v5.5.0 更新内容
 

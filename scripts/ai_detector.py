@@ -87,6 +87,9 @@ class DetectionReport:
     register_hint: str = ""
     # v3.8: 编码警示——大量不可解码字节时提示结果可能失真
     encoding_warning: str = ""
+    # v5.6.0: L14 比喻叙事 AI 腔层——LLM 中文输出高频隐喻滥用/语气词/句式（跨线判废词表移植）
+    jargon_hits: list = field(default_factory=list)
+    jargon_bonus: float = 0.0
 
 
 def attribute_model(text: str, topn: int = 3) -> list:
@@ -673,6 +676,32 @@ def detect(text: str, lang: str = "auto") -> DetectionReport:
             discourse_bonus = float(min(30, 8 * len(discourse_hits) + min(_hits_total, 8)))
             overall = min(100.0, overall + discourse_bonus)
 
+    # v5.6.0: L14 比喻叙事 AI 腔层——多信号门控 + 封顶（学术零误伤由留出集回归裁决）
+    #   计分门槛（满足其一）: 不同 L2 词≥2 | 不同 L1 词≥2 且 L1 总次≥3 | (有 L1 或 L2) 且 L3 句式在场
+    #   加分 = min(20, 6*(不同L1+不同L2) + min(L3次,4) + min(总次,6))；单发仅提示不加分
+    jargon_hits, jargon_bonus = [], 0.0
+    if lang == "zh" and len(text.strip()) >= 100:
+        l1_c = {w: text.count(w) for w in _JARGON_L1 if w in text}
+        l2_c = {w: text.count(w) for w in _JARGON_L2 if w in text}
+        l3_m = [s for s in _JARGON_L3
+                if all(seg in text for seg in s.split("…"))]
+        d1, d2 = len(l1_c), len(l2_c)
+        t1, t2 = sum(l1_c.values()), sum(l2_c.values())
+        active = (d2 >= 2) or (d1 >= 2 and t1 >= 3) or ((d1 + d2) >= 1 and l3_m)
+        if l1_c:
+            jargon_hits.append({"tier": "L1隐喻滥用", "count": t1, "distinct": d1,
+                                "samples": sorted(l1_c, key=l1_c.get, reverse=True)[:4]})
+        if l2_c:
+            jargon_hits.append({"tier": "L2语气词", "count": t2, "distinct": d2,
+                                "samples": sorted(l2_c, key=l2_c.get, reverse=True)[:4]})
+        if l3_m:
+            jargon_hits.append({"tier": "L3句式", "count": len(l3_m), "distinct": len(l3_m),
+                                "samples": l3_m[:3]})
+        # v5.6.0 留出集实测（本日定标）：该信号计分会抬人类 FPR@med +1.5pt、gen2026 AUROC -1pt
+        # ——负结果入档，仅披露不计分；写作侧自查用 style_norm 第 7 查（判例库对照建议）
+        # 若未来重试：须在 calib 半重定门槛并以 test 半复核（勿直接沿用本次参数）。
+        active = False
+
     # Top patterns
     pat_counter = Counter(m["pattern"] for m in all_matches)
     top = [{"pattern": p, "count": c} for p, c in pat_counter.most_common(10)]
@@ -755,8 +784,12 @@ def detect(text: str, lang: str = "auto") -> DetectionReport:
     # v3.7.0: 篇章结构层披露
     if discourse_hits:
         _gs = "/".join(h["group"] for h in discourse_hits)
-        _line = f"篇章结构特征: {_gs}" + (f"（结构加分 {discourse_bonus:.0f}）" if discourse_bonus else "（单组命中，仅提示不加分）")
-        details += "\nℹ️ " + _line
+        details += "\nℹ️ " + (f"篇章结构特征: {_gs}" +
+                   (f"（结构加分 {discourse_bonus:.0f}）" if discourse_bonus else "（单组命中，仅提示不加分）"))
+    if jargon_hits:
+        _jt = "/".join(h["tier"] for h in jargon_hits)
+        _jb = f"（AI腔加分 {jargon_bonus:.0f}）" if jargon_bonus else "（仅提示不计分：留出集实测计分会抬人类误报，写作侧用 style_norm 第 7 查）"
+        details += "\n" + f"比喻叙事AI腔: {_jt} {_jb}——此类表述为 LLM 中文输出高频特征，建议替换为直陈表述"
     # v3.8: 混写预警——段落得分显著分化(混合人机文档文档级口径 AUROC 仅 0.38, 必须如实引导)
     mixed_signal = False
     mixed_notice = ""
@@ -838,6 +871,8 @@ def detect(text: str, lang: str = "auto") -> DetectionReport:
         integrity_notice=INTEG_ZH if lang == "zh" else INTEG_EN,
         discourse_hits=discourse_hits,
         discourse_bonus=discourse_bonus,
+        jargon_hits=jargon_hits,
+        jargon_bonus=jargon_bonus,
         mixed_signal=mixed_signal,
         mixed_notice=mixed_notice,
         register_hint=register_hint,
@@ -860,6 +895,19 @@ _DISCOURSE_ZH = (
     ("情绪渲染", re.compile(r"扎心(?:了)?|破防(?:了)?|泪目|太真实了|细思极恐|狠狠(?:共情|破防)|绷不住了|直呼(?:内行|太)|绝了[!！]|离大谱")),
 )
 _COLLOQ_ZH = re.compile(r"[嘛呗哇啦咯嘿耶哟]|说实话|讲真|搞定|挺好的|蛮好|咱们|整点|一堆|贼好|超赞|靠谱|翻车|踩坑")
+
+# v5.6.0 L14 比喻叙事 AI 腔词表（来源：免疫深读线 2026-08-31 真实判废复盘跨线移植，
+# 词表原权=style_guard 三层防线；本线在留出集实测 lift 后按密度组合入层：
+# L1 lift 2.3x（人类侧含文学词）→ 仅组合计分；L2 lift 4.7x → 组合计分主力）
+_JARGON_L1 = ("兜底 兜住 抓手 赋能 闭环 打通 落地 对齐 拉齐 颗粒度 底层逻辑 赛道 打法 组合拳 护城河 卡点 痛点 "
+              "拆解 沉淀 复盘 顶层设计 叙事 图景 蓝图 密码 钥匙 答卷 命题 画像 注脚 伏笔 终章 序章 篇章 乐章 "
+              "交响 变奏 涟漪 回响 回声 底色 基调 底座 收拢 读懂 讲透 带走 串成 串起 编织 勾勒 面孔 账单 领土 "
+              "探针 破门 一网打尽 浮出水面 洪流 底细 主场 接力棒 命运 互相渗透 另一面 多管齐下 对号入座 零件 "
+              "出厂 车间 拼图 版图 主角 配角 剧本 舞台 破防 失守 失灵 塌方 点燃 登场 送进 站上 行动清单 "
+              "窗口前移 主力人群 第一站").split()
+_JARGON_L2 = ("克制 口径 边界 维度 格局 图谱 锚定 倒逼 亟待 彰显 范式 重塑 重构 生态 至关重要 举足轻重 "
+              "毋庸置疑 不言而喻 众所周知 里程碑 革命性 颠覆 窗口 支柱 主线 陷阱").split()
+_JARGON_L3 = ("不是…而是… 与其说…不如说 首先…其次 综上所述 总而言之 值得注意的是 更重要的是 与此同时 由此可见").split()
 
 # v5.0.0 语域感知 2.0：文学叙事特征四类（判据=≥3 类命中；词表刻意取叙事专属、
 # 避开学术语域常见词，防误触发——学术文本「表明/结果/患者」等均不在表内）

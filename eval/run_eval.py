@@ -41,6 +41,24 @@ ENGINES = {"current": score_current}
 # (2026-10-02 事故: v36 换模后 score_cache 全命中, "位级 0.9022" 实为 v35 陈旧分)。
 MODEL_FP = "unset"
 
+# v5.6.0: 打分器内容哈希入缓存键——模型指纹绑定（v4.8.0）之外补上代码维度。
+# 教训（10-14 L14 层实测复现）：改打分逻辑不改键 → 评测静默复放旧分（10-02 事故同族）。
+def _scorer_ver():
+    import hashlib
+    h = hashlib.md5()
+    here = os.path.dirname(os.path.abspath(__file__))
+    for rel in ("../scripts/ai_detector.py",
+                "../references/ai_patterns_zh.json",
+                "../references/ai_patterns_en.json"):
+        fp = os.path.join(here, rel)
+        if os.path.isfile(fp):
+            with open(fp, "rb") as f:
+                h.update(f.read())
+    return h.hexdigest()[:8]
+
+
+SCORER_VER = "unset"
+
 
 def _model_fp():
     """部署监督模型 md5 前 12 位; 无模型(纯规则)返回 'rules'。"""
@@ -106,7 +124,7 @@ def load(path):
 def evaluate(recs, engine, cache, tag):
     """打分（带缓存）并计算全部指标。"""
     for r in recs:
-        cid = "%s:%s:%s" % (tag, MODEL_FP, r["id"])
+        cid = "%s:%s:%s:%s" % (tag, MODEL_FP, SCORER_VER, r["id"])
         if cache.get(cid) is None:
             try:
                 v = engine(r["text"])
@@ -194,6 +212,8 @@ def main():
 
     global MODEL_FP
     MODEL_FP = _model_fp()
+    global SCORER_VER
+    SCORER_VER = _scorer_ver()
     # v4.8.0: 规则档评测独立命名空间（外部测试发现#1——PP_NO_SUP 不入键会导致
     # 规则档评测重放监督层缓存分, 基础引擎指标不可复现）
     if os.environ.get("PP_NO_SUP") == "1":

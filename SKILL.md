@@ -1,6 +1,6 @@
 ---
 name: paper-polisher
-version: 5.5.0
+version: 5.6.0
 author: DoctorQ Lab
 description: >-
   AI-rate self-check and polish guidance for academic writing: sentence-level rewrite
@@ -318,7 +318,7 @@ No. `pp_fix_suggest.py` (`pp.py fix`) only locates sentences carrying improvable
 | docx_text.py | .docx → text extraction (v5.3.0) | `file` `--output` | Paragraph-preserving text; zip-bomb guarded |
 | freshness_refresh.py | Monthly freshness pipeline / status (v5.4.0) | `--status` `--json` | Last run, latest eval record, baseline drift, due flag |
 | pp_report_bundle.py | Submission self-check bundle (v5.3.0) | `file` `--outdir` | Dated directory: workflow + paragraph HTML + suggestions + norm + manifest |
-| pp_style_norm.py | Academic style-norm self-check (v5.2.0; v5.5.0 +consistency) | `--json` `--checks a,b` | Findings with advice (fullwidth/numbers/abbrev/units); no score |
+| pp_style_norm.py | Academic style-norm self-check (v5.2.0; +consistency v5.5.0; +llm_jargon v5.6.0) | `--json` `--checks a,b` | Findings with advice (fullwidth/numbers/abbrev/units); no score |
 | pp_rewrite_check.py | Rewrite-effect regression check (v5.1.0) | `original revised` `--json` `--demo` | Score/risk-band migration + paragraph deltas + feature-type clears/remaining |
 | pp_batch_report.py | Batch CSV → HTML summary (v5.1.0) | `csv_file` `-o out.html` | Totals/mean/band cards + histogram + per-file table |
 | pp_verify.py | Structured zero-network self-verification (v5.0.0) | `--json` | AST-level scan verdict; exit 0 = zero network calls |
@@ -354,6 +354,7 @@ Monthly full pass: `python scripts/freshness_refresh.py` (schedule it with your 
 
 ## Version history (condensed)
 
+- **v5.6.0 (2026-10-14)** — llm-jargon release: three-tier AI-flavor self-check with case-library contrasts (cross-line port, credited); engine scoring of the signal tried and honestly reverted (negative result archived with retry conditions).
 - **v5.5.0 (2026-10-14)** — style-norm & ledger release: term-consistency check (23-group variant bank, mixing-not-correctness); findings ledger in workflow reports (§10); sub-tool matrix completion; supervised-model acquisition stated; SKILL.md condensed.
 - **v5.4.1 (2026-10-14)** — icon release: new skill icon (family flat style), shipped as `assets/icon-512.png`.
 - **v5.4.0 (2026-10-13)** — journal-context release: journal precheck 2.0 (discipline detection + per-discipline reading guide, reference line unchanged and honesty stated); freshness status command with four-baseline drift check; binary-input guard (PDF/image/zip rejected with conversion advice).
