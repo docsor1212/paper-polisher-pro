@@ -14141,7 +14141,7 @@
   {
     "cn": "免疫出生错误",
     "en": "inborn errors of immunity",
-    "source": "IUIS 2024 (现行命名)",
+    "source": "IUIS 2024 (现行命名",
     "aliases": [
       "IEI",
       "先天性免疫错误",
@@ -14493,5 +14493,229 @@
       "细胞毒性脱颗粒缺陷",
       "NK/T细胞脱颗粒障碍"
     ]
+  },
+  {
+    "cn": "按年龄特异性参考区间复判",
+    "en": "age-specific re-interpretation",
+    "source": "实战对照表 2026-10-16",
+    "aliases": [
+      "龄化复判",
+      "龄化"
+    ]
+  },
+  {
+    "cn": "活疫苗接种前评估",
+    "en": "pre-vaccination evaluation",
+    "source": "实战对照表 2026-10-16",
+    "aliases": [
+      "活疫苗门禁",
+      "门禁"
+    ]
+  },
+  {
+    "cn": "首要监测指标",
+    "en": "primary monitoring parameter",
+    "source": "实战对照表 2026-10-16",
+    "aliases": [
+      "头号盯防",
+      "头号盯防指标"
+    ]
+  },
+  {
+    "cn": "临床特征",
+    "en": "clinical features",
+    "source": "实战对照表 2026-10-16",
+    "aliases": [
+      "本例画像"
+    ]
+  },
+  {
+    "cn": "判读的临床意义",
+    "en": "clinical implication",
+    "source": "实战对照表 2026-10-16",
+    "aliases": [
+      "临床落点"
+    ]
+  },
+  {
+    "cn": "生理性丰富构成",
+    "en": "physiologically abundant compartment",
+    "source": "实战对照表 2026-10-16",
+    "aliases": [
+      "丰富构型"
+    ]
+  },
+  {
+    "cn": "假性异常",
+    "en": "spurious abnormality",
+    "source": "实战对照表 2026-10-16",
+    "aliases": [
+      "伪像"
+    ]
+  },
+  {
+    "cn": "逐渐增强",
+    "en": "progressive maturation",
+    "source": "实战对照表 2026-10-16",
+    "aliases": [
+      "爬坡"
+    ]
+  },
+  {
+    "cn": "母体抗体",
+    "en": "maternal antibody",
+    "source": "实战对照表 2026-10-16",
+    "aliases": [
+      "母源抗体",
+      "母源IgG",
+      "母源 IgG"
+    ]
+  },
+  {
+    "cn": "成人参考区间",
+    "en": "adult reference interval",
+    "source": "实战对照表 2026-10-16",
+    "aliases": [
+      "成人口径"
+    ]
+  },
+  {
+    "cn": "列为随访鉴别重点",
+    "en": "kept under differential follow-up",
+    "source": "实战对照表 2026-10-16",
+    "aliases": [
+      "留雷达"
+    ]
+  },
+  {
+    "cn": "关键确诊检查",
+    "en": "definitive diagnostic test",
+    "source": "实战对照表 2026-10-16",
+    "aliases": [
+      "一锤定音检查"
+    ]
+  },
+  {
+    "cn": "可予临床排除",
+    "en": "clinically excluded",
+    "source": "实战对照表 2026-10-16",
+    "aliases": [
+      "临床关闭"
+    ]
+  },
+  {
+    "cn": "再次评估指征",
+    "en": "indication for re-evaluation",
+    "source": "实战对照表 2026-10-16",
+    "aliases": [
+      "重开口"
+    ]
+  },
+  {
+    "cn": "年龄组",
+    "en": "age band",
+    "source": "实战对照表 2026-10-16",
+    "aliases": [
+      "年龄带"
+    ]
+  },
+  {
+    "cn": "三层表述",
+    "en": "three-layer formulation",
+    "source": "实战对照表 2026-10-16",
+    "aliases": [
+      "三层分写"
+    ]
+  },
+  {
+    "cn": "检验报告",
+    "en": "laboratory report",
+    "source": "实战对照表 2026-10-16",
+    "aliases": [
+      "化验单",
+      "报告单"
+    ]
+  },
+  {
+    "cn": "免疫球蛋白系列随访",
+    "en": "serial immunoglobulin follow-up",
+    "source": "实战对照表 2026-10-16",
+    "aliases": [
+      "轨迹随访"
+    ]
+  },
+  {
+    "cn": "两项关键评估",
+    "en": "",
+    "aliases": [
+      "第一道门",
+      "第二道门",
+      "两个门"
+    ],
+    "source": "实战对照表 2026-10-16"
+  },
+  {
+    "cn": "接种前评估已完成且结果正常",
+    "en": "",
+    "aliases": [
+      "门禁通过"
+    ],
+    "source": "实战对照表 2026-10-16"
+  },
+  {
+    "cn": "评估项目",
+    "en": "",
+    "aliases": [
+      "评估包"
+    ],
+    "source": "实战对照表 2026-10-16"
+  },
+  {
+    "cn": "质量核查",
+    "en": "quality verification",
+    "aliases": [
+      "质检"
+    ],
+    "source": "实战对照表 2026-10-16"
+  },
+  {
+    "cn": "识别或发现",
+    "en": "",
+    "aliases": [
+      "揭穿"
+    ],
+    "source": "实战对照表 2026-10-16"
+  },
+  {
+    "cn": "接种后均未发生不良事件",
+    "en": "",
+    "aliases": [
+      "影像识别无事件"
+    ],
+    "source": "实战对照表 2026-10-16"
+  },
+  {
+    "cn": "恢复概率较大",
+    "en": "",
+    "aliases": [
+      "大概率恢复档"
+    ],
+    "source": "实战对照表 2026-10-16"
+  },
+  {
+    "cn": "正常中低水平",
+    "en": "",
+    "aliases": [
+      "中低档"
+    ],
+    "source": "实战对照表 2026-10-16"
+  },
+  {
+    "cn": "流程或步骤",
+    "en": "",
+    "aliases": [
+      "工序"
+    ],
+    "source": "实战对照表 2026-10-16"
   }
 ]

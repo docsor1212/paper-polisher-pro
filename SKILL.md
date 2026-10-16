@@ -1,6 +1,6 @@
 ---
 name: paper-polisher
-version: 5.8.0
+version: 5.8.1
 author: DoctorQ Lab
 description: >-
   AI-rate self-check and polish guidance for academic writing: sentence-level rewrite
@@ -58,7 +58,7 @@ AI writing detection (AI-rate self-check for authors) · academic polishing guid
 
 1. **Medical register over-scoring in degraded mode** — rules-only human FPR @medium ≈59% medical vs ≈2% general; trust only `@high` verdicts on medical text, or install the supervised model.
 2. **Mixed human+AI documents** — document-level AUROC 0.52-0.54 (inherent averaging limitation); use paragraph attribution as a human-review ranking, never as an automatic verdict.
-3. **Data-coverage scope** — the term bank is 2,308 medical/academic terms (non-medical texts standardize low by design); style layers calibrate on academic prose (colloquial/narrative input = advisory only). Per-tool scope: sub-tool matrix below.
+3. **Data-coverage scope** — the term bank is 2,335 medical/academic terms (non-medical texts standardize low by design); style layers calibrate on academic prose (colloquial/narrative input = advisory only). Per-tool scope: sub-tool matrix below.
 
 ## Academic integrity
 
@@ -101,7 +101,7 @@ This tool is for **authors self-reviewing and improving their own writing qualit
 | ai_detector / deai_gate | Chinese academic prose (held-out calibrated) | Medical register over-scored in degraded mode; English advisory rules-only; narrative/colloquial input gets a register notice |
 | paragraph_report / pp_rewrite_check | Same engine criteria as above, per paragraph | Same limitations; rewrite_check compares two drafts under identical criteria |
 | pp_fix_suggest | Chinese AI-writing pattern library (academic register) | English text gets basic connective/rhythm checks only; findings are style observations, never detections |
-| term_check | Chinese medical/academic terminology (2,308-term bank) | Non-medical text: the standardization rate reads low — that is bank scope, not an error; `--auto-fix` respects context |
+| term_check | Chinese medical/academic terminology (2,335-term bank) | Non-medical text: the standardization rate reads low — that is bank scope, not an error; `--auto-fix` respects context |
 | translation_smell_check | Chinese academic prose (translationese patterns) | English-style source text: output lists its blind-spot terms instead of pretending coverage |
 | style_distance | Academic prose stylometry | Outside the academic register the style score is advisory only (stated in the output) |
 | style_norm | Mechanical conventions — register-independent | No score by design; statistical checks (numbers/abbreviations) are weak on short samples and say so |
@@ -338,7 +338,7 @@ No. `pp_fix_suggest.py` (`pp.py fix`) only locates sentences carrying improvable
 | quality_report.py | Overall quality report | `--json` | Readability/quality dimensions for the manuscript |
 | deai_gate.py | 4-layer fused gate | `--json` | composite score + verdict band (<35 pass / 35-55 review / ≥55 suspect) |
 | paragraph_report.py | Paragraph attribution | `--output report.html` | HTML report |
-| term_check.py | Terminology (2,308 terms) | `--auto-fix` `--output` | Standardization rate + fixed file |
+| term_check.py | Terminology (2,335 terms) | `--auto-fix` `--output` | Standardization rate + fixed file |
 | translation_smell_check.py | Translation-smell scan | `--json` | Hits + blind-spot terms |
 | style_distance.py | Stylometry (human-likeness) | `--json` | style_score + verdict (advisory outside academic register) |
 | aigc_label_check.py | AIGC compliance labels | files: docx/pdf/png/txt | Per-file label verdict |
@@ -367,6 +367,7 @@ Monthly full pass: `python scripts/freshness_refresh.py` (schedule it with your 
 
 ## Version history (condensed)
 
+- **v5.8.1 (2026-10-17)** — terminology bank extended with practice-derived standardization aliases; term matching fixed to single-pass longest-first resolution (a short standard term no longer shadows a longer alias); count claims updated to 2,335.
 - **v5.8.0 (2026-10-16)** — visual dashboard release: `pp_report_html.py` renders workflow/detect/fix/norm JSON into one self-contained HTML (gauge, histogram, paragraph/finding/ledger tables); `pp.py recommend` natural-language command router; exit-code contract documented and locked; top-3 limits surfaced next to the TL;DR; ZH version history slimmed to match EN.
 - **v5.7.1 (2026-10-16)** — sample sanitation: an internal LAN link embedded in the bundled sample document text (`examples/outputs/detect_sample.json`) was redacted after the hygiene gate flagged it; no code or engine changes (bit-identical scoring to 5.7.0).
 - **v5.7.0 (2026-10-16)** — release-integrity overhaul: version-scoped guards, post-packaging version assertion, sample outputs shipped, sentence-locating in the jargon check; CHANGELOG/SKILL.md dedup.

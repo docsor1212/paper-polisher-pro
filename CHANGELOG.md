@@ -3,6 +3,11 @@
 > **只想快速上手？** 回 `SKILL.md` § TL;DR（30 秒任务路由表）——本文件仅是完整版本历史，新用户无需阅读。
 > Historical release notes. Newest first. SKILL.md § Version history keeps only the last three releases; everything older lives here (single source, no duplication).
 
+## What's new in v5.8.1
+
+- **Terminology bank extended with practice-derived standardization mappings (+27 entries/aliases)**: cross-line review of a medical manuscript surfaced self-coined abbreviations and colloquial metaphors (e.g., informal shorthand for age-specific re-interpretation, pre-vaccination evaluation, primary monitoring parameter) that the bank could not see. They are now registered as aliases of the standard names, so `term_check.py` / `pp.py term` flags each occurrence and suggests the standard term; bank count claim updated to the real loaded figure (2,335 standard terms).
+- **Matching-mechanism fix**: candidate resolution is now single-pass longest-first across standards AND aliases — previously a short standard term could claim a span and silently suppress a longer alias overlapping it (a standard 2-char word shadowing a 4-char alias). Legacy behavior (derivation/organization-suffix exclusions, English word boundaries) preserved and now covered by a canary regression test.
+
 ## What's new in v5.8.0
 
 - **Single-document visual dashboard (`pp_report_html.py`, `pp.py html-report`)**: renders workflow / detect / fix-suggest / style-norm JSON outputs into one self-contained HTML file — score gauge (inline SVG), paragraph-score histogram, top-paragraph heat table, rewrite-suggestion table, style-norm findings (with jargon hit sentences), and workflow blocks (mixed-document assessment, 4-layer gate, terminology/translation-smell/style/quality, AIGC label evidence, findings ledger). Inline CSS only, zero external resources, zero network, stdlib-only; every text field is HTML-escaped. Inputs are auto-classified by feature keys and can be mixed freely.
@@ -195,6 +200,11 @@
 # 更新日志（中文）
 
 > v4.6.0 起历史更新说明移出 SKILL_ZH.md（新用户更快触达工作流）。最新在前。各版本摘要亦见 SKILL_ZH.md § 版本历史。
+
+## v5.8.1 更新内容
+
+- **术语库扩充实战对照映射（+27 条/别名）**：跨线文稿复盘发现一批自创缩略语与口语隐喻（如「龄化复判」「活疫苗门禁」「头号盯防」类表述）此前词典无法识别。现全部以别名挂靠规范名——`term_check.py` / `pp.py term` 逐词命中并给出规范名建议；文档计数声明更新为真实加载量（2,335 个规范名）。
+- **匹配机制修复**：候选裁决改为单遍「最长优先」（标准词与别名同池全局裁决）——旧两遍扫描中短标准词可占位静默压制重叠的更长别名（2 字标准词挡住 4 字别名即漏报）。既有行为（派生词/机构名后缀排除、英文词边界）全部保留并由金丝雀回归测试锁定。
 
 ## v5.8.0 更新内容
 

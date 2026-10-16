@@ -1,8 +1,8 @@
 {
   "name": "paper-polisher-pro",
-  "version": "5.8.0",
+  "version": "5.8.1",
   "description": "AI writing detector (author self-check) + academic polishing guidance + terminology protection, 100% local. 11-layer recalibrated rule engine + token-spectrum layer + length-routed fusion + optional supervised Qwen3-0.6B ONNX layer (AUROC 1.0 held-out) + LLM fingerprint attribution (GLM/DeepSeek/Qwen/Kimi/MiniMax/GPT/Claude/Gemini) + journal precheck + AIGC compliance label check + paragraph attribution + sentence-level rewrite suggestions (guidance, never auto-rewrite). Eval-driven: base-engine numbers reproduce via the bundled held-out evaluation; supervised-layer figures are author-side held-out measurements.",
   "author": "DoctorQ Lab",
-  "changelog": "v5.8.0: visual dashboard release — new pp_report_html.py renders workflow/detect/fix-suggest/style-norm JSON outputs into one self-contained HTML (score gauge, paragraph histogram and heat table, rewrite suggestions, style findings, workflow blocks); pp.py recommend routes a plain-language task description to the right subcommand; exit-code contract documented and locked (0/1/2/3); the three most consequential limitations now sit next to the TL;DR; a fourth real workflow JSON sample and a rendered HTML sample ship in examples/outputs/; ZH version history slimmed to match EN. No engine scoring changes — all published detection numbers remain bit-reproducible. 零新增依赖。",
+  "changelog": "v5.8.1: terminology bank extended with practice-derived standardization mappings (self-coined abbreviations and colloquial metaphors registered as aliases of standard names, so term_check flags each occurrence and suggests the standard term; bank count claims updated to the real loaded figure 2,335) + term matching fixed to single-pass longest-first resolution (a short standard term no longer shadows a longer overlapping alias) + canary regression test. No engine scoring changes. 零新增依赖。",
   "license": "MIT-0"
 }

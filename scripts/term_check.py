@@ -82,74 +82,65 @@ def check_terms(text: str, terms_db: dict) -> TermReport:
     issues = []
     standard_count = 0
     checked_positions = set()  # Avoid overlapping matches
-    
-    # Sort by length (longest first) to prefer longer matches
+
+    # v5.8.1 匹配机制修复：单遍收集全部候选（标准词+别名），按长度降序全局裁决。
+    # 旧两遍扫描（先标准后别名）会被短标准词占位挡掉更长别名（"母源抗体"被"抗体"占位漏报）。
+    candidates = []  # (pos, end, std_name, entry, is_alias)
     sorted_terms = sorted(standard_terms.items(), key=lambda x: len(x[0]), reverse=True)
-    
     for std_name, entry in sorted_terms:
-        # Search for standard name in text
-        positions = [m.start() for m in re.finditer(re.escape(std_name), text)]
-        if positions:
-            for pos in positions:
-                # Check if this position is already covered by a longer match
-                end = pos + len(std_name)
-                if any(s <= pos < e or s < end <= e for s, e in checked_positions):
-                    continue
-                checked_positions.add((pos, end))
-                standard_count += 1
-    
-    # Now search for non-standard names (aliases/short forms)
+        for m in re.finditer(re.escape(std_name), text):
+            candidates.append((m.start(), m.start() + len(std_name), std_name, entry, False))
     for alias_lower, entry in terms_db.items():
         std_name = entry["standard"]
         if alias_lower == std_name.lower():
             continue  # Skip standard names (already counted)
-        
-        # Search for alias in text
-        # 词边界保护(v3修复): 英文别名必须前后是词边界, 避免把 "baricitinib" 里的 "ar" 当成 AR。
-        # v2 的 r""+...+r"" 是空串拼接, 边界从未真正加上(死代码)。
+        # 词边界保护(v3修复): 英文别名必须前后是词边界, 避免把 "baricitinib" 里的 "ar" 当成 AR
         alias_pat = alias_lower
         if re.fullmatch(r"[a-zA-Z]+", alias_pat):
             pattern = r"(?<![a-zA-Z])" + re.escape(alias_pat) + r"(?![a-zA-Z])"
         else:
             pattern = re.escape(alias_pat)
         for m in re.finditer(pattern, text, re.IGNORECASE):
-            pos = m.start()
-            end = pos + len(alias_lower)
-            if any(s <= pos < e or s < end <= e for s, e in checked_positions):
-                continue
-            # 派生词后缀排除(中文): 避免"风湿病"误报"风湿病学家/风湿病学/风湿病学会"
-            # 等合法派生词。若匹配词后紧跟职业/学科/机构后缀, 视为合法派生词, 跳过。
-            if not re.fullmatch(r"[a-zA-Z]+", alias_pat):
-                rest = text[end:end+4]
-                # 单字后缀(跟在"风湿病学"后): 家/刊/报/类 → 风湿病学家/风湿病学刊
-                # 含"学": "风湿病"后跟"学"必为"风湿病学"子串, 由其独立条目处理, 此处排除
-                SINGLE_SUFFIXES = ("家", "刊", "报", "类", "系", "学")
-                # 多字后缀(跟在"风湿病"后): 学家/学会/学科...
-                DERIVATION_SUFFIXES = ("学家", "学会", "学分", "学科", "科学",
-                                       "分会", "中心", "专科", "科室", "研究",
-                                       "学院", "医院", "医师", "杂志", "手册",
-                                       "主任", "教授", "学系", "理论")
-                if rest and (any(rest.startswith(s) for s in DERIVATION_SUFFIXES)
-                             or rest[:1] in SINGLE_SUFFIXES):
-                    continue  # 合法派生词(如"风湿病学家"), 不算非标准用法
-                # 专名机构后缀排除: "美国风湿病学会""中华风湿病学会"等为官方中文名,
-                # 不改为"风湿免疫病学会"。匹配词前有"国/华/会/洲"等+后跟"会"=专名
-                PRECEDING_NAME_CHARS = ("国", "华", "洲", "际", "盟")
-                if rest.startswith("会") and pos > 0 and text[pos-1] in PRECEDING_NAME_CHARS:
-                    continue  # 官方机构名, 保留原名
+            candidates.append((m.start(), m.start() + len(alias_lower), std_name, entry, True))
+
+    # 全局裁决：长者优先认领区间；同长同位时标准词优先于别名
+    candidates.sort(key=lambda c: (-(c[1] - c[0]), c[0], c[4]))
+    for pos, end, std_name, entry, is_alias in candidates:
+        if any(s <= pos < e or s < end <= e for s, e in checked_positions):
+            continue
+        if not is_alias:
             checked_positions.add((pos, end))
-            
-            context_start = max(0, pos - 15)
-            context_end = min(len(text), end + 15)
-            issues.append(TermIssue(
-                original=text[pos:end],
-                standard=std_name,
-                source=entry["source"],
-                position=pos,
-                context=text[context_start:context_end],
-                en_name=entry.get("en", "")
-            ))
-    
+            standard_count += 1
+            continue
+
+        # 派生词后缀排除(中文): 避免"风湿病"误报"风湿病学家/风湿病学/风湿病学会"
+        # 等合法派生词。被排除的候选不认领区间，让更短的合法匹配有机会落位。
+        rest = text[end:end + 4]
+        SINGLE_SUFFIXES = ("家", "刊", "报", "类", "系", "学")
+        DERIVATION_SUFFIXES = ("学家", "学会", "学分", "学科", "科学",
+                               "分会", "中心", "专科", "科室", "研究",
+                               "学院", "医院", "医师", "杂志", "手册",
+                               "主任", "教授", "学系", "理论")
+        if rest and (any(rest.startswith(s) for s in DERIVATION_SUFFIXES)
+                     or rest[:1] in SINGLE_SUFFIXES):
+            continue  # 合法派生词(如"风湿病学家"), 不算非标准用法
+        # 专名机构后缀排除: "美国风湿病学会""中华风湿病学会"等为官方中文名, 保留原名
+        PRECEDING_NAME_CHARS = ("国", "华", "洲", "际", "盟")
+        if rest.startswith("会") and pos > 0 and text[pos - 1] in PRECEDING_NAME_CHARS:
+            continue  # 官方机构名, 保留原名
+        checked_positions.add((pos, end))
+
+        context_start = max(0, pos - 15)
+        context_end = min(len(text), end + 15)
+        issues.append(TermIssue(
+            original=text[pos:end],
+            standard=std_name,
+            source=entry["source"],
+            position=pos,
+            context=text[context_start:context_end],
+            en_name=entry.get("en", "")
+        ))
+
     total_known = standard_count + len(issues)
     rate = (standard_count / total_known * 100) if total_known > 0 else 0
     
