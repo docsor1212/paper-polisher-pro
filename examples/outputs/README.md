@@ -1,0 +1,9 @@
+# 输出样例（真实引擎产物，非手写）
+
+由 v5.6.0+ 引擎对真实医学文档片段生成，供集成前了解各 JSON 的结构与字段。
+
+- `detect_sample.json` — ai_detector / pp_api.detect_text 的完整响应（概率、分层证据、risk_bands、指纹）
+- `style_norm_llm_jargon_sample.json` — 规范自查第 7 查（llm_jargon 三层）的 findings 结构
+- `fix_suggest_sample.json` — 句子级改写建议的结构（stats + top 建议）
+
+编程接口见 SKILL.md § Python API；任何字段变更都会在 CHANGELOG 声明。

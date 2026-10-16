@@ -1,6 +1,17 @@
 # Changelog
 
-> Historical release notes (moved out of SKILL.md in v4.6.0 so new users reach the workflow faster). Newest first. Condensed per-version summaries also live in SKILL.md § Version history.
+> **只想快速上手？** 回 `SKILL.md` § TL;DR（30 秒任务路由表）——本文件仅是完整版本历史，新用户无需阅读。
+> Historical release notes. Newest first. SKILL.md § Version history keeps only the last three releases; everything older lives here (single source, no duplication).
+
+## What's new in v5.7.1
+
+- **Sample sanitation**: an internal LAN link embedded in the bundled sample document text (examples/outputs/detect_sample.json) was redacted after the hygiene gate flagged it. No code or engine changes — scoring bit-identical to 5.7.0; this build supersedes the ClawHub v5.7.0 package that carried the unsanitized sample.
+
+## What's new in v5.7.0
+
+- **Release-integrity overhaul (mechanistic fix for a live incident)**: v5.6.0 on ClawHub shipped with stale v5.5.0 files under a 5.6.0 label (version-agnostic completion guard blocked re-packaging; a retry then published the stale package). v5.7.0 fixes the mechanism: version-scoped completion guards, immediate post-packaging version assertion in the chain, builder archives version-agnostic guard files at generation time.
+- **Sample outputs shipped (`examples/outputs/`)**: real engine JSON responses — detect / llm-jargon norm / fix suggestions — for integration reference.
+- **Sentence-level locating** in the llm-jargon check findings; CHANGELOG quick-start banner; SKILL.md version history slimmed to the last three releases (single source of history).
 
 ## What's new in v5.6.0
 
@@ -173,10 +184,21 @@
 ---
 ---
 ---
+---
 
 # 更新日志（中文）
 
 > v4.6.0 起历史更新说明移出 SKILL_ZH.md（新用户更快触达工作流）。最新在前。各版本摘要亦见 SKILL_ZH.md § 版本历史。
+
+## v5.7.1 更新内容
+
+- **样例脱敏**：随包样例文档文本中一处内网链接（examples/outputs/detect_sample.json）经卫生闸检出后脱敏。代码与引擎零变更——打分与 5.7.0 逐位一致；本版取代曾携带未脱敏样例的 ClawHub v5.7.0 包。
+
+## v5.7.0 更新内容
+
+- **发布完整性机制化改造（线上事故的机制级修复）**：v5.6.0 在 ClawHub 携带了 v5.5.0 旧文件（版本无关完成守卫误拦重打包+重试引用陈旧包）；v5.7.0 修机制：版本化完成守卫/链内打包后即时版本断言/构建器生成时归档旧守卫文件。
+- **随包输出样例（`examples/outputs/`）**：检测/LLM 腔规范自查/改写建议的真实引擎 JSON 响应。
+- **LLM 腔自查命中句定位**；CHANGELOG 快速上手横幅；SKILL.md 版本历史瘦身为最近三版（历史单一来源）。
 
 ## v5.6.0 更新内容
 

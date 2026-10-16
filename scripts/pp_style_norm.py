@@ -228,6 +228,14 @@ def check_llm_jargon(text):
     except Exception:
         cases = []
 
+    # v5.7.0: 命中句上下文定位（帮作者直接找到位置，而非只给词表）
+    sents = [s.strip() for s in __import__("re").split(r"(?<=[。！？；!?;])", text) if s.strip()]
+    loc = {}
+    for w in l1 + l2:
+        for s in sents:
+            if w in s:
+                loc.setdefault(w, s[:60])
+                break
     if l1:
         hit_cases = [c for c in cases if c.get("word") in l1][:4]
         extra = "；判例对照：" + "；".join(
@@ -236,6 +244,7 @@ def check_llm_jargon(text):
             "check": "llm_jargon", "severity": "inconsistent",
             "count": len(l1) + sum(text.count(w) for w in l1),
             "examples": l1[:8],
+            "sentences": [{"word": w, "sentence": loc.get(w, "")} for w in l1[:5] if loc.get(w)],
             "advice": ("L1 隐喻滥用词（LLM 中文输出高频特征，命中即改）：" + "、".join(l1[:10]) + "。"
                        + "策略：隐喻改直陈——保留医学事实，去掉拟人/战争/工厂/旅程类比喻。" + extra),
         })

@@ -29,6 +29,9 @@ python scripts/pp_fix_suggest.py draft.txt --top 10
 # 学术写作规范自查（全半角/数字/缩写/单位/同概念异写一致性，不评分）
 python scripts/pp_style_norm.py draft.txt
 
+# 集成前看输出样例（真实引擎 JSON）
+ls examples/outputs/
+
 # Word 文档直读 + 投稿前自查包
 python scripts/pp_report_bundle.py thesis.docx --outdir ~/selfcheck
 

@@ -1,8 +1,8 @@
 {
   "name": "paper-polisher-pro",
-  "version": "5.6.0",
+  "version": "5.7.1",
   "description": "AI writing detector (author self-check) + academic polishing guidance + terminology protection, 100% local. 11-layer recalibrated rule engine + token-spectrum layer + length-routed fusion + optional supervised Qwen3-0.6B ONNX layer (AUROC 1.0 held-out) + LLM fingerprint attribution (GLM/DeepSeek/Qwen/Kimi/MiniMax/GPT/Claude/Gemini) + journal precheck + AIGC compliance label check + paragraph attribution + sentence-level rewrite suggestions (guidance, never auto-rewrite). Eval-driven: base-engine numbers reproduce via the bundled held-out evaluation; supervised-layer figures are author-side held-out measurements.",
   "author": "DoctorQ Lab",
-  "changelog": "v5.6.0: llm-jargon release — three-tier AI-flavor self-check in Chinese output (pp_style_norm.py check 7: L1 metaphor-abuse blacklist / L2 tone words / L3 sentence patterns, with case-library 原句→改句 contrasts and medical-register whitelist phrasings; cross-line port credited to the immunology deep-read line's rejection post-mortem). Honest negative result: scoring these signals in the engine was tried and reverted same-day (held-out: human FPR@medium +1.5pt, current-gen AUROC -1pt); the detector reports hits without scoring. 查论文润色、智能降重、学术表达优化等口径与 FAQ 保持不变。零新增依赖。",
+  "changelog": "v5.7.1: sample sanitation — an internal LAN link embedded in the bundled sample document text (examples/outputs/detect_sample.json) was redacted after the hygiene gate flagged it; also carries the full v5.7.0 content (release-integrity overhaul + shipped sample outputs + sentence-level locating in the jargon check). No code or engine changes — scoring bit-identical to 5.7.0. 零新增依赖。",
   "license": "MIT-0"
 }

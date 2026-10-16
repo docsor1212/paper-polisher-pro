@@ -1,6 +1,6 @@
 ---
 name: paper-polisher
-version: 5.6.0
+version: 5.7.1
 author: DoctorQ Lab
 description: >-
   AI-rate self-check and polish guidance for academic writing: sentence-level rewrite
@@ -110,12 +110,6 @@ This tool is for **authors self-reviewing and improving their own writing qualit
 - **No remote code**: loads no remote models or scripts; the optional supervised model is placed by the user at a local path.
 - **Data boundary**: reads/writes only user-specified files, the system temp dir, and its own package data directories (calibration/freshness artifacts); reports go only where the user points them.
 - **Academic integrity**: see the section above — for author self-review and quality improvement with policy-compliant disclosure; not for evading detection.
-
-## What's new in v5.4.0
-
-- **Journal precheck 2.0 — discipline context**: the journal profile now detects the text's discipline (medical / engineering & CS / social sciences & humanities / general, keyword-density heuristic with a `--discipline` override) and adds a per-discipline reading guide (where AI traces typically concentrate in that discipline, which sections deserve manual attention). Honest boundary kept explicit: the 20-25% reference line stays the cross-discipline convention — per-discipline thresholds have no recognized standard, and this tool does not invent them; the context lines are interpretation guidance, not data.
-- **Fingerprint freshness status (`freshness_refresh.py --status`, also `pp.py freshness`)**: one command answers "is the fingerprint layer up to date?" — last pipeline run, latest held-out evaluation record, a bit-exact drift check against the four published baselines (fused 0.9998/0.9400, rules-only 0.8985/0.7149), and a due indicator (35-day interval). `--json` for pipelines; exit 1 on drift.
-- **Binary-input guard**: feeding a PDF/image/zip to any text entry point now produces a clear explanation and conversion advice (PDF text extraction cannot be done reliably with zero dependencies for Chinese — the tool says so and exits cleanly instead of emitting silent mojibake).
 
 ## What's new in v4.9.0
 
@@ -354,37 +348,7 @@ Monthly full pass: `python scripts/freshness_refresh.py` (schedule it with your 
 
 ## Version history (condensed)
 
+- **v5.7.1 (2026-10-16)** — sample sanitation: an internal LAN link embedded in the bundled sample document text (`examples/outputs/detect_sample.json`) was redacted after the hygiene gate flagged it; no code or engine changes (bit-identical scoring to 5.7.0).
+- **v5.7.0 (2026-10-16)** — release-integrity overhaul: version-scoped guards, post-packaging version assertion, sample outputs shipped, sentence-locating in the jargon check; CHANGELOG/SKILL.md dedup.
 - **v5.6.0 (2026-10-14)** — llm-jargon release: three-tier AI-flavor self-check with case-library contrasts (cross-line port, credited); engine scoring of the signal tried and honestly reverted (negative result archived with retry conditions).
-- **v5.5.0 (2026-10-14)** — style-norm & ledger release: term-consistency check (23-group variant bank, mixing-not-correctness); findings ledger in workflow reports (§10); sub-tool matrix completion; supervised-model acquisition stated; SKILL.md condensed.
-- **v5.4.1 (2026-10-14)** — icon release: new skill icon (family flat style), shipped as `assets/icon-512.png`.
-- **v5.4.0 (2026-10-13)** — journal-context release: journal precheck 2.0 (discipline detection + per-discipline reading guide, reference line unchanged and honesty stated); freshness status command with four-baseline drift check; binary-input guard (PDF/image/zip rejected with conversion advice).
-- **v5.3.0 (2026-10-13)** — Word-input & bundle release: .docx as first-class input across all entry points (zero-dependency extraction, zip-bomb guards); submission self-check bundle command; sub-tool scope matrix; FAQ regrouped into numbered sections.
-- **v5.2.0 (2026-10-11)** — style-norm release: academic writing convention self-check (`pp_style_norm.py`, four checks, no score); `--batch --report` direct HTML; eval-archive README (STALE markers explained).
-- **v5.1.0 (2026-10-10)** — rewrite-closure & batch-report release: rewrite-effect regression check (`pp_rewrite_check.py`, engine-source original-vs-revised comparison); batch HTML summary report (`pp_batch_report.py`); batch-CSV concurrency and degraded_notice reading guide documented.
-- **v5.0.0 (2026-10-09)** — verification & rewrite-suggestions release: bundled unit-test suite (44 stdlib cases, `pp.py test`); AST-level zero-network self-verification (`pp_verify.py`); sentence-level rewrite suggestion engine (`pp_fix_suggest.py` — locate + strategy, never auto-rewrite, also wired into `pp_workflow` and `pp.py fix`); literary-narrative register notice (disclosure only, no scoring change); `requirements.txt`; `pp.py quickstart`; doctor freshness row.
-- **v4.9.0 (2026-10-08)** — mixed-document calibration release: paragraph thresholds calibrated on the 333-paragraph benchmark (best operating point P=0.60/coverage 63% — honestly below auto-verdict bar; ranking aid only); unified `pp.py` entry; atomic batch CSV; gate layer retry.
-- **v4.8.0 (2026-10-07)** — measurement & output-contract integrity (independent test round, 13 findings addressed): eval cache keys bind engine mode (rules-only reproducible: 0.8985/0.7149 bundled); journal+json purity; risk_bands surfaced; mixed_signal denoised; 5MB/batch CLI guards; real-world FPR & attribution limits disclosed in FAQ; corpus/terminology counting precision.
-- **v4.7.0 (2026-10-06)** — mixed-document special: controlled per-paragraph benchmark quantifies paragraph-level AUROC 0.69 (document-level 0.52-0.54); pp_workflow gains mixed_document assessment + prominent mixed flagging; description Trigger-on routing words; README China mirror link.
-- **v4.6.0 (2026-10-05)** — onboarding release: end-to-end workflow command (pp_workflow.py / pp_api.workflow); TL;DR layer; historical notes moved to CHANGELOG.md; consolidated anti-patterns section; eval archive cleanup; recovery hints in SDK errors.
-- **v4.5.0 (2026-10-04)** — programmable-interface release: pp_api.py SDK (in-process detect + 8 helpers, zero network, JSON dicts) and pp_setup.py one-command model installation with the author-signed fingerprint registry; closing the two biggest usability friction points reported with the 4.4.x interface (programmatic integration and model setup).
-- **v4.4.0 (2026-10-03)** — measurement-integrity release: verified re-baseline (held-out 0.9998 / current-gen 0.9400 / human FPR@med 2.3%, superseding 0.9022/0.6542 artifacts); eval cache keys bind model md5; contamination audit (eval/check_leak.py) halts the v36 retrain (285 eval-set samples had leaked into training); ONNX export self-test; PP_ORT_THREADS; pp_doctor fingerprint; smoke degradation checks made mode-aware.
-- **v4.3.0 (2026-10-01)** — generation-split eval infrastructure; first quantified generation-gap numbers (0.9022 vs 0.6542); spectrum/L13 current-gen negative results recorded.
-- **v4.2.0 (2026-09-30)** — batch recursion; GitHub README landing page; gate layer-3 distribution verification.
-- **v4.1.0 (2026-09-29)** — smoothness layer fused into the score (A/B-verified zero regression); batch CSV; paragraph report disclosures.
-- **v4.0.0 (2026-09-28)** — family referral loop; task-word-root coverage; family-section cleanup.
-- **v3.12.0 (2026-09-28)** — translation-smell layer revived (schema fix); integrity notice on every report; paragraph-count consistency; spectrum-v2 & L13-mid negative results recorded.
-- v3.11.0 (2026-09-27) — batch detection (`--batch DIR`); paragraph report integrity notice; tier-2 n-gram negative result recorded.
-- v3.10.0 (2026-09-26) — fingerprint freshness phase 3: kimi-k2.7 registered (attribution-verified); contaminated candidates rolled back per quality gate.
-- **v3.9.0 (2026-09-25)** — discourse smoothness disclosure (L13 surprisal-variation, standalone AUROC 0.8256 held-out; NOT fused per iron law); layer-evaluation mode in run_eval (`--layer`).
-- v3.8.0 (2026-09-24) — mixed-register signal, register hint, encoding warning, gate layer-divergence disclosure; safety & behavior statement; qwen3.8/v4 fingerprint mining (honestly unregistered).
-- v3.7.0 (2026-09-23) — discourse-structure heuristic layer L12 (8 groups, density-scaled cap 30; LES-20260923-021 blind-spot fix; AUROC 0.9022 unchanged); kimi-k3 fingerprint registered (OpenCode Go sampling); centralized FAQ; script cheat sheet; documentation wording cleanup.
-- v3.6.0 (2026-09-21) — academic-integrity guardrails (integrity_notice + section); CH-side wording cleanup.
-- **v3.5.0 (2026-09-20)** — degraded-mode disclosure (engine mode + medical-register warning with held-out numbers); iron law #2 enforced (<100 chars → risk=unknown, quality_report shows "cannot judge" instead of misleading green); `pp_doctor.py` self-check; `deai_gate.py` usage guard; honest dual-language docs rebuild.
-- v3.4.3 — markdown table-separator rows filtered from paragraph scoring (6/8 flagged rows in real MD manuscripts were false positives).
-- v3.4.2 — fixed CJK double-count in language detection (Chinese journal PDFs misrouted to EN rules); degenerate PDF hard-line-break paragraph rebuilding (747→19 segments); paragraph-level language routing dead code fixed.
-- v3.4.1 — language gating: English text skips the Chinese-trained supervised layer (measured EN OOD p_ai=0.9996 → EN false positives 91.7→17.2). Rule-editor experiment: negative result, honestly abandoned.
-- v3.4.0 — edit-extent regression v2 (1,620 pairs, token-level distance, two-stage training): human FPR@p99 1.66%→0.71%; attack "AI-assisted" recall 86.6%.
-- v3.2/v3.3 — supervised layer v3.2 (4-dim head, local ONNX fp16, pure-Python Qwen tokenizer); OOD blind spots honestly recorded then closed (film-register recall 1/6→5/6, GLM-5.3 probe 9/9).
-- v3.1 — Qwen3-0.6B LoRA supervised layer (AUROC 0.9997 held-out).
-- v3.0 — eval-driven rebuild: recalibrated pattern library (693→125 patterns, 568 dead/inverted signals removed), token-spectrum layer, length-routed fusion, calib/test leak-proof split, fingerprint registry v4, paragraph attribution, AIGC label check, journal precheck, freshness pipeline, honest docs. AUROC 0.7046→0.9187.
-- v2.0.x — 9-layer rule engine + terminology library (baseline column above; non-reproducible claims removed).
+- Releases **v5.4.1 and earlier**: see `CHANGELOG.md` (single source of history).
