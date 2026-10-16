@@ -272,7 +272,7 @@ def main():
 
     if not os.path.exists(args.input):
         print(f"Error: File not found: {args.input}", file=sys.stderr)
-        sys.exit(1)
+        sys.exit(2)  # 退出码契约 v5.8.0: 输入错误=2
     with open(args.input, "r", encoding="utf-8", errors="replace") as f:
         text = f.read()
 

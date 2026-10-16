@@ -3,6 +3,12 @@
 > **只想快速上手？** 回 `SKILL.md` § TL;DR（30 秒任务路由表）——本文件仅是完整版本历史，新用户无需阅读。
 > Historical release notes. Newest first. SKILL.md § Version history keeps only the last three releases; everything older lives here (single source, no duplication).
 
+## What's new in v5.8.0
+
+- **Single-document visual dashboard (`pp_report_html.py`, `pp.py html-report`)**: renders workflow / detect / fix-suggest / style-norm JSON outputs into one self-contained HTML file — score gauge (inline SVG), paragraph-score histogram, top-paragraph heat table, rewrite-suggestion table, style-norm findings (with jargon hit sentences), and workflow blocks (mixed-document assessment, 4-layer gate, terminology/translation-smell/style/quality, AIGC label evidence, findings ledger). Inline CSS only, zero external resources, zero network, stdlib-only; every text field is HTML-escaped. Inputs are auto-classified by feature keys and can be mixed freely.
+- **Natural-language command router (`pp.py recommend "..."`)**: describe the task in plain Chinese or English ("把这段的AI率降一降", "environment trouble"), get the top-3 matching subcommands with ready-to-run commands — lowers the first-contact navigation cost of a 21-subcommand toolkit.
+- **Exit-code contract (documented and locked)**: 0 success / 1 ran-but-not-passed / 2 usage-or-input error / 3 environment-not-ready, mirrored by `pp_api`'s `ValueError`/`RuntimeError` — a stability promise for scripts and integrations, stated in SKILL.md and in `pp.py --help`.
+- **Docs**: the three most consequential limitations (medical over-scoring in degraded mode, mixed-document averaging, data-coverage scope) now sit right next to the TL;DR instead of only deep in the boundary matrix; a fourth real workflow JSON sample and a rendered HTML sample ship in `examples/outputs/`; the ZH version history was slimmed to match the EN condensation (single source of history: this file); a stale internal identifier was scrubbed from two historical entries.
 ## What's new in v5.7.1
 
 - **Sample sanitation**: an internal LAN link embedded in the bundled sample document text (examples/outputs/detect_sample.json) was redacted after the hygiene gate flagged it. No code or engine changes — scoring bit-identical to 5.7.0; this build supersedes the ClawHub v5.7.0 package that carried the unsanitized sample.
@@ -158,7 +164,7 @@
 
 ## What's new in v3.7.0
 
-- **Discourse-structure heuristic layer (L12)**: detects social-media-style document-level AI patterns — hook ("先看一个场景"/"imagine…") + reversal ("不是X，是Y") + slogan ("把这句话记住"/"划重点") + engagement bait / parallelism / self-Q&A / spoken-word closing / emotional intensifiers — eight pattern groups; ≥2 distinct groups add a density-scaled bump (8×groups + hits capped at 8, total cap 30); single-group hits are recorded without scoring (zero false-positive impact on academic prose). Fixes a sentence-layer blind spot: pure discourse-pattern text previously scored 21-32/low (AgentOps LES-20260923-021); held-out academic regression bit-identical (AUROC 0.9022, zero false positives).
+- **Discourse-structure heuristic layer (L12)**: detects social-media-style document-level AI patterns — hook ("先看一个场景"/"imagine…") + reversal ("不是X，是Y") + slogan ("把这句话记住"/"划重点") + engagement bait / parallelism / self-Q&A / spoken-word closing / emotional intensifiers — eight pattern groups; ≥2 distinct groups add a density-scaled bump (8×groups + hits capped at 8, total cap 30); single-group hits are recorded without scoring (zero false-positive impact on academic prose). Fixes a sentence-layer blind spot: pure discourse-pattern text previously scored 21-32/low; held-out academic regression bit-identical (AUROC 0.9022, zero false positives).
 - **FAQ section (evaluation-driven: C dimension "lacks a centralized FAQ")**: ten high-frequency questions — short-text policy, medical-register over-scoring, supervised-layer install/verification, degraded_mode semantics, non-interchangeability with CNKI/Wanfang, layer-failure fallback, edit_extent scope, English support boundary, label-check usage.
 - **Script cheat sheet (C: "per-script usage could be more detailed")**: purpose/flags/output for all eight entry points in one table.
 - **Clearer edge-case errors (R)**: style_distance now explains *why* no style score was produced (no sentence boundaries / no body paragraphs) instead of a generic "too short".
@@ -190,6 +196,12 @@
 
 > v4.6.0 起历史更新说明移出 SKILL_ZH.md（新用户更快触达工作流）。最新在前。各版本摘要亦见 SKILL_ZH.md § 版本历史。
 
+## v5.8.0 更新内容
+
+- **单文档可视化仪表盘（pp_report_html.py，`pp.py html-report`）**：把 workflow / detect / fix_suggest / style_norm 的 JSON 产物渲染成一份自包含 HTML——分数半环仪表（内联 SVG）、段落分数直方图、段落热表、改写建议表、规范 findings 表（含 LLM 腔命中句），以及 workflow 附加块（混写评估/四层门禁/术语/翻译腔/文体/质量/AIGC 证据/台账）。内联 CSS、零外部资源、零网络、纯标准库；全部文本字段经 HTML 转义。输入按特征键自动识别，可任意混搭。
+- **自然语言命令路由（`pp.py recommend "..."`）**：用一句中文或英文描述需求（如「把这段的AI率降一降」「环境跑不起来」），返回命中度最高的三个子命令与可直接复制的命令行——降低 21 个子命令工具箱的首次定位成本。
+- **退出码契约（入档并锁定）**：0 成功 / 1 运行完成但未通过 / 2 用法或输入错误 / 3 环境不满足，与 `pp_api` 的 `ValueError`/`RuntimeError` 同构——对脚本与集成方的稳定性承诺，写入 SKILL.md 与 `pp.py --help`。
+- **文档**：三条最重要的限制（降级档医学高估/混写均值稀释/数据覆盖范围）前置到 TL;DR 旁；`examples/outputs/` 新增真实 workflow JSON 样例与渲染 HTML 样例；中文版本历史瘦身对齐英文（唯一完整历史=本文件）；清理历史条目中一处过时内部编号。
 ## v5.7.1 更新内容
 
 - **样例脱敏**：随包样例文档文本中一处内网链接（examples/outputs/detect_sample.json）经卫生闸检出后脱敏。代码与引擎零变更——打分与 5.7.0 逐位一致；本版取代曾携带未脱敏样例的 ClawHub v5.7.0 包。
@@ -340,7 +352,7 @@
 
 ## v3.7.0 更新内容
 
-- **篇章结构启发层（L12）**：新增自媒体式篇章级 AI 腔检测——八组模式（钩子/反转/口号/互动引导/排比三连/设问自答/口播收尾/情绪渲染）；≥2 组独立命中时按密度计分（8×组数+命中数，封顶 8，总封顶 30），单组命中仅记录不加分（学术零误伤），命中明细进报告。修复句层特征盲区：纯篇章结构文本此前仅得 21-32/低风险（AgentOps LES-20260923-021），现进入复核带；学术语料回归 AUROC 0.9022 逐位不变、零误伤。
+- **篇章结构启发层（L12）**：新增自媒体式篇章级 AI 腔检测——八组模式（钩子/反转/口号/互动引导/排比三连/设问自答/口播收尾/情绪渲染）；≥2 组独立命中时按密度计分（8×组数+命中数，封顶 8，总封顶 30），单组命中仅记录不加分（学术零误伤），命中明细进报告。修复句层特征盲区：纯篇章结构文本此前仅得 21-32/低风险，现进入复核带；学术语料回归 AUROC 0.9022 逐位不变、零误伤。
 - **FAQ 专节（评测驱动：C 维"缺少集中的常见问题解答章节"）**：10 条高频问题集中化——短文本为何不判定、医学文本为何偏高、监督层安装与确认、degraded_mode 含义、与知网/万方不可互换、层解析失败兜底、edit_extent 定位、英文支持边界、标识合规用法。
 - **各脚本速查表（C 维"脚本用法说明可以更详细"）**：8 个入口的作用/关键参数/输出一表通览。
 - **极端情况报错清晰化（R 维）**：style_distance 对无句边界/无正文段落场景给出具体原因与建议，替代原"文本过短"笼统提示。

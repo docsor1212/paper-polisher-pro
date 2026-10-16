@@ -1,6 +1,6 @@
 ---
 name: paper-polisher
-version: 5.7.1
+version: 5.8.0
 author: DoctorQ Lab
 description: >-
   AI-rate self-check and polish guidance for academic writing: sentence-level rewrite
@@ -35,7 +35,7 @@ AI writing detection (AI-rate self-check for authors) · academic polishing guid
 - **What**: 100% local AI-rate self-check + academic polishing toolkit for Chinese academic text (optional supervised model for best accuracy; English gets advisory rules-only scores).
 - **30-second start**: `python3 scripts/pp.py quickstart` (zero-model, zero-file demo) · `python3 scripts/pp.py detect draft.txt --format json` · sentence-level rewrite suggestions: `python3 scripts/pp.py fix draft.txt` · full self-check report: `python3 scripts/pp.py workflow draft.txt` · environment: `python3 scripts/pp.py doctor` (one entry routes all subcommands)
 - **Measured** (held-out, fingerprint-bound md5 2631df3d388b): AUROC 0.9998 pre-2026 / 0.9400 current-generation; human FPR@medium 2.3%.
-- **Know the limits**: texts <100 chars get `risk=unknown` by design · medical text in degraded mode is over-scored · authors' self-check only — never for evading institutional AI detection.
+- **Know the limits**: texts <100 chars get `risk=unknown` by design · medical text in degraded mode is over-scored · mixed human+AI docs: the document-level score is unreliable (paragraph attribution is the actionable signal) · authors' self-check only — never for evading institutional AI detection.
 - **Where to look next**: capability boundary matrix below · end-to-end example in § Quick start · FAQ near the end · full history in `CHANGELOG.md`.
 
 ### 30-second task routing
@@ -51,6 +51,14 @@ AI writing detection (AI-rate self-check for authors) · academic polishing guid
 | Verify the zero-upload claim | `pp.py verify` + `pp.py test` | Safety statement |
 | Journal precheck (discipline context) | `ai_detector.py draft.txt --profile journal` | § journal precheck |
 | Environment trouble-shooting | `pp.py doctor` / `pp.py freshness --status` | FAQ: modes |
+| One visual dashboard of all results | `pp.py html-report draft.workflow.json -o report.html` | Script cheat sheet: pp_report_html.py |
+| Not sure which command fits? | `pp.py recommend "把这段的AI率降一降"` | `pp.py recommend --help` |
+
+### The three limits that matter most (full detail in the matrix below)
+
+1. **Medical register over-scoring in degraded mode** — rules-only human FPR @medium ≈59% medical vs ≈2% general; trust only `@high` verdicts on medical text, or install the supervised model.
+2. **Mixed human+AI documents** — document-level AUROC 0.52-0.54 (inherent averaging limitation); use paragraph attribution as a human-review ranking, never as an automatic verdict.
+3. **Data-coverage scope** — the term bank is 2,308 medical/academic terms (non-medical texts standardize low by design); style layers calibrate on academic prose (colloquial/narrative input = advisory only). Per-tool scope: sub-tool matrix below.
 
 ## Academic integrity
 
@@ -111,11 +119,16 @@ This tool is for **authors self-reviewing and improving their own writing qualit
 - **Data boundary**: reads/writes only user-specified files, the system temp dir, and its own package data directories (calibration/freshness artifacts); reports go only where the user points them.
 - **Academic integrity**: see the section above — for author self-review and quality improvement with policy-compliant disclosure; not for evading detection.
 
-## What's new in v4.9.0
+### Exit-code contract (stable since v5.8.0)
 
-- **Mixed-document calibration (closing the v4.7.0 backlog)**: paragraph-level hi/med/lo thresholds are now calibrated on the controlled mixed benchmark (333 paragraphs with ground truth; `eval/calibrate_mixed_para.py` → `references/para_thresholds.json`). Honest result: the best operating point (≥50) reaches precision 0.60 at 63% AI-paragraph coverage — below the automatic-verdict bar, so paragraph attribution remains a ranking aid for human review; the calibrated numbers and their scope ship in `references/para_thresholds.json` and surface in every `mixed_document` assessment.
-- **Unified entry (`scripts/pp.py`)**: one command routes all eleven subcommands (detect/gate/workflow/term/smell/style/quality/aigc/paragraph/setup/doctor) — no more script-navigation cost.
-- **Reliability**: batch CSV writes are now atomic (temp+rename — concurrent batch runs no longer clobber the same CSV); gate layers retry once on crash/timeout before falling back.
+| Exit | Meaning | Typical cases |
+|---|---|---|
+| 0 | Success | report produced · `verify` zero-network pass · `test` suite green |
+| 1 | Ran but did not pass | engine runtime failure (recovery advice in the message) · `test` failures · `verify` drift · `freshness` baseline drift |
+| 2 | Usage or input error | unknown subcommand · file missing · text under 100 chars · unparseable input file |
+| 3 | Environment not ready | `pp_setup.py` model install/verification failure — run `pp.py doctor` first |
+
+Programmatic mirror: `pp_api` raises `ValueError` for invalid input (↔ exit 2) and `RuntimeError` for runtime failure (↔ exit 1), both carrying recovery advice in the message. These codes are a stability promise — future releases will not repurpose them.
 
 ## Anti-patterns (each with the right way)
 
@@ -140,6 +153,7 @@ ai_detector.py            Main engine: 8 rule layers (125 recalibrated patterns,
  + layers_lm.py           Optional supervised layer (local ONNX + pure-Python Qwen tokenizer;
                           PP_NO_SUP=1 falls back to rules)
 paragraph_report.py       Paragraph-level attribution HTML (pattern×spectrum 50/50 fusion)
+pp_report_html.py         Single-document visual dashboard (workflow/detect/fix/norm JSON → one HTML; v5.8.0)
 aigc_label_check.py       AIGC compliance labels (China labeling rules 2025-09: metadata/C2PA/explicit)
 fingerprint_miner.py      Fingerprint mining (new model drop → sample → mine → register)
 pattern_recalibrator.py   Data-driven pattern recalibration (human-hit filtering)
@@ -176,6 +190,10 @@ python scripts/pp_report_bundle.py thesis.docx --outdir ~/selfcheck
 python scripts/pp_rewrite_check.py draft_original.txt draft_revised.txt
 # Batch CSV -> self-contained HTML summary (v5.1.0)
 python scripts/pp_batch_report.py scores.csv -o report.html
+# Single-document visual dashboard: render workflow/detect/fix/norm JSON into one HTML (v5.8.0)
+python scripts/pp.py html-report draft.workflow.json -o report.html
+# Natural-language command router: describe the task, get the command (v5.8.0)
+python scripts/pp.py recommend "把这段的AI率降一降"
 # Journal precheck (suspected-AIGC ratio vs the 20-25% reference line, non-interchangeable disclaimer)
 python scripts/ai_detector.py draft.txt --profile journal
 # Paragraph-level attribution (locate human/AI collaboration)
@@ -315,6 +333,7 @@ No. `pp_fix_suggest.py` (`pp.py fix`) only locates sentences carrying improvable
 | pp_style_norm.py | Academic style-norm self-check (v5.2.0; +consistency v5.5.0; +llm_jargon v5.6.0) | `--json` `--checks a,b` | Findings with advice (fullwidth/numbers/abbrev/units); no score |
 | pp_rewrite_check.py | Rewrite-effect regression check (v5.1.0) | `original revised` `--json` `--demo` | Score/risk-band migration + paragraph deltas + feature-type clears/remaining |
 | pp_batch_report.py | Batch CSV → HTML summary (v5.1.0) | `csv_file` `-o out.html` | Totals/mean/band cards + histogram + per-file table |
+| pp_report_html.py | Single-document visual dashboard (v5.8.0) | `json...` `-o out.html` `--title` | Self-contained HTML: gauge + histogram + paragraph/finding/ledger tables; zero external resources |
 | pp_verify.py | Structured zero-network self-verification (v5.0.0) | `--json` | AST-level scan verdict; exit 0 = zero network calls |
 | quality_report.py | Overall quality report | `--json` | Readability/quality dimensions for the manuscript |
 | deai_gate.py | 4-layer fused gate | `--json` | composite score + verdict band (<35 pass / 35-55 review / ≥55 suspect) |
@@ -348,6 +367,7 @@ Monthly full pass: `python scripts/freshness_refresh.py` (schedule it with your 
 
 ## Version history (condensed)
 
+- **v5.8.0 (2026-10-16)** — visual dashboard release: `pp_report_html.py` renders workflow/detect/fix/norm JSON into one self-contained HTML (gauge, histogram, paragraph/finding/ledger tables); `pp.py recommend` natural-language command router; exit-code contract documented and locked; top-3 limits surfaced next to the TL;DR; ZH version history slimmed to match EN.
 - **v5.7.1 (2026-10-16)** — sample sanitation: an internal LAN link embedded in the bundled sample document text (`examples/outputs/detect_sample.json`) was redacted after the hygiene gate flagged it; no code or engine changes (bit-identical scoring to 5.7.0).
 - **v5.7.0 (2026-10-16)** — release-integrity overhaul: version-scoped guards, post-packaging version assertion, sample outputs shipped, sentence-locating in the jargon check; CHANGELOG/SKILL.md dedup.
 - **v5.6.0 (2026-10-14)** — llm-jargon release: three-tier AI-flavor self-check with case-library contrasts (cross-line port, credited); engine scoring of the signal tried and honestly reverted (negative result archived with retry conditions).

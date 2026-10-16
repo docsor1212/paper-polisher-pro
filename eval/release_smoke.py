@@ -203,13 +203,13 @@ try:
 finally:
     Path(_fti).unlink(missing_ok=True)
 
-# v3.7.0: L12 篇章结构启发层探针（LES-20260923-021 回归防护）
+# v3.7.0: L12 篇章结构启发层探针（篇章三件套回归防护）
 _DISC = ("先看一个场景。小林昨天拿到检测报告，数字比上个月低了不少。他盯着屏幕看了半天，心里直犯嘀咕："
          "这系统是不是换了比对库？同一段文字，前后两次测，一个说高一个说低。所以你看，不是谁退步了，是规则变了。"
          "把这句话记住：数字只是参考，别被一个报告定死。后来他调整了写法，第二天再测，数字果然回来了。")
 rcd, rd, _ = detect_json(_DISC)
 _disc_groups = sorted(h.get("group") for h in (rd or {}).get("discourse_hits", [])) if rd else []
-chk("篇章三件套检出+加分(LES-021)", rcd == 0 and rd and rd.get("discourse_bonus", 0) >= 12
+chk("篇章三件套检出+加分", rcd == 0 and rd and rd.get("discourse_bonus", 0) >= 12
     and set(_disc_groups) >= {"钩子", "反转", "口号"}, f"groups={_disc_groups} bonus={rd and rd.get('discourse_bonus')}")
 rcn, rn, _ = detect_json(ZH_HUMAN)
 # v3.8: YAML 冒烟自检（doc-holmes 大忌: 行内值含"冒号+空格"致平台判"无有效 skill"）

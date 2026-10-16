@@ -29,7 +29,7 @@ python scripts/pp_fix_suggest.py draft.txt --top 10
 # 学术写作规范自查（全半角/数字/缩写/单位/同概念异写一致性，不评分）
 python scripts/pp_style_norm.py draft.txt
 
-# 集成前看输出样例（真实引擎 JSON）
+# 集成前看输出样例（真实引擎 JSON + 渲染好的 HTML 仪表盘）
 ls examples/outputs/
 
 # Word 文档直读 + 投稿前自查包
@@ -41,6 +41,12 @@ python scripts/pp.py freshness --status
 
 # 四层融合门禁
 python scripts/deai_gate.py draft.txt
+
+# 单文档可视化仪表盘（workflow/detect/fix/norm JSON → 一份自包含 HTML）
+python scripts/pp.py html-report draft.workflow.json -o report.html
+
+# 不知道用哪个命令？自然语言路由
+python scripts/pp.py recommend "把这段的AI率降一降"
 
 # 批量检测一个目录
 python scripts/ai_detector.py --batch ./drafts --csv scores.csv

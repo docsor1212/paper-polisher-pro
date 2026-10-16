@@ -250,10 +250,10 @@ def main():
 
     if not os.path.exists(args.input):
         print(f"Error: File not found: {args.input}", file=sys.stderr)
-        sys.exit(1)
+        sys.exit(2)  # 退出码契约 v5.8.0: 输入错误=2
     if args.before and not os.path.exists(args.before):
         print(f"Error: Before file not found: {args.before}", file=sys.stderr)
-        sys.exit(1)
+        sys.exit(2)  # 退出码契约 v5.8.0: 输入错误=2
     report = generate_report(args.input, args.before)
     report.file = args.input
 

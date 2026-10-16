@@ -72,11 +72,11 @@ class DetectionReport:
     # v3.5: 降级模式披露——监督层缺席/被关/语言门控跳过时如实告知,并给出医学语域高估警示
     degraded_mode: bool = False
     degraded_notice: str = ""
-    # v3.7.0: L12 篇章结构启发层——钩子/反转/口号/互动引导等篇章级 AI 腔(句层特征的盲区,
-    # AgentOps LES-20260923-021: 此类文本句层分 21-32 未被察觉)
+    # v3.7.0: L12 篇章结构启发层——钩子/反转/口号/互动引导等篇章级 AI 腔(句层特征的盲区:
+    # 纯篇章文本句层仅得 21-32 分未达复核带, 2026-09 复盘后补的层)
     discourse_hits: list = field(default_factory=list)
     discourse_bonus: float = 0.0
-    # v3.6: 学术诚信护栏(SQP-2)——每份报告明示工具定位与披露义务
+    # v3.6: 学术诚信护栏——每份报告明示工具定位与披露义务
     integrity_notice: str = ""
     # v3.8: 混写预警——段落得分显著分化时提示文档级分数不可单独采信(混合文档 AUROC 0.38 的可操作化)
     mixed_signal: bool = False
@@ -1086,7 +1086,7 @@ def _read_input_text(path):
         return read_text_any(path)
     except DocxError as e:
         print(f"Error: {e}", file=sys.stderr)
-        sys.exit(1)
+        sys.exit(2)  # 退出码契约 v5.8.0: 输入解析错误=2
 
 
 def batch_detect(dir_path: str, fmt: str, out_path: str, csv_path: str = None,
@@ -1096,7 +1096,7 @@ def batch_detect(dir_path: str, fmt: str, out_path: str, csv_path: str = None,
     if not d.is_dir():
         print(f"Error: not a directory: {dir_path}（--batch 需要目录；单文件请直接作为 input 传入）",
               file=sys.stderr)
-        sys.exit(1)
+        sys.exit(2)  # 退出码契约 v5.8.0: 输入错误=2
     it = d.rglob("*") if recursive else d.iterdir()
     files = sorted(f for f in it
                    if f.is_file() and f.suffix.lower() in (".txt", ".md", ".docx")
@@ -1205,7 +1205,7 @@ def main():
         parser.error("the following arguments are required: input (or use --batch DIR)")
     if not os.path.exists(args.input):
         print(f"Error: File not found: {args.input}", file=sys.stderr)
-        sys.exit(1)
+        sys.exit(2)  # 退出码契约 v5.8.0: 输入错误=2
     text = _read_input_text(args.input)
     if os.path.getsize(args.input) > 5 * 1024 * 1024:
         print("⚠️ 单文件超过 5MB（批处理模式会跳过该口径的文件）；处理耗时可能显著增加，结果不受影响。",
