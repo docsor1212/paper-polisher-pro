@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """
-AI Writing Detector — paper-polisher v1.2.0
+AI Writing Detector — paper-polisher-pro (package version: see SKILL.md frontmatter)
 Quantitative AI trace detection for academic text (Chinese + English).
 
+Engine file history (frozen as of 2026-06; package-level history lives in CHANGELOG.md):
 v1.2.0 (2026-06-16): Added content_only_score field (excludes markdown_format false positives)
 v1.1.0 (2026-05-02): Added Perplexity proxy (bigram/trigram diversity) + upgraded Burstiness
 
@@ -1079,19 +1080,26 @@ def journal_profile(report, text=None) -> str:
     ])
 
 
-def _read_input_text(path):
+def _read_input_text(path, exit_on_error=True):
     """v5.3.0: 统一输入读取——.docx 走零依赖抽取，其余 UTF-8(GBK 容错)。"""
     from docx_text import read_text_any, DocxError
     try:
         return read_text_any(path)
     except DocxError as e:
         print(f"Error: {e}", file=sys.stderr)
-        sys.exit(2)  # 退出码契约 v5.8.0: 输入解析错误=2
+        if exit_on_error:
+            sys.exit(2)  # 退出码契约 v5.8.0: 输入解析错误=2（单文件入口）
+        raise  # 批处理入口: 转异常走逐文件 ERROR 行 + 熔断计数（v5.9.0 修复一个坏 docx 炸整批）
 
 
 def batch_detect(dir_path: str, fmt: str, out_path: str, csv_path: str = None,
-                 recursive: bool = False):
-    """v3.11: 目录批处理——逐文件检测, 输出每文件分数+聚合。确定性、零网络。"""
+                 recursive: bool = False, circuit: int = 5):
+    """v3.11: 目录批处理——逐文件检测, 输出每文件分数+聚合。确定性、零网络。
+
+    v5.9.0: 连续错误熔断器——连续 circuit 个文件解析/检测失败即中止剩余文件
+    （防批量坏文件白烧时间），已完成部分照常出 CSV/报告，中止事实写进产物
+    （JSON circuit 字段 + 文本摘要行）。circuit=0 关闭。退出码不变（0=按契约完成）。
+    """
     d = Path(dir_path)
     if not d.is_dir():
         print(f"Error: not a directory: {dir_path}（--batch 需要目录；单文件请直接作为 input 传入）",
@@ -1102,9 +1110,16 @@ def batch_detect(dir_path: str, fmt: str, out_path: str, csv_path: str = None,
                    if f.is_file() and f.suffix.lower() in (".txt", ".md", ".docx")
                    and f.stat().st_size < 5 * 1024 * 1024)
     rows = []
+    consec_err = 0
+    circuit_tripped = None
     for f in files:
+        if circuit and consec_err >= circuit:
+            circuit_tripped = {"tripped": True, "threshold": circuit,
+                               "failed_consecutive": consec_err,
+                               "skipped_remaining": len(files) - len(rows)}
+            break
         try:
-            text = _read_input_text(f)
+            text = _read_input_text(f, exit_on_error=False)
             if len(text.strip()) < 100:
                 rows.append({"file": str(f.relative_to(d)), "overall_ai_score": None, "overall_risk": "unknown",
                              "note": "insufficient text (<100 chars)"})
@@ -1114,7 +1129,10 @@ def batch_detect(dir_path: str, fmt: str, out_path: str, csv_path: str = None,
                          "overall_risk": rep.overall_risk, "language": rep.language,
                          "degraded_mode": rep.degraded_mode})
         except Exception as e:
+            consec_err += 1
             rows.append({"file": str(f.relative_to(d)), "error": str(e)[:120]})
+        else:
+            consec_err = 0
     scored = [r["overall_ai_score"] for r in rows if isinstance(r.get("overall_ai_score"), (int, float))]
     agg = {"files": len(rows), "scored": len(scored),
            "mean_score": round(sum(scored) / len(scored), 1) if scored else None,
@@ -1122,6 +1140,8 @@ def batch_detect(dir_path: str, fmt: str, out_path: str, csv_path: str = None,
            "high_risk_files": sum(1 for r in rows if r.get("overall_risk") == "high")}
     result = {"directory": str(d), "aggregate": agg, "files": rows,
               "integrity_notice": INTEG_ZH}
+    if circuit_tripped:
+        result["circuit"] = circuit_tripped
     if csv_path:
         import csv as _csv
         _csv_tmp = csv_path + ".tmp"  # v4.9.0: 原子写（并发跑两个批任务不再互相踩踏同一 CSV）
@@ -1143,6 +1163,8 @@ def batch_detect(dir_path: str, fmt: str, out_path: str, csv_path: str = None,
         lines = [f"批量检测: {agg['files']} 个文件 (可评 {agg['scored']})", 
                  f"均分: {agg['mean_score']}  最高: {agg['max_score']}  高风险文件: {agg['high_risk_files']}",
                  "─" * 40]
+        if circuit_tripped:
+            lines.append(f"⛔ 熔断: 连续 {circuit_tripped['failed_consecutive']} 个文件失败，已中止剩余 {circuit_tripped['skipped_remaining']} 个（已完成部分照常出 CSV/报告；--circuit 0 关闭熔断）")
         for r in rows:
             if "error" in r:
                 lines.append(f"  [错误] {r['file']}: {r['error'][:40]}")
@@ -1173,6 +1195,8 @@ def main():
                              "output per-file scores + aggregate; ignores --input/--profile")
     parser.add_argument("--csv", metavar="PATH",
                         help="With --batch: also write per-file results as CSV")
+    parser.add_argument("--circuit", type=int, default=5,
+                      help="批处理连续错误熔断阈值（默认 5；0=关闭）")
     parser.add_argument("--recursive", action="store_true",
                         help="With --batch: recurse into subdirectories")
     parser.add_argument("--discipline", default=None,
@@ -1185,7 +1209,7 @@ def main():
 
     if args.batch:
         batch_detect(args.batch, args.format, args.output, csv_path=args.csv,
-                     recursive=args.recursive)
+                     recursive=args.recursive, circuit=args.circuit)
         if getattr(args, "report", None):
             if not args.csv:
                 print("Warning: --report 需要 --csv 先落盘逐文件结果，本次跳过 HTML 渲染。",

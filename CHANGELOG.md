@@ -3,6 +3,14 @@
 > **只想快速上手？** 回 `SKILL.md` § TL;DR（30 秒任务路由表）——本文件仅是完整版本历史，新用户无需阅读。
 > Historical release notes. Newest first. SKILL.md § Version history keeps only the last three releases; everything older lives here (single source, no duplication).
 
+## What's new in v5.9.0
+
+- **Supervised-model acquisition guide (`pp_setup.py --guide`)**: the biggest remaining zero-config gap was that the optional supervised layer told you how to install a model file but not how to obtain one. The new guide command spells out what the layer is, the author-signed acquisition channel (GitHub issue), placement/verification steps, and the documented degraded-mode semantics when you skip it; `pp_doctor` and `pp_setup --check` now point to the guide whenever the engine runs without the model.
+- **Batch circuit breaker (`ai_detector.py --batch ... --circuit N`)**: N consecutive unreadable/failing files now abort the remaining queue (default 5, `--circuit 0` to disable) instead of grinding through a whole folder of garbage — completed files still produce their CSV/report, and the abort is disclosed in both the JSON (`circuit` field) and the text summary. Includes a real stability fix found by the new tests: one corrupt .docx previously killed the entire batch via an uncaught SystemExit; per-file failures now degrade to ERROR rows as designed.
+- **Out-of-dictionary neologism probe (`term_check.py --neologism`)**: opt-in heuristic that surfaces high-frequency character strings absent from the term bank as human-review leads (born from the cross-line manuscript standardization review; the bank was blind to self-coined words). Honest boundary stated in the output: uncalibrated, advisory-only, never scored, never feeds the gate; default runs are unchanged.
+- **Version-header hygiene**: four scripts still carried engine-file-era version headers (v1.x fossils) inconsistent with the package version — headers are now version-neutral, a release gate (smoke check + unit test) prevents the class from recurring.
+- **Progressive disclosure**: the TL;DR now maps the five FAQ groups explicitly, and the architecture section is marked read-on-demand.
+
 ## What's new in v5.8.1
 
 - **Terminology bank extended with practice-derived standardization mappings (+27 entries/aliases)**: cross-line review of a medical manuscript surfaced self-coined abbreviations and colloquial metaphors (e.g., informal shorthand for age-specific re-interpretation, pre-vaccination evaluation, primary monitoring parameter) that the bank could not see. They are now registered as aliases of the standard names, so `term_check.py` / `pp.py term` flags each occurrence and suggests the standard term; bank count claim updated to the real loaded figure (2,335 standard terms).
@@ -200,6 +208,14 @@
 # 更新日志（中文）
 
 > v4.6.0 起历史更新说明移出 SKILL_ZH.md（新用户更快触达工作流）。最新在前。各版本摘要亦见 SKILL_ZH.md § 版本历史。
+
+## v5.9.0 更新内容
+
+- **监督模型获取指南（`pp_setup.py --guide`）**：零配置体验的最后一块缺口——可选监督层只讲「怎么装」不讲「去哪拿」。新指南命令写清该层是什么、作者签发获取渠道（GitHub issue）、放置与验证步骤、以及不装时的降级档语义；`pp_doctor` 与 `pp_setup --check` 在引擎处于降级档时会主动指到指南。
+- **批处理熔断器（`ai_detector.py --batch ... --circuit N`）**：连续 N 个文件解析/检测失败即中止剩余队列（默认 5，`--circuit 0` 关闭），不再对着整目录坏文件白烧时间——已完成部分照常出 CSV/报告，中止事实写入 JSON（`circuit` 字段）与文本摘要。随附一个由新测试抓出的真实稳定性修复：此前一个损坏 .docx 会经未捕获 SystemExit 炸掉整批，现在按设计降级为逐文件 ERROR 行。
+- **词典外新造词探测（`term_check.py --neologism`）**：opt-in 启发式，把「高频出现却不在术语库」的字串作为人工复核线索输出（源自跨线文稿规范化复盘——词典对自创词不可见）。诚实边界写入输出：未校准、只提示不判定对错、永不计分、永不汇入门禁；默认运行完全不变。
+- **版本头卫生**：四个脚本仍带着引擎文件时代（v1.x 化石）的版本头，与包版本不一致——头已中性化，并新增发布闸（smoke 检查+单元测试）防此类复发。
+- **渐进披露**：TL;DR 明示 FAQ 五个分组，架构节标注「按需阅读」。
 
 ## v5.8.1 更新内容
 

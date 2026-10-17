@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Term Normalization Checker — paper-polisher v1.0.0
+Term Normalization Checker — paper-polisher-pro (package version: see SKILL.md frontmatter)
 Check non-standard medical terminology against authority databases.
 
 Usage:
@@ -254,11 +254,67 @@ def auto_fix(text: str, issues: list) -> str:
 NOTICE = "ℹ️ 供学术写作自查与质量改进使用；不用于规避机构 AIGC 检测，请遵循所在机构的 AI 使用与披露政策。"
 
 
+# ── v5.9.0: 词典外新造词探测（opt-in，建议性，未校准） ─────────────────────
+# 背景（PROP-20261016-002 需求 2）：词典匹配对词典外自创词不可见——15 个自创词
+# 扩展前漏检 14 个。本启发式把「文本里高频出现、却不在术语库」的字串提示给
+# 人工复核。诚实边界：无校准语料、误报不可控，因此 ①默认关闭（--neologism
+# 显式开启）②只提示不判定对错 ③永不计分、永不汇入门禁复合分。
+_NEOLexer_STOP = frozenset("""
+我们 他们 自己 这个 那个 这些 那些 研究 结果 显示 表明 提示 患者 治疗 细胞
+数据 分析 临床 不同 出现 进行 检测 检查 诊断 观察 比较 方法 材料 实验 模型
+系统 功能 相关 以及 同时 此外 因此 但是 而且 或者 可以 可能 导致 引起 发生
+存在 具有 包括 根据 通过 对于 关于 由于 除了 需要 应该 建议 注意 重要 主要
+部分 一些 以下 上述 综合 总结 结论 讨论 目的 背景 意义 价值 影响 作用 效果
+变化 增加 减少 升高 降低 水平 指标 情况 状态 过程 阶段 时期 时间 年龄 性别
+病例 报告 文献 参考 标准 规范 检验 血清 免疫 蛋白 基因 突变 阳性 阴性 急性
+慢性 重度 轻度 中度 目前 目前 异常 正常 范围 区间 评估 判断 判读 结合 分布
+表达 活性 反应 因子 受体 综合 其中 以上 之间 由于 各种 某些 该患 本例 全文
+""".split())
+
+
+def find_neologisms(text: str, terms_db: dict, top_n: int = 10):
+    """词典外高频字串提示（启发式，未校准；只作人工核对线索）。
+
+    规则：CJK 连续段内取 2-4 字窗口；3-4 字串出现 ≥2 次或 2 字串出现 ≥4 次
+    入候选；排除术语库已知词（含别名）、库内任何词的子串、停用词。
+    返回 [{term, count}]，按 (次数降序, 长度降序) 截 top_n。
+    """
+    import re as _re
+    from collections import Counter
+    known = set(terms_db.keys())
+    known |= {e["standard"].lower() for e in terms_db.values()}
+    known_blob = "|".join(sorted((k for k in known if len(k) >= 2), key=len, reverse=True))
+    runs = _re.findall(r"[\u4e00-\u9fff]{2,}", text)
+    counter = Counter()
+    for run in runs:
+        for n in (2, 3, 4):
+            for i in range(len(run) - n + 1):
+                counter[run[i:i + n]] += 1
+    out = []
+    for w, c in counter.items():
+        if w in _NEOLexer_STOP or w in known:
+            continue
+        if known_blob and w in known_blob:
+            continue  # 库内更长词的组成片段（如「特异」⊂「年龄特异性」）不提示
+        need = 4 if len(w) == 2 else 2
+        if c >= need:
+            out.append({"term": w, "count": c})
+    out.sort(key=lambda x: (-x["count"], -len(x["term"])))
+    # 去掉被更长保留项包含的短候选
+    kept = []
+    for x in out:
+        if not any(x["term"] in k["term"] for k in kept):
+            kept.append(x)
+    return kept[:top_n]
+
+
 def main():
     parser = argparse.ArgumentParser(description="Term Normalization Checker")
     parser.add_argument("input", help="Input text file")
     parser.add_argument("--output", help="Output JSON report file")
     parser.add_argument("--auto-fix", action="store_true", help="Auto-fix and output corrected text")
+    parser.add_argument("--neologism", action="store_true",
+                        help="附加词典外高频字串提示（启发式、未校准、不计分；人工核对线索）")
     args = parser.parse_args()
 
     if not os.path.exists(args.input):
@@ -281,7 +337,13 @@ def main():
         print(f"Auto-fixed {len(report.issues)} terms → {fix_path}")
     
     output_dict = asdict(report)
-    
+
+    neologisms = find_neologisms(text, terms_db) if args.neologism else []
+    if args.neologism:
+        output_dict["neologism_hints"] = neologisms
+        output_dict["neologism_note"] = ("未校准启发式提示（不计分、不判定对错）——词典外高频字串，"
+                                         "可能为新造词/生僻表述，请人工核对")
+
     if args.output:
         os.makedirs(os.path.dirname(args.output) or ".", exist_ok=True)
         with open(args.output, "w", encoding="utf-8") as f:
@@ -289,6 +351,14 @@ def main():
         print(f"Report saved to {args.output}", file=sys.stderr)
     else:
         print(report.summary)
+        if args.neologism:
+            print("─" * 40)
+            print("⚠️ 未校准启发式提示（不计分、不判定对错）——词典外高频字串，请人工核对：")
+            if neologisms:
+                for x in neologisms:
+                    print(f"  · {x['term']}（出现 {x['count']} 次）")
+            else:
+                print("  （无）")
         print(NOTICE)
 
 

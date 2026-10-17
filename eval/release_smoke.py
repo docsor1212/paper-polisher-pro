@@ -501,6 +501,12 @@ try:
     chk("pp.py 统一入口（列表+未知命令 rc=2）",
         _pp.returncode == 0 and "detect" in _pp.stdout and _pp_bad.returncode == 2,
         f"rc={_pp.returncode}/{_pp_bad.returncode}")
+    # v5.9.0: 脚本头部不得有游离的旧式独立版本号（内部版本与包版本漂移=标注性瑕疵类，评监委点名）
+    import re as _re_v
+    _stray = [p_.name for p_ in sorted(SCRIPTS.glob("*.py"))
+              if _re_v.search(r"paper-polisher( pro)? v\d+\.\d+",
+                              chr(10).join(p_.read_text(encoding="utf-8", errors="replace").splitlines()[:6]))]
+    chk("脚本头部无游离版本号", not _stray, f"{_stray}")
     with tempfile.NamedTemporaryFile("w", suffix=".txt", delete=False, encoding="utf-8") as _rf:
         _rf.write(ZH_HUMAN); _route_f = _rf.name
     _pp_d = subprocess.run([sys.executable, str(SCRIPTS / "pp.py"), "detect", _route_f,

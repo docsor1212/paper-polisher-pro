@@ -47,7 +47,7 @@ COMMANDS = {
     "quality": ("quality_report.py", "综合质量报告"),
     "aigc": ("aigc_label_check.py", "AIGC 合规标识检查（docx/pdf/图片/文本）"),
     "paragraph": ("paragraph_report.py", "段落级归因（HTML 报告）"),
-    "setup": ("pp_setup.py", "监督层一键装模（--model / --check）"),
+    "setup": ("pp_setup.py", "监督层装模/状态/获取指南（--model / --check / --guide；v5.9.0）"),
     "doctor": ("pp_doctor.py", "环境自检（能跑吗/跑哪档）"),
     "verify": ("pp_verify.py", "结构化零网络自证（AST 级；v5.0.0）"),
 }

@@ -33,6 +33,35 @@ REG = HERE.parent / "references" / "supervised_models.json"
 CACHE = Path.home() / ".cache" / "paper-polisher" / "qwen3-detector"
 
 
+GUIDE = """监督层模型获取指南（可选增强；没有它工具照常工作）
+================================================================
+【1. 这是什么】
+  可选本地监督层：Qwen3-0.6B ONNX 量化模型（两个文件：model.int8.onnx +
+  tokenizer.json），装好后引擎自动融合（0.9×监督 + 0.1×规则）。
+  收益（留出集实测、指纹绑定）：纯规则档 AUROC 0.9187 → 融合档 0.9998；
+  医学文本在降级档会被系统性高估（@medium 人类误报约 59%），监督档降到 2.3%。
+
+【2. 怎么获取（三步）】
+  ① 模型只走作者签发渠道，不在任何平台公开下载。到 GitHub 仓库
+     docsor1212/paper-polisher-pro 提一个 issue（标题写 model access），
+     说明你的使用场景，作者会回复当前签发版的获取方式。
+  ② 拿到 model.int8.onnx（tokenizer.json 通常随包附在作者回复的说明里）。
+  ③ 安装并自动验证：
+     python3 scripts/pp_setup.py --model model.int8.onnx
+     （脚本会校验 md5 指纹 → 安装 → 跑推理金丝雀，PASS 即生效）
+     之后用 python3 scripts/pp_setup.py --check 或 pp.py doctor 复核。
+
+【3. 拿不到怎么办（降级档语义）】
+  不装模型 = 文档化降级档（纯规则+词频谱），功能完整、逐位可复现，
+  但医学文本只采信 @high 判定；英文文本本就按设计走纯规则。
+  零模型体验：python3 scripts/pp.py quickstart（不需要任何模型与文件）。
+
+【4. 铁律】
+  不要替换或重新量化模型文件（实测概率漂移）；只接受作者签发注册表内的
+  指纹，来历不明的权重会在安装前被拒绝。
+================================================================"""
+
+
 def md5_12(path):
     h = hashlib.md5()
     with open(path, "rb") as f:
@@ -49,13 +78,20 @@ def main():
     ap.add_argument("--model", default=None)
     ap.add_argument("--tokenizer", default=None)
     ap.add_argument("--check", action="store_true")
+    ap.add_argument("--guide", action="store_true",
+                    help="打印监督模型获取指南（获取渠道/放置路径/验证/降级语义）")
     a = ap.parse_args()
+
+    if a.guide:
+        print(GUIDE)
+        return 0
 
     if a.check:
         return status()
 
     if not a.model:
         print("ERROR: 需要 --model <作者签发的模型文件>（或 --check 查看当前状态）")
+        print("  获取方式见: python3 scripts/pp_setup.py --guide")
         return 3
     model_p = Path(a.model)
     if not model_p.is_file():
@@ -120,6 +156,7 @@ def status():
     if not onnx_p.is_file():
         print("降级档：未安装监督模型（纯规则+词频谱）。"
           "安装：python3 scripts/pp_setup.py --model <作者签发的模型文件>")
+        print("下一步：python3 scripts/pp_setup.py --guide 查看获取指南（渠道/路径/验证；降级档下医学文本只采信 @high 判定）")
         return 0
     fp = md5_12(onnx_p)
     reg = json.load(open(REG, encoding="utf-8"))

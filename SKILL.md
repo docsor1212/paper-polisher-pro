@@ -1,6 +1,6 @@
 ---
 name: paper-polisher
-version: 5.8.1
+version: 5.9.0
 author: DoctorQ Lab
 description: >-
   AI-rate self-check and polish guidance for academic writing: sentence-level rewrite
@@ -36,7 +36,7 @@ AI writing detection (AI-rate self-check for authors) · academic polishing guid
 - **30-second start**: `python3 scripts/pp.py quickstart` (zero-model, zero-file demo) · `python3 scripts/pp.py detect draft.txt --format json` · sentence-level rewrite suggestions: `python3 scripts/pp.py fix draft.txt` · full self-check report: `python3 scripts/pp.py workflow draft.txt` · environment: `python3 scripts/pp.py doctor` (one entry routes all subcommands)
 - **Measured** (held-out, fingerprint-bound md5 2631df3d388b): AUROC 0.9998 pre-2026 / 0.9400 current-generation; human FPR@medium 2.3%.
 - **Know the limits**: texts <100 chars get `risk=unknown` by design · medical text in degraded mode is over-scored · mixed human+AI docs: the document-level score is unreliable (paragraph attribution is the actionable signal) · authors' self-check only — never for evading institutional AI detection.
-- **Where to look next**: capability boundary matrix below · end-to-end example in § Quick start · FAQ near the end · full history in `CHANGELOG.md`.
+- **Where to look next**: capability boundary matrix below · end-to-end example in § Quick start · FAQ grouped in five parts (verdicts → modes & install → output & interpretation → safety & verification → tools & workflow), jump to the group you need · full history in `CHANGELOG.md`.
 
 ### 30-second task routing
 
@@ -58,7 +58,7 @@ AI writing detection (AI-rate self-check for authors) · academic polishing guid
 
 1. **Medical register over-scoring in degraded mode** — rules-only human FPR @medium ≈59% medical vs ≈2% general; trust only `@high` verdicts on medical text, or install the supervised model.
 2. **Mixed human+AI documents** — document-level AUROC 0.52-0.54 (inherent averaging limitation); use paragraph attribution as a human-review ranking, never as an automatic verdict.
-3. **Data-coverage scope** — the term bank is 2,335 medical/academic terms (non-medical texts standardize low by design); style layers calibrate on academic prose (colloquial/narrative input = advisory only). Per-tool scope: sub-tool matrix below.
+3. **Data-coverage scope** — the term bank is 2,344 medical/academic terms (non-medical texts standardize low by design); style layers calibrate on academic prose (colloquial/narrative input = advisory only). Per-tool scope: sub-tool matrix below.
 
 ## Academic integrity
 
@@ -101,7 +101,7 @@ This tool is for **authors self-reviewing and improving their own writing qualit
 | ai_detector / deai_gate | Chinese academic prose (held-out calibrated) | Medical register over-scored in degraded mode; English advisory rules-only; narrative/colloquial input gets a register notice |
 | paragraph_report / pp_rewrite_check | Same engine criteria as above, per paragraph | Same limitations; rewrite_check compares two drafts under identical criteria |
 | pp_fix_suggest | Chinese AI-writing pattern library (academic register) | English text gets basic connective/rhythm checks only; findings are style observations, never detections |
-| term_check | Chinese medical/academic terminology (2,335-term bank) | Non-medical text: the standardization rate reads low — that is bank scope, not an error; `--auto-fix` respects context |
+| term_check | Chinese medical/academic terminology (2,344-term bank) | Non-medical text: the standardization rate reads low — that is bank scope, not an error; `--auto-fix` respects context |
 | translation_smell_check | Chinese academic prose (translationese patterns) | English-style source text: output lists its blind-spot terms instead of pretending coverage |
 | style_distance | Academic prose stylometry | Outside the academic register the style score is advisory only (stated in the output) |
 | style_norm | Mechanical conventions — register-independent | No score by design; statistical checks (numbers/abbreviations) are weak on short samples and say so |
@@ -141,6 +141,8 @@ Programmatic mirror: `pp_api` raises `ValueError` for invalid input (↔ exit 2)
 - **Don't repeat the same analysis on unchanged input, or re-run a call that was already rejected** — it burns time without new information. ✅ Instead: change one input (text, engine mode, check scope) or resolve the blocker (missing model, encoding) before retrying.
 
 ## Architecture (v3)
+
+Reference section — read on demand; everyday use needs none of it.
 
 ```
 ai_detector.py            Main engine: 8 rule layers (125 recalibrated patterns, markdown caps,
@@ -240,6 +242,7 @@ print(r["overall_ai_score"], r["overall_risk"], r["degraded_mode"])
 ### One-command supervised setup
 
 ```bash
+# Not sure how to obtain the model? python scripts/pp_setup.py --guide (acquisition guide: channel / placement / verification / degraded-mode semantics)
 python3 scripts/pp_setup.py --model <author-signed model.onnx>   # verify md5 -> install -> inference canary
 python3 scripts/pp_setup.py --check                              # current installation status
 ```
@@ -338,7 +341,7 @@ No. `pp_fix_suggest.py` (`pp.py fix`) only locates sentences carrying improvable
 | quality_report.py | Overall quality report | `--json` | Readability/quality dimensions for the manuscript |
 | deai_gate.py | 4-layer fused gate | `--json` | composite score + verdict band (<35 pass / 35-55 review / ≥55 suspect) |
 | paragraph_report.py | Paragraph attribution | `--output report.html` | HTML report |
-| term_check.py | Terminology (2,335 terms) | `--auto-fix` `--output` | Standardization rate + fixed file |
+| term_check.py | Terminology (2,344 terms) | `--auto-fix` `--output` | Standardization rate + fixed file |
 | translation_smell_check.py | Translation-smell scan | `--json` | Hits + blind-spot terms |
 | style_distance.py | Stylometry (human-likeness) | `--json` | style_score + verdict (advisory outside academic register) |
 | aigc_label_check.py | AIGC compliance labels | files: docx/pdf/png/txt | Per-file label verdict |
@@ -367,6 +370,7 @@ Monthly full pass: `python scripts/freshness_refresh.py` (schedule it with your 
 
 ## Version history (condensed)
 
+- **v5.9.0 (2026-10-18)** — zero-config onboarding & batch robustness: supervised-model acquisition guide (`pp_setup.py --guide`, wired into doctor/check), batch circuit breaker (`--circuit`, default 5) + fix for one corrupt docx killing the whole batch, opt-in out-of-dictionary neologism probe (`term_check.py --neologism`), version-header hygiene with a release gate, FAQ group navigation.
 - **v5.8.1 (2026-10-17)** — terminology bank extended with practice-derived standardization aliases; term matching fixed to single-pass longest-first resolution (a short standard term no longer shadows a longer alias); count claims updated to 2,335.
 - **v5.8.0 (2026-10-16)** — visual dashboard release: `pp_report_html.py` renders workflow/detect/fix/norm JSON into one self-contained HTML (gauge, histogram, paragraph/finding/ledger tables); `pp.py recommend` natural-language command router; exit-code contract documented and locked; top-3 limits surfaced next to the TL;DR; ZH version history slimmed to match EN.
 - **v5.7.1 (2026-10-16)** — sample sanitation: an internal LAN link embedded in the bundled sample document text (`examples/outputs/detect_sample.json`) was redacted after the hygiene gate flagged it; no code or engine changes (bit-identical scoring to 5.7.0).

@@ -214,6 +214,8 @@ def main():
         print("────────────────────────────────")
         mode = "完整（监督层融合）" if model_ok and not os.environ.get("PP_NO_SUP") else "降级（纯规则+词频谱）"
         print(f"  引擎档位: {mode}")
+        if mode.startswith("降级"):
+            print("  提示: 监督模型未装——python3 scripts/pp_setup.py --guide 查看获取指南（可选增强；降级档下医学文本只采信 @high 判定）")
         print(f"  硬项失败: {len(failed)} ｜ 可选项缺失: {len(soft_failed)}（降级可用）")
     # 汇总行（发布链 grep 锚点，勿删「汇总」字样）
     print(f"[汇总] PASS={len(results) - len(failed) - len(soft_failed)} "

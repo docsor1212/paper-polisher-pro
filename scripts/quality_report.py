@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Quality Report Generator — paper-polisher v1.0.0
+Quality Report Generator — paper-polisher-pro (package version: see SKILL.md frontmatter)
 Generate comprehensive quality assessment report for academic papers.
 
 Usage:

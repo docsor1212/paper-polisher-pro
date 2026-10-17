@@ -62,21 +62,23 @@ class TestTerminologyExtension(unittest.TestCase):
         self.assertNotIn("AgentOps", raw)
 
     def test_source_fields_normalized(self):
-        """实战对照来源字段统一为中性表述。"""
+        """实战对照来源字段统一为中性表述（实战对照表 YYYY-MM-DD，无内部编号）。"""
+        import re
         d = json.loads((PKG / "data" / "terminology.json").read_text(encoding="utf-8"))
         for t in d:
             s = t.get("source", "")
-            self.assertTrue("实战对照表" not in s or s == "实战对照表 2026-10-16",
-                            f"source 未归一: {s!r}")
+            if "实战对照表" in s:
+                self.assertRegex(s, r"^实战对照表 \d{4}-\d{2}-\d{2}$",
+                                 f"source 未归一: {s!r}")
 
     def test_loaded_count_matches_docs_claim(self):
-        """文档计数声明与库唯一规范名数量一致（2,335）。"""
+        """文档计数声明必须等于运行时真实加载量（动态校验，词典增长不再脆断）。"""
         standards = {e["standard"] for e in self.terms.values()}
-        self.assertEqual(len(standards), 2335)
+        claim = f"{len(standards):,}"
         for doc in ("SKILL.md", "SKILL_ZH.md"):
-            t = (PKG / doc).read_text(encoding="utf-8")
-            self.assertIn("2,335", t, f"{doc} 缺 2,335 计数")
-            self.assertNotIn("2,308", t, f"{doc} 残留旧计数 2,308")
+            text = (PKG / doc).read_text(encoding="utf-8")
+            self.assertIn(claim, text, f"{doc} 计数声明 {claim} 与真实加载量不符")
+            self.assertNotIn("2,308", text, f"{doc} 残留旧计数 2,308")
 
 
 if __name__ == "__main__":
