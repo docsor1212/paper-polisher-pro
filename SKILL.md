@@ -1,6 +1,6 @@
 ---
 name: paper-polisher
-version: 5.9.0
+version: 6.0.0
 author: DoctorQ Lab
 description: >-
   AI-rate self-check and polish guidance for academic writing: sentence-level rewrite
@@ -52,6 +52,7 @@ AI writing detection (AI-rate self-check for authors) · academic polishing guid
 | Journal precheck (discipline context) | `ai_detector.py draft.txt --profile journal` | § journal precheck |
 | Environment trouble-shooting | `pp.py doctor` / `pp.py freshness --status` | FAQ: modes |
 | One visual dashboard of all results | `pp.py html-report draft.workflow.json -o report.html` | Script cheat sheet: pp_report_html.py |
+| Tracking a draft across rewrite rounds | `pp.py trend 轮次目录/ -o trend.html` | Script cheat sheet: pp_trend.py |
 | Not sure which command fits? | `pp.py recommend "把这段的AI率降一降"` | `pp.py recommend --help` |
 
 ### The three limits that matter most (full detail in the matrix below)
@@ -113,7 +114,7 @@ This tool is for **authors self-reviewing and improving their own writing qualit
 ## Safety and behavior statement
 
 - **100% local**: every feature runs on-device. The codebase makes zero network calls — no network client libraries, no network utilities. Verify structurally: `python3 scripts/pp_verify.py` (AST-level scan; exit 0 = zero network calls, all scripts compile). Legacy text grep `grep -rEin "urllib|requests|socket|import http" scripts/` may show a few URL *strings* in report footers — those are data in string constants, not network code; the AST verifier distinguishes the two.
-- **No upload, no credentials**: reads and transmits no credentials, keys, or personal data; the only environment variable, `PP_NO_SUP`, is a local behavior toggle.
+- **No upload, no credentials**: reads and transmits no credentials, keys, or personal data; the only two environment variables are `PP_NO_SUP` (skip the supervised layer) and `PP_LANG` (`en` switches the `pp.py` entry surface to English) — both local behavior toggles.
 - **No persistence**: creates no scheduled tasks, autostart entries, or system config changes; temp files (inter-layer JSON, probe text) are deleted after use.
 - **No remote code**: loads no remote models or scripts; the optional supervised model is placed by the user at a local path.
 - **Data boundary**: reads/writes only user-specified files, the system temp dir, and its own package data directories (calibration/freshness artifacts); reports go only where the user points them.
@@ -194,6 +195,8 @@ python scripts/pp_rewrite_check.py draft_original.txt draft_revised.txt
 python scripts/pp_batch_report.py scores.csv -o report.html
 # Single-document visual dashboard: render workflow/detect/fix/norm JSON into one HTML (v5.8.0)
 python scripts/pp.py html-report draft.workflow.json -o report.html
+# Multi-run trend dashboard: several workflow JSONs → rewrite trajectory (v6.0.0)
+python scripts/pp.py trend 轮次目录/ -o trend.html
 # Natural-language command router: describe the task, get the command (v5.8.0)
 python scripts/pp.py recommend "把这段的AI率降一降"
 # Journal precheck (suspected-AIGC ratio vs the 20-25% reference line, non-interchangeable disclaimer)
@@ -337,6 +340,7 @@ No. `pp_fix_suggest.py` (`pp.py fix`) only locates sentences carrying improvable
 | pp_rewrite_check.py | Rewrite-effect regression check (v5.1.0) | `original revised` `--json` `--demo` | Score/risk-band migration + paragraph deltas + feature-type clears/remaining |
 | pp_batch_report.py | Batch CSV → HTML summary (v5.1.0) | `csv_file` `-o out.html` | Totals/mean/band cards + histogram + per-file table |
 | pp_report_html.py | Single-document visual dashboard (v5.8.0) | `json...` `-o out.html` `--title` | Self-contained HTML: gauge + histogram + paragraph/finding/ledger tables; zero external resources |
+| pp_trend.py | Multi-run trend dashboard (v6.0.0) | `workflow.json.../目录` `-o` | Score trajectory SVG + per-run delta table (↓/↑ flagged); degraded-mode runs marked |
 | pp_verify.py | Structured zero-network self-verification (v5.0.0) | `--json` | AST-level scan verdict; exit 0 = zero network calls |
 | quality_report.py | Overall quality report | `--json` | Readability/quality dimensions for the manuscript |
 | deai_gate.py | 4-layer fused gate | `--json` | composite score + verdict band (<35 pass / 35-55 review / ≥55 suspect) |
@@ -370,6 +374,7 @@ Monthly full pass: `python scripts/freshness_refresh.py` (schedule it with your 
 
 ## Version history (condensed)
 
+- **v6.0.0 (2026-10-19)** — reporting & experience major: multi-run trend dashboard (`pp.py trend`); unified plain-language error presentation (`pp_errors.py`, wired into four entry points); grouped `pp.py` help with a beginner path and an English entry surface (`PP_LANG=en`); batch chaos test suite.
 - **v5.9.0 (2026-10-18)** — zero-config onboarding & batch robustness: supervised-model acquisition guide (`pp_setup.py --guide`, wired into doctor/check), batch circuit breaker (`--circuit`, default 5) + fix for one corrupt docx killing the whole batch, opt-in out-of-dictionary neologism probe (`term_check.py --neologism`), version-header hygiene with a release gate, FAQ group navigation.
 - **v5.8.1 (2026-10-17)** — terminology bank extended with practice-derived standardization aliases; term matching fixed to single-pass longest-first resolution (a short standard term no longer shadows a longer alias); count claims updated to 2,335.
 - **v5.8.0 (2026-10-16)** — visual dashboard release: `pp_report_html.py` renders workflow/detect/fix/norm JSON into one self-contained HTML (gauge, histogram, paragraph/finding/ledger tables); `pp.py recommend` natural-language command router; exit-code contract documented and locked; top-3 limits surfaced next to the TL;DR; ZH version history slimmed to match EN.

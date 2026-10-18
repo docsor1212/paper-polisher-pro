@@ -1,8 +1,8 @@
 {
   "name": "paper-polisher-pro",
-  "version": "5.9.0",
+  "version": "6.0.0",
   "description": "AI writing detector (author self-check) + academic polishing guidance + terminology protection, 100% local. 11-layer recalibrated rule engine + token-spectrum layer + length-routed fusion + optional supervised Qwen3-0.6B ONNX layer (AUROC 1.0 held-out) + LLM fingerprint attribution (GLM/DeepSeek/Qwen/Kimi/MiniMax/GPT/Claude/Gemini) + journal precheck + AIGC compliance label check + paragraph attribution + sentence-level rewrite suggestions (guidance, never auto-rewrite). Eval-driven: base-engine numbers reproduce via the bundled held-out evaluation; supervised-layer figures are author-side held-out measurements.",
   "author": "DoctorQ Lab",
-  "changelog": "v5.9.0: zero-config onboarding & batch robustness — new pp_setup.py --guide spells out the supervised-model acquisition path (channel, placement, verification, degraded-mode semantics) and doctor/check now point to it; batch circuit breaker (--circuit, default 5) stops a queue of corrupt files early with full disclosure, and one corrupt .docx no longer kills the whole batch; opt-in neologism probe (term_check.py --neologism) surfaces out-of-bank high-frequency strings as review leads (uncalibrated, advisory-only, never scored); version-header hygiene with a release gate; FAQ group navigation. No engine scoring changes — published numbers bit-reproducible. 零新增依赖。",
+  "changelog": "v6.0.0: reporting & experience major — new pp_trend.py (pp.py trend) renders multi-round rewrite trajectories from workflow JSONs into one self-contained HTML (inline-SVG score line, per-run delta table with improvement/rebound flags, degraded-run markers); unified plain-language error presentation (pp_errors.py) replaces scattered technical messages across four entry points with the exit-code contract untouched; pp.py help is now grouped by scenario with a three-step beginner path, and PP_LANG=en switches the entry surface to English; bundled batch chaos suite locks per-file isolation and circuit disclosure. No engine scoring changes — published numbers bit-reproducible. 零新增依赖。",
   "license": "MIT-0"
 }

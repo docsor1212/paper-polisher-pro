@@ -132,10 +132,13 @@ def main():
     try:
         r = build_bundle(args.file, outdir=args.outdir, lang=args.lang)
     except ValueError as e:
-        print(f"ERROR: {e}", file=sys.stderr)
+        from pp_errors import print_friendly
+        print_friendly(e)
         return 2
     except Exception as e:
-        print(f"ERROR: 自查包生成失败: {e}", file=sys.stderr)
+        from pp_errors import print_friendly
+        print(f"ERROR: 自查包生成失败", file=sys.stderr)
+        print_friendly(e)
         return 1
     s = r["summary"]
     print(f"自查包: {r['bundle_dir']}")

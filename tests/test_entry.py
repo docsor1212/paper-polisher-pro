@@ -16,7 +16,7 @@ class TestRouting(unittest.TestCase):
     def test_all_commands_point_to_existing_scripts(self):
         code = ("import sys; sys.path.insert(0, %r);"
                 "from pp import COMMANDS; import os;"
-                "missing = [s for s, _ in COMMANDS.values()"
+                "missing = [s for s, *_ in COMMANDS.values()"
                 " if not os.path.exists(os.path.join(%r, s))];"
                 "print('MISSING:', missing)") % (str(SCRIPTS), str(SCRIPTS))
         out = subprocess.run([sys.executable, "-c", code],

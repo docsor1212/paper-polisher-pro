@@ -1,61 +1,101 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""pp.py — paper-polisher-pro 统一命令入口（v4.9.0 新增；v5.8.0 扩至 21 子命令）
+"""pp.py — paper-polisher-pro 统一命令入口（v4.9.0 新增；v6.0.0 分组帮助+双语入口）
 
 多脚本入口导航成本高：一个入口路由全部子命令，
 参数原样透传给对应脚本（用法 = 各脚本自己的 --help）。
 
+v6.0.0：帮助按场景分组（新手三步置顶）；PP_LANG=en 切英文入口面。
+
 用法：
   python3 scripts/pp.py <子命令> [参数...]
-  python3 scripts/pp.py            # 列出全部子命令
-  python3 scripts/pp.py recommend "把这段的AI率降一降"   # 自然语言场景路由（v5.8.0）
+  python3 scripts/pp.py            # 分组列出全部子命令
+  PP_LANG=en python3 scripts/pp.py # 英文入口面
+  python3 scripts/pp.py recommend "把这段的AI率降一降"   # 自然语言场景路由
 
 示例：
   python3 scripts/pp.py detect draft.txt --format json
-  python3 scripts/pp.py fix draft.txt --top 10   # 句子级改写建议（v5.0.0）
-  python3 scripts/pp.py html-report draft.workflow.json -o report.html  # 可视化仪表盘（v5.8.0）
-  python3 scripts/pp.py quickstart               # 零模型零文件一键体验（v5.0.0）
-  python3 scripts/pp.py test                     # 包内单元测试（v5.0.0）
-  python3 scripts/pp.py verify                   # 结构化零网络自证（v5.0.0）
+  python3 scripts/pp.py fix draft.txt --top 10   # 句子级改写建议
+  python3 scripts/pp.py html-report draft.workflow.json -o report.html  # 可视化仪表盘
+  python3 scripts/pp.py trend 轮次目录/           # 多轮改稿趋势仪表盘（v6.0.0）
+  python3 scripts/pp.py quickstart               # 零模型零文件一键体验
+  python3 scripts/pp.py test                     # 包内单元测试
   python3 scripts/pp.py workflow draft.txt
   python3 scripts/pp.py doctor
 
 退出码契约（v5.8.0 起稳定）：0 成功 ｜ 1 运行完成但未通过 ｜ 2 用法/输入错误 ｜ 3 环境不满足。
 详见 SKILL.md § Exit-code contract。
 """
+import os
 import subprocess
 import sys
 import tempfile
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
+_LANG = os.environ.get("PP_LANG", "zh").lower()
 
+# (脚本, 中文描述, 英文描述)
 COMMANDS = {
-    "detect": ("ai_detector.py", "AI 率检测（单文件或 --batch 目录 + --recursive/--csv）"),
-    "gate": ("deai_gate.py", "四层降AI门禁（词级/文体/翻译腔/术语 → 复合分）"),
-    "fix": ("pp_fix_suggest.py", "句子级改写建议（指位+策略，不代改；v5.0.0）"),
-    "rewrite-check": ("pp_rewrite_check.py", "改写效果对比（原稿 vs 改稿，引擎同源；v5.1.0）"),
-    "norm": ("pp_style_norm.py", "学术写作规范自查（全半角/数字/缩写/单位，不评分；v5.2.0）"),
-    "bundle": ("pp_report_bundle.py", "投稿前自查包（一条命令产出全部自查产物；v5.3.0）"),
-    "freshness": ("freshness_refresh.py", "指纹保鲜状态自检（--status；v5.4.0）"),
-    "batch-report": ("pp_batch_report.py", "批量 CSV → HTML 汇总报告（v5.1.0）"),
-    "html-report": ("pp_report_html.py", "单文档可视化仪表盘（workflow/detect/fix/norm JSON → 单文件 HTML；v5.8.0）"),
-    "workflow": ("pp_workflow.py", "端到端自查工作流（Markdown + JSON 报告）"),
-    "term": ("term_check.py", "术语保护检查（--auto-fix 可自动修复）"),
-    "smell": ("translation_smell_check.py", "翻译腔检查（--json）"),
-    "style": ("style_distance.py", "文体距离/人类相似度（--json）"),
-    "quality": ("quality_report.py", "综合质量报告"),
-    "aigc": ("aigc_label_check.py", "AIGC 合规标识检查（docx/pdf/图片/文本）"),
-    "paragraph": ("paragraph_report.py", "段落级归因（HTML 报告）"),
-    "setup": ("pp_setup.py", "监督层装模/状态/获取指南（--model / --check / --guide；v5.9.0）"),
-    "doctor": ("pp_doctor.py", "环境自检（能跑吗/跑哪档）"),
-    "verify": ("pp_verify.py", "结构化零网络自证（AST 级；v5.0.0）"),
+    "detect": ("ai_detector.py", "AI 率检测（单文件或 --batch 目录 + --recursive/--csv）",
+               "AI-rate detection (single file or --batch DIR + --recursive/--csv)"),
+    "gate": ("deai_gate.py", "四层降AI门禁（词级/文体/翻译腔/术语 → 复合分）",
+             "4-layer de-AI gate (lexical/style/translationese/terms → composite)"),
+    "fix": ("pp_fix_suggest.py", "句子级改写建议（指位+策略，不代改）",
+            "Sentence-level rewrite suggestions (locate + strategy, never auto-rewrites)"),
+    "rewrite-check": ("pp_rewrite_check.py", "改写效果对比（原稿 vs 改稿，引擎同源）",
+                      "Before/after rewrite comparison (same engine)"),
+    "norm": ("pp_style_norm.py", "学术写作规范自查（全半角/数字/缩写/单位/LLM 腔，不评分）",
+             "Academic style-norm self-check (fullwidth/numbers/abbrev/units/LLM jargon, no score)"),
+    "term": ("term_check.py", "术语保护检查（--auto-fix 可自动修复；--neologism 新造词提示）",
+             "Terminology standardization check (--auto-fix; --neologism out-of-bank probe)"),
+    "smell": ("translation_smell_check.py", "翻译腔检查（--json）", "Translationese check (--json)"),
+    "style": ("style_distance.py", "文体距离/人类相似度（--json）", "Stylometry / human-likeness (--json)"),
+    "workflow": ("pp_workflow.py", "端到端自查工作流（Markdown + JSON 报告）",
+                 "End-to-end self-check workflow (Markdown + JSON report)"),
+    "quality": ("quality_report.py", "综合质量报告", "Overall quality report"),
+    "bundle": ("pp_report_bundle.py", "投稿前自查包（一条命令产出全部自查产物）",
+               "Submission self-check bundle (one command → all artifacts)"),
+    "html-report": ("pp_report_html.py", "单文档可视化仪表盘（workflow 等 JSON → 单文件 HTML）",
+                    "Single-document visual dashboard (workflow JSON → one self-contained HTML)"),
+    "trend": ("pp_trend.py", "多轮趋势报告（多份 workflow JSON → 改稿轨迹仪表盘；v6.0.0）",
+              "Multi-run trend report (several workflow JSONs → trajectory dashboard; v6.0.0)"),
+    "batch-report": ("pp_batch_report.py", "批量 CSV → HTML 汇总报告",
+                     "Batch CSV → HTML summary report"),
+    "aigc": ("aigc_label_check.py", "AIGC 合规标识检查（docx/pdf/图片/文本）",
+             "AIGC label compliance check (docx/pdf/images/text)"),
+    "verify": ("pp_verify.py", "结构化零网络自证（AST 级）",
+               "AST-level structured zero-network self-verification"),
+    "freshness": ("freshness_refresh.py", "指纹保鲜状态自检（--status）",
+                  "Fingerprint freshness status (--status)"),
+    "paragraph": ("paragraph_report.py", "段落级归因（HTML 报告）", "Paragraph-level attribution (HTML report)"),
+    "setup": ("pp_setup.py", "监督层装模/状态/获取指南（--model / --check / --guide）",
+              "Supervised-layer install/status/acquisition guide (--model / --check / --guide)"),
+    "doctor": ("pp_doctor.py", "环境自检（能跑吗/跑哪档）", "Environment self-check (can it run / which mode)"),
 }
+
+# 场景分组（v6.0.0）：新手按需看一组，不再面对 21 行平铺清单
+GROUPS = (
+    ("检测", "Detection", ("detect", "gate", "paragraph")),
+    ("改写建议", "Rewrite guidance", ("fix", "rewrite-check")),
+    ("规范与术语", "Conventions & terms", ("norm", "term", "smell", "style")),
+    ("报告与可视化", "Reports & visuals", ("workflow", "quality", "bundle", "html-report", "trend", "batch-report")),
+    ("合规与自证", "Compliance & assurance", ("aigc", "verify", "freshness")),
+    ("环境", "Environment", ("setup", "doctor")),
+)
 
 # 内建子命令（非透传，本文件内实现）
 BUILTIN = ("quickstart", "test", "api", "recommend")
 
-# 自然语言场景 → 子命令 路由规则（v5.8.0）。命中数降序取前三；关键词大小写不敏感、子串匹配。
+_QUICKSTART_SAMPLE = (
+    "值得注意的是，随着人工智能技术的快速发展，其在医疗领域的应用日益受到关注。"
+    "具体而言，AI 不仅能够提高诊断效率，而且可以优化治疗方案的制定。"
+    "然而，与此同时，我们在享受技术红利的同时也面临着诸多挑战。"
+    "在一定程度上，数据安全问题的存在对行业发展产生了一定的制约。"
+    "综上所述，本研究为该领域的进一步探索提供了一定的参考价值。"
+)
+
+# 自然语言场景 → 子命令 路由规则（v5.8.0；v6.0.0 增趋势）
 _RECOMMEND_RULES = (
     (("ai率", "ai 率", "检测", "查ai", "查 ai", "像不像", "多像ai", "gpt检测", "aigc率",
       "detect", "ai score", "ai写作", "ai生成"), "detect",
@@ -71,10 +111,8 @@ _RECOMMEND_RULES = (
      "学术规范 + LLM 腔自查（不评分）", "pp.py norm draft.txt"),
     (("术语", "同概念", "一致性", "terminology"), "term",
      "术语标准化与同概念异写一致性", "pp.py term draft.txt"),
-    (("翻译腔", "欧化", "translation"), "smell",
-     "翻译腔检查", "pp.py smell draft.txt"),
-    (("文体", "文风", "人类相似", "style"), "style",
-     "文体距离 / 人类相似度", "pp.py style draft.txt"),
+    (("翻译腔", "欧化", "translation"), "smell", "翻译腔检查", "pp.py smell draft.txt"),
+    (("文体", "文风", "人类相似", "style"), "style", "文体距离 / 人类相似度", "pp.py style draft.txt"),
     (("投稿", "自查包", "一键全部", "bundle", "submission"), "bundle",
      "投稿前自查包：一条命令产出全部自查产物", "pp.py bundle thesis.docx --outdir ~/selfcheck"),
     (("批量", "整个目录", "多份", "batch"), "detect",
@@ -87,26 +125,17 @@ _RECOMMEND_RULES = (
      "段落级人机归因（HTML）", "pp.py paragraph draft.txt"),
     (("环境", "报错", "跑不了", "装模型", "模型", "doctor", "setup", "install"), "doctor",
      "环境自检：能跑吗 / 跑哪档 / 缺什么", "pp.py doctor"),
-    (("自证", "零网络", "审计", "verify"), "verify",
-     "AST 级零网络结构自证", "pp.py verify"),
-    (("保鲜", "过期", "漂移", "freshness"), "freshness",
-     "指纹保鲜状态自检", "pp.py freshness --status"),
+    (("自证", "零网络", "审计", "verify"), "verify", "AST 级零网络结构自证", "pp.py verify"),
+    (("保鲜", "过期", "漂移", "freshness"), "freshness", "指纹保鲜状态自检", "pp.py freshness --status"),
     (("仪表盘", "可视化", "汇总", "html", "dashboard", "report"), "html-report",
      "检测/建议/规范 JSON → 单文件 HTML 仪表盘", "pp.py html-report draft.workflow.json -o report.html"),
-    (("质量", "可读性", "quality"), "quality",
-     "综合质量报告", "pp.py quality draft.txt"),
+    (("趋势", "多次", "轨迹", "进步", "trend"), "trend",
+     "多轮改稿趋势：多份 workflow JSON → 轨迹仪表盘", "pp.py trend 轮次目录/ -o trend.html"),
+    (("质量", "可读性", "quality"), "quality", "综合质量报告", "pp.py quality draft.txt"),
     (("编程", "集成", "api", "sdk", "python"), "api",
      "Python SDK 提示（import pp_api，无 CLI）", "import pp_api  # 见 SKILL.md § Python API"),
     (("全流程", "一步到位", "工作流", "workflow", "综合", "整体"), "workflow",
      "端到端自查：一次产出全部结果（MD + JSON）", "pp.py workflow draft.txt"),
-)
-
-_QUICKSTART_SAMPLE = (
-    "值得注意的是，随着人工智能技术的快速发展，其在医疗领域的应用日益受到关注。"
-    "具体而言，AI 不仅能够提高诊断效率，而且可以优化治疗方案的制定。"
-    "然而，与此同时，我们在享受技术红利的同时也面临着诸多挑战。"
-    "在一定程度上，数据安全问题的存在对行业发展产生了一定的制约。"
-    "综上所述，本研究为该领域的进一步探索提供了一定的参考价值。"
 )
 
 
@@ -144,7 +173,8 @@ def _run_tests():
 
 
 def _run_recommend(query):
-    """自然语言场景路由（v5.8.0）：命中数降序取前三，给出可直接复制的命令。"""
+    """自然语言场景路由：命中数降序取前三，给出可直接复制的命令。"""
+    en = _LANG.startswith("en")
     q = (query or "").lower()
     scored = []
     for kws, cmd, why, example in _RECOMMEND_RULES:
@@ -153,52 +183,94 @@ def _run_recommend(query):
             scored.append((hits, cmd, why, example))
     scored.sort(key=lambda t: -t[0])
     if not scored:
-        print("没有命中明确的场景关键词。两个稳妥入口：")
-        print("  · 全流程自查（一次产出全部结果）: python3 scripts/pp.py workflow draft.txt")
-        print("  · 环境自检（能跑吗/跑哪档）    : python3 scripts/pp.py doctor")
-        print("提示：换更具体的词再试，如「AI率」「降重」「翻译腔」「批量」「环境」；")
-        print("      或直接列出全部子命令：python3 scripts/pp.py")
+        if en:
+            print("No clear scenario matched. Two safe entries:")
+            print("  · Full self-check   : python3 scripts/pp.py workflow draft.txt")
+            print("  · Environment check : python3 scripts/pp.py doctor")
+        else:
+            print("没有命中明确的场景关键词。两个稳妥入口：")
+            print("  · 全流程自查（一次产出全部结果）: python3 scripts/pp.py workflow draft.txt")
+            print("  · 环境自检（能跑吗/跑哪档）    : python3 scripts/pp.py doctor")
+            print("提示：换更具体的词再试，如「AI率」「降重」「翻译腔」「批量」「环境」；")
+            print("      或直接列出全部子命令：python3 scripts/pp.py")
         return 0
-    print("根据你的描述，推荐（按命中度排序）：\n")
+    print("根据你的描述，推荐（按命中度排序）：\n" if not en
+          else "Top matches (by keyword hits):\n")
     for i, (_, cmd, why, example) in enumerate(scored[:3], 1):
         print("【%d】%s" % (i, cmd))
         print("    %s" % why)
-        print("    命令：%s" % example)
+        print("    命令：%s" % example if not en else "    command: %s" % example)
         print()
-    print("各子命令参数同原脚本（用法 = 对应脚本 --help）；退出码契约见 SKILL.md § Exit-code contract。")
+    if not en:
+        print("各子命令参数同原脚本（用法 = 对应脚本 --help）；退出码契约见 SKILL.md § Exit-code contract。")
+    return 0
+
+
+def _print_help():
+    en = _LANG.startswith("en")
+    if en:
+        print("paper-polisher-pro unified entry\n")
+        print("First 60 seconds: ① pp.py quickstart (zero-model demo)  "
+              "② pp.py detect draft.txt  ③ pp.py workflow draft.txt (full report)\n")
+        width = max(len(k) for k in COMMANDS)
+        for cn, eng, keys in GROUPS:
+            print(f"[{eng}]")
+            for k in keys:
+                script, _, desc_en = COMMANDS[k]
+                print("  %-*s  %s" % (width, k, desc_en))
+            print()
+        print("[helpers]")
+        print("  quickstart      Zero-model, zero-file demo (detect→fix→doctor)")
+        print("  test            Bundled unit tests (unittest, seconds)")
+        print("  recommend       Natural-language command router (describe the task)")
+        print("\nPython SDK: import pp_api (no CLI; see SKILL.md § Python API)")
+        print("Exit-code contract (stable since v5.8.0): 0 ok | 1 ran-but-not-passed | "
+              "2 usage/input error | 3 environment not ready")
+        return 0
+    print("paper-polisher-pro 统一入口\n")
+    print("新手三步：① pp.py quickstart（一键体验） ② pp.py detect 你的文稿.txt（测 AI 率）"
+          " ③ pp.py workflow 你的文稿（完整报告）\n")
+    width = max(len(k) for k in COMMANDS)
+    for cn, eng, keys in GROUPS:
+        print("【%s %s】" % (cn, eng))
+        for k in keys:
+            script, desc, _ = COMMANDS[k]
+            print("  %-*s  %s" % (width, k, desc))
+        print()
+    print("【辅助】")
+    print("  %-*s  %s" % (width, "quickstart", "零模型零文件一键体验（detect→fix→doctor）"))
+    print("  %-*s  %s" % (width, "test", "包内单元测试（unittest，秒级）"))
+    print("  %-*s  %s" % (width, "recommend", "自然语言场景路由（描述需求 → 推荐命令）"))
+    print("\nPython SDK: import pp_api（无 CLI；编程接口见 SKILL.md § Python API）")
+    print("提示：各子命令的参数同原脚本，例如 pp.py detect draft.txt --format json；"
+          "英文入口面：PP_LANG=en pp.py")
+    print("退出码契约（v5.8.0 起稳定）：0 成功 ｜ 1 运行完成但未通过 ｜ 2 用法/输入错误 ｜ 3 环境不满足")
     return 0
 
 
 def main():
     args = sys.argv[1:]
     if not args or args[0] in ("-h", "--help", "help"):
-        print("paper-polisher-pro 统一入口\n")
-        entries = list(COMMANDS.items())
-        width = max(len(k) for k, _ in entries)
-        for k, (_, desc) in entries:
-            print("  %-*s  %s" % (width, k, desc))
-        print("  %-*s  %s" % (width, "quickstart", "零模型零文件一键体验（detect→fix→doctor）"))
-        print("  %-*s  %s" % (width, "test", "包内单元测试（unittest，秒级）"))
-        print("  %-*s  %s" % (width, "recommend", "自然语言场景路由（v5.8.0：描述需求 → 推荐命令）"))
-        print("\nPython SDK: import pp_api（无 CLI；编程接口见 SKILL.md § Python API）")
-        print("提示：各子命令的参数同原脚本，例如 pp.py detect draft.txt --format json")
-        print("退出码契约（v5.8.0 起稳定）：0 成功 ｜ 1 运行完成但未通过 ｜ 2 用法/输入错误 ｜ 3 环境不满足")
-        return 0
+        return _print_help()
     cmd = args[0]
     if cmd == "api":
         print("Python SDK 无 CLI：import pp_api（见 SKILL.md § Python API）")
         return 0
     if cmd == "quickstart":
         return _run_quickstart()
-    if cmd == "recommend":
-        return _run_recommend(" ".join(args[1:]))
     if cmd == "test":
         return _run_tests()
+    if cmd == "recommend":
+        return _run_recommend(" ".join(args[1:]))
     if cmd not in COMMANDS:
-        print("未知子命令: %s（可用：%s quickstart test）"
-              % (cmd, " ".join(COMMANDS)), file=sys.stderr)
+        if _LANG.startswith("en"):
+            print("Unknown subcommand: %s (available: %s quickstart test recommend)"
+                  % (cmd, " ".join(COMMANDS)), file=sys.stderr)
+        else:
+            print("未知子命令: %s（可用：%s quickstart test recommend）"
+                  % (cmd, " ".join(COMMANDS)), file=sys.stderr)
         return 2
-    script, _ = COMMANDS[cmd]
+    script, _, _ = COMMANDS[cmd]
     p = subprocess.run([sys.executable, str(HERE / script)] + args[1:])
     return p.returncode
 

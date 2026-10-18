@@ -122,7 +122,8 @@ def main():
     try:
         text = docx_to_text(args.file)
     except DocxError as e:
-        print(f"ERROR: {e}", file=sys.stderr)
+        from pp_errors import print_friendly
+        print_friendly(e)
         return 2
     if args.output:
         Path(args.output).write_text(text, encoding="utf-8")

@@ -310,7 +310,8 @@ def main():
         from docx_text import read_text_any
         text = read_text_any(p)
     except (ValueError, OSError) as e:
-        print(f"ERROR: {e}", file=sys.stderr)
+        from pp_errors import print_friendly
+        print_friendly(e)
         return 2
     if len(text.strip()) < 100:
         print("ERROR: 文本不足 100 字（铁律 2：短文本不出判定）——请提交 100 字以上（建议 300+）", file=sys.stderr)
@@ -318,7 +319,8 @@ def main():
     try:
         r = workflow(text, lang=a.lang)
     except Exception as e:
-        print("ERROR: %s" % e, file=sys.stderr)
+        from pp_errors import print_friendly
+        print_friendly(e)
         return 1
     outdir = Path(a.outdir) if a.outdir else p.parent
     outdir.mkdir(parents=True, exist_ok=True)

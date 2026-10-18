@@ -1086,7 +1086,8 @@ def _read_input_text(path, exit_on_error=True):
     try:
         return read_text_any(path)
     except DocxError as e:
-        print(f"Error: {e}", file=sys.stderr)
+        from pp_errors import print_friendly
+        print_friendly(e)
         if exit_on_error:
             sys.exit(2)  # 退出码契约 v5.8.0: 输入解析错误=2（单文件入口）
         raise  # 批处理入口: 转异常走逐文件 ERROR 行 + 熔断计数（v5.9.0 修复一个坏 docx 炸整批）

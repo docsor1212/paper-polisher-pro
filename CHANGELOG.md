@@ -3,6 +3,13 @@
 > **只想快速上手？** 回 `SKILL.md` § TL;DR（30 秒任务路由表）——本文件仅是完整版本历史，新用户无需阅读。
 > Historical release notes. Newest first. SKILL.md § Version history keeps only the last three releases; everything older lives here (single source, no duplication).
 
+## What's new in v6.0.0
+
+- **Multi-run trend dashboard (`pp_trend.py`, `pp.py trend`)**: single reports answer "what's the score now"; authors iterating on a manuscript need "is the score actually coming down across rounds". Feed it the workflow JSONs from each round (files or a directory), get one self-contained HTML: score trajectory as inline SVG (risk-band colored points, degraded-mode runs hollow), a per-run delta table (↓ improved / ↑ rebound flagged), first→last net-change cards. Honest boundary in the output: a lower score is not a better manuscript — quality is the goal; degraded-mode and full-mode runs are not directly comparable and are marked.
+- **Unified error presentation (`pp_errors.py`)**: error handling no longer lives scattered per-script with technical raw messages (zip-bomb guard text etc.). Known guardrail exceptions now render as a two-line, plain-language explanation plus a concrete next step (what to do with an oversized/corrupt .docx, a mislabeled file, a missing model → points to the acquisition guide). Exit-code contract untouched (0/1/2/3). Wired into ai_detector / pp_workflow / pp_report_bundle / docx_text entry points.
+- **Grouped entry + English surface (`pp.py`)**: the flat 21-command list is now grouped by scenario (detection / rewrite guidance / conventions & terms / reports & visuals / compliance & assurance / environment) with a three-step beginner path on top; `PP_LANG=en` switches the whole entry surface (help, unknown-command messages, recommend output) to English — the second environment variable alongside `PP_NO_SUP`, both documented in the safety statement.
+- **Batch chaos suite**: the bundled tests now include a mixed-chaos batch fixture (corrupt/empty/short/encoding-odd/valid files together) asserting per-file isolation, circuit disclosure and CSV integrity — the long-batch robustness the previous release asked for, now locked by tests.
+
 ## What's new in v5.9.0
 
 - **Supervised-model acquisition guide (`pp_setup.py --guide`)**: the biggest remaining zero-config gap was that the optional supervised layer told you how to install a model file but not how to obtain one. The new guide command spells out what the layer is, the author-signed acquisition channel (GitHub issue), placement/verification steps, and the documented degraded-mode semantics when you skip it; `pp_doctor` and `pp_setup --check` now point to the guide whenever the engine runs without the model.
@@ -208,6 +215,13 @@
 # 更新日志（中文）
 
 > v4.6.0 起历史更新说明移出 SKILL_ZH.md（新用户更快触达工作流）。最新在前。各版本摘要亦见 SKILL_ZH.md § 版本历史。
+
+## v6.0.0 更新内容
+
+- **多轮趋势仪表盘（`pp_trend.py`，`pp.py trend`）**：单次报告只回答「现在多少分」，多轮改稿真正要问的是「改了这么多版分数到底有没有降」。把每轮的 workflow JSON（文件或目录）喂给它，得到一张自包含 HTML：分数轨迹内联 SVG（风险带着色、降级轮空心点）、逐轮 delta 表（↓改善/↑回升醒目标注）、首末净变化卡片。诚实边界写入输出：分数下降不等于内容更好——改稿以质量为准；降级档与融合档轮次不可直接互比且有标注。
+- **统一错误呈现（`pp_errors.py`）**：错误处理不再分散各脚本、技术原文直出（如 zip-bomb 护栏文案）。已知护栏异常统一渲染为「人话解释 + 具体下一步」两行（过大/损坏 docx 怎么办、扩展名与实际格式不符怎么办、缺模型 → 指向获取指南）。退出码契约不动（0/1/2/3）。已接入 ai_detector / pp_workflow / pp_report_bundle / docx_text 四入口。
+- **分组入口 + 英文面（`pp.py`）**：21 个子命令的平铺清单改为按场景分组（检测/改写建议/规范与术语/报告与可视化/合规与自证/环境），顶部置新手三步；`PP_LANG=en` 把入口面（帮助/未知命令提示/推荐输出）整体切英文——与 `PP_NO_SUP` 并列的第二个环境变量，均已写入安全声明。
+- **批处理混沌压测套件**：随包测试新增混合混沌夹具（损坏/空/过短/编码异常/正常文件同目录），断言逐文件隔离、熔断披露与 CSV 完整性——上一版点名的长批健壮性，现在有测试锁定。
 
 ## v5.9.0 更新内容
 
