@@ -3,6 +3,14 @@
 > **只想快速上手？** 回 `SKILL.md` § TL;DR（30 秒任务路由表）——本文件仅是完整版本历史，新用户无需阅读。
 > Historical release notes. Newest first. SKILL.md § Version history keeps only the last three releases; everything older lives here (single source, no duplication).
 
+## What's new in v6.1.0
+
+- **Report explainer (`pp_explain.py`, `pp.py explain`)**: any workflow/detect JSON becomes a three-part plain-language reading — verdict (score, risk band, engine mode with degraded-mode medical caveat), evidence (paragraph hi/med/lo with top excerpts, gate verdict, style/term findings aggregated, sentence-suggestion stats), and an action checklist of concrete next commands (paragraph review for mixed-writing, `fix`, `norm`, `term`, trend, bundle). Also reachable through the natural-language router ("解读这份报告").
+- **Error glossary extended (`pp_errors.py`)**: the remaining technical phrases the review called out now translate too — AST self-verification hits, baseline drift, author-signature rejection, per-layer gate parse fallback; `pp_verify` prints the next-step line on findings, and the `pp.py` passthrough prints the exit-code meaning whenever a subcommand exits abnormally.
+- **Timeout hardening**: `pp.py quickstart` sub-steps now carry a 180s timeout each (a hung step can no longer wedge the demo); the gate layers' existing 120s-timeout + single-retry behavior is now stated in the docs as part of the stability contract.
+- **Deep-dive sections moved to `references/`**: the architecture diagram and fingerprint-freshness pipeline notes (calibration split, model-generation coverage) moved from SKILL.md to `references/architecture.md` (linked, read-on-demand) — the main file stays a getting-started document.
+- **`references/best-practices.md` (new)**: scenario-level guidance — which profile for which discipline, the correct (human-review) way to use paragraph attribution, the rewrite loop with `rewrite-check`/`trend`, batch organization with the circuit breaker, mode/trust boundaries and compliance; `examples/outputs/` samples are now annotated with the scenario each one answers.
+
 ## What's new in v6.0.0
 
 - **Multi-run trend dashboard (`pp_trend.py`, `pp.py trend`)**: single reports answer "what's the score now"; authors iterating on a manuscript need "is the score actually coming down across rounds". Feed it the workflow JSONs from each round (files or a directory), get one self-contained HTML: score trajectory as inline SVG (risk-band colored points, degraded-mode runs hollow), a per-run delta table (↓ improved / ↑ rebound flagged), first→last net-change cards. Honest boundary in the output: a lower score is not a better manuscript — quality is the goal; degraded-mode and full-mode runs are not directly comparable and are marked.
@@ -215,6 +223,14 @@
 # 更新日志（中文）
 
 > v4.6.0 起历史更新说明移出 SKILL_ZH.md（新用户更快触达工作流）。最新在前。各版本摘要亦见 SKILL_ZH.md § 版本历史。
+
+## v6.1.0 更新内容
+
+- **报告解读器（`pp_explain.py`，`pp.py explain`）**：任意 workflow/detect JSON → 三段人话——【结论】分数/风险带/档位（降级档医学警告如实转述）、【证据】段落 hi/med/lo 与最高分段摘录、门禁判定、规范与术语 findings 聚合、句子建议统计、【行动清单】按报告内容给出可执行命令（混写→逐段复核、fix/norm/term、趋势、投稿打包）。自然语言路由「解读这份报告」可达。
+- **错误词典扩展（`pp_errors.py`）**：评审点名的剩余技术话术全部人话化——AST 自证命中、基线漂移、作者签发拒绝、门禁层解析回退；`pp_verify` 命中时输出下一步指引；`pp.py` 透传遇到异常退出码时打印契约含义与 doctor 指路。
+- **超时加固**：`pp.py quickstart` 三个子步各加 180 秒超时（单步卡死不再拖死演示）；门禁层既有的 120 秒超时+一次重试行为写入文档稳定性契约。
+- **深水区外迁 `references/`**：架构图与指纹保鲜流水线说明（校准切分、代际覆盖）从 SKILL.md 迁至 `references/architecture.md`（保留链接、按需阅读）——主文档回归上手文档定位。
+- **`references/best-practices.md`（新增）**：场景级指南——什么学科选什么口径、段落归因的正确（人工复核）用法、改写循环（rewrite-check/trend）、批量组织与熔断、档位与可信度边界、合规；`examples/outputs/` 每个样例标注了它回答什么场景。
 
 ## v6.0.0 更新内容
 

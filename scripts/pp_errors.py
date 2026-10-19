@@ -66,6 +66,21 @@ def render(exc):
     if "onnxruntime" in s.lower():
         return ("可选依赖 onnxruntime 未安装（监督层不可用，已自动降级）",
                 f"pip install onnxruntime regex 可启用监督层；{_GUIDE}")
+    if "AST" in s and ("命中" in s or "编译" in s or "网络" in s):
+        return ("结构化自证发现疑似网络调用或编译错误（AST 级扫描）",
+                "按输出里的 文件:行 逐条核对——报告页脚的 URL 字符串是数据不是调用；"
+                "自行无法处置时到 docsor1212 仓库提 issue 附本输出")
+    if "漂移" in s or "drift" in s.lower():
+        return ("基线漂移：本次结果与已发布基线不一致",
+                "先 python3 scripts/pp_doctor.py 查环境与档位；指纹保鲜漂移跑 "
+                "python3 scripts/pp.py freshness --status；不要自行回改基线文件")
+    if "REJECTED" in s or "签发注册表" in s or "不在作者签发" in s:
+        return ("监督模型指纹校验未通过：不是作者签发版本",
+                "重新获取当前签发版（python3 scripts/pp_setup.py --guide）；"
+                "签名注册表保护的是打分可信度，请勿绕过")
+    if "解析失败" in s and ("层" in s or "gate" in s.lower()):
+        return ("某个门禁层临时解析失败（已自动回退中性分，不影响其他层与总判定）",
+                "重试一次；仍复现则 python3 scripts/pp_doctor.py 查环境")
     if isinstance(exc, ValueError):
         return (f"输入不合法：{s[:140]}", "检查输入内容与参数；契约：非法输入抛 ValueError（对应退出码 2）")
     if isinstance(exc, RuntimeError):

@@ -187,6 +187,9 @@ def main():
     else:
         print(f"pp_verify 结构化自证 — 扫描 {len(py_files)} 个文件")
         if hits:
+            from pp_errors import render as _pp_render
+            _title, _next = _pp_render(Exception("AST 命中"))
+            print(f"  下一步: {_next}")
             print(f"✗ 网络命中 {len(hits)} 处：")
             for h in hits:
                 print(f"   {h['file']}:{h['line']} [{h['kind']}] {h['detail']}")

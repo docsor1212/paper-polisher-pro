@@ -60,6 +60,8 @@ COMMANDS = {
                     "Single-document visual dashboard (workflow JSON → one self-contained HTML)"),
     "trend": ("pp_trend.py", "多轮趋势报告（多份 workflow JSON → 改稿轨迹仪表盘；v6.0.0）",
               "Multi-run trend report (several workflow JSONs → trajectory dashboard; v6.0.0)"),
+    "explain": ("pp_explain.py", "报告解读器（workflow/detect JSON → 结论/证据/行动清单人话三段；v6.1.0）",
+                "Report explainer (workflow JSON → plain-language verdict/evidence/actions; v6.1.0)"),
     "batch-report": ("pp_batch_report.py", "批量 CSV → HTML 汇总报告",
                      "Batch CSV → HTML summary report"),
     "aigc": ("aigc_label_check.py", "AIGC 合规标识检查（docx/pdf/图片/文本）",
@@ -131,6 +133,8 @@ _RECOMMEND_RULES = (
      "检测/建议/规范 JSON → 单文件 HTML 仪表盘", "pp.py html-report draft.workflow.json -o report.html"),
     (("趋势", "多次", "轨迹", "进步", "trend"), "trend",
      "多轮改稿趋势：多份 workflow JSON → 轨迹仪表盘", "pp.py trend 轮次目录/ -o trend.html"),
+    (("解读", "解释", "什么意思", "怎么看", "explain", "下一步"), "explain",
+     "报告解读器：把 workflow/detect JSON 翻成 结论/证据/行动清单", "pp.py explain draft.workflow.json"),
     (("质量", "可读性", "quality"), "quality", "综合质量报告", "pp.py quality draft.txt"),
     (("编程", "集成", "api", "sdk", "python"), "api",
      "Python SDK 提示（import pp_api，无 CLI）", "import pp_api  # 见 SKILL.md § Python API"),
@@ -147,11 +151,11 @@ def _run_quickstart():
                                      encoding="utf-8") as f:
         f.write(_QUICKSTART_SAMPLE)
         demo = f.name
-    subprocess.run([sys.executable, str(HERE / "ai_detector.py"), demo])
+    subprocess.run([sys.executable, str(HERE / "ai_detector.py"), demo], timeout=180)
     print("\n【第 2 步/3】句子级改写建议（pp_fix_suggest，只指位+给策略，不代改）")
-    subprocess.run([sys.executable, str(HERE / "pp_fix_suggest.py"), demo, "--top", "3"])
+    subprocess.run([sys.executable, str(HERE / "pp_fix_suggest.py"), demo, "--top", "3"], timeout=180)
     print("\n【第 3 步/3】环境自检（pp_doctor——你当前跑的是哪一档）")
-    subprocess.run([sys.executable, str(HERE / "pp_doctor.py")])
+    subprocess.run([sys.executable, str(HERE / "pp_doctor.py")], timeout=180)
     Path(demo).unlink(missing_ok=True)
     print("\n下一步：把你的文稿存成 txt，运行 python3 scripts/pp.py detect 你的文件.txt"
           "；想看逐句改写建议加 pp.py fix 你的文件.txt。")
@@ -272,6 +276,9 @@ def main():
         return 2
     script, _, _ = COMMANDS[cmd]
     p = subprocess.run([sys.executable, str(HERE / script)] + args[1:])
+    if p.returncode not in (0, 1) and not _LANG.startswith("en"):
+        print(f"[{cmd} 退出码 {p.returncode}] 契约：0=成功 1=运行未通过 2=用法/输入错误 "
+              "3=环境不满足；环境问题先跑 python3 scripts/pp.py doctor", file=sys.stderr)
     return p.returncode
 
 

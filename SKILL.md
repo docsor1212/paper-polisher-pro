@@ -1,6 +1,6 @@
 ---
 name: paper-polisher
-version: 6.0.0
+version: 6.1.0
 author: DoctorQ Lab
 description: >-
   AI-rate self-check and polish guidance for academic writing: sentence-level rewrite
@@ -36,7 +36,7 @@ AI writing detection (AI-rate self-check for authors) · academic polishing guid
 - **30-second start**: `python3 scripts/pp.py quickstart` (zero-model, zero-file demo) · `python3 scripts/pp.py detect draft.txt --format json` · sentence-level rewrite suggestions: `python3 scripts/pp.py fix draft.txt` · full self-check report: `python3 scripts/pp.py workflow draft.txt` · environment: `python3 scripts/pp.py doctor` (one entry routes all subcommands)
 - **Measured** (held-out, fingerprint-bound md5 2631df3d388b): AUROC 0.9998 pre-2026 / 0.9400 current-generation; human FPR@medium 2.3%.
 - **Know the limits**: texts <100 chars get `risk=unknown` by design · medical text in degraded mode is over-scored · mixed human+AI docs: the document-level score is unreliable (paragraph attribution is the actionable signal) · authors' self-check only — never for evading institutional AI detection.
-- **Where to look next**: capability boundary matrix below · end-to-end example in § Quick start · FAQ grouped in five parts (verdicts → modes & install → output & interpretation → safety & verification → tools & workflow), jump to the group you need · full history in `CHANGELOG.md`.
+- **Where to look next**: scenario how-to in `references/best-practices.md` · capability boundary matrix below · end-to-end example in § Quick start · FAQ grouped in five parts (verdicts → modes & install → output & interpretation → safety & verification → tools & workflow), jump to the group you need · full history in `CHANGELOG.md`.
 
 ### 30-second task routing
 
@@ -140,35 +140,6 @@ Programmatic mirror: `pp_api` raises `ValueError` for invalid input (↔ exit 2)
 - **Don't use it to evade institutional AI detection** — the integrity notice ships on every report. ✅ Instead: use findings to improve the writing itself and disclose per your institution's policy.
 - **Don't run batch on >5 MB files** — skipped by design. ✅ Instead: split first, or point the batch at the exported text/docx versions.
 - **Don't repeat the same analysis on unchanged input, or re-run a call that was already rejected** — it burns time without new information. ✅ Instead: change one input (text, engine mode, check scope) or resolve the blocker (missing model, encoding) before retrying.
-
-## Architecture (v3)
-
-Reference section — read on demand; everyday use needs none of it.
-
-```
-ai_detector.py            Main engine: 8 rule layers (125 recalibrated patterns, markdown caps,
-                          EN openers, paragraph-level language) + length-routed fusion
- + layers_surface.py      L9 surface stats L10 token-spectrum (9,955-token delta spectrum)
-                          L11 chain-of-thought features
- + ai_detector L12        discourse-structure heuristics (v3.7.0: hook/reversal/slogan/engagement)
- + fusion_config.json     Weights & thresholds (calib-half grid search + human p95/p99)
- + model_fingerprints.json v4 fingerprint registry (13 families incl. GLM-5.3 & Kimi K-series self-sampled; attribution only)
- + layers_lm.py           Optional supervised layer (local ONNX + pure-Python Qwen tokenizer;
-                          PP_NO_SUP=1 falls back to rules)
-paragraph_report.py       Paragraph-level attribution HTML (pattern×spectrum 50/50 fusion)
-pp_report_html.py         Single-document visual dashboard (workflow/detect/fix/norm JSON → one HTML; v5.8.0)
-aigc_label_check.py       AIGC compliance labels (China labeling rules 2025-09: metadata/C2PA/explicit)
-fingerprint_miner.py      Fingerprint mining (new model drop → sample → mine → register)
-pattern_recalibrator.py   Data-driven pattern recalibration (human-hit filtering)
-build_spectrum.py / calibrate_v3.py   Spectrum build / weight calibration
-freshness_refresh.py         Monthly freshness pipeline (sample → rebuild → calibrate → regression)
-pp_doctor.py              Environment self-check (v3.5; v5.0.0 adds latest-eval-record row)
-pp_verify.py              AST-level structured zero-network self-verification (v5.0.0)
-pp_fix_suggest.py         Sentence-level rewrite suggestions (v5.0.0: locate + strategy, no auto-rewrite)
-tests/                    Bundled unit-test suite, `python3 -m unittest discover -s tests -t .` (v5.0.0)
-requirements.txt          Dependency declaration: core zero-dep; optional supervised-layer extras (v5.0.0)
-eval/                     corpus_builder / attack_gen / run_eval (AUROC, TPR@FPR, per-model, attack decay)
-```
 
 ## Quick start
 
@@ -350,6 +321,13 @@ No. `pp_fix_suggest.py` (`pp.py fix`) only locates sentences carrying improvable
 | style_distance.py | Stylometry (human-likeness) | `--json` | style_score + verdict (advisory outside academic register) |
 | aigc_label_check.py | AIGC compliance labels | files: docx/pdf/png/txt | Per-file label verdict |
 
+## Architecture & fingerprint freshness (reference)
+
+Everyday use needs none of this. The full architecture diagram, module map and the
+fingerprint-freshness pipeline notes (calibration split strategy, monthly freshness
+workflow, model-generation coverage) moved to [`references/architecture.md`](references/architecture.md) —
+read on demand. Scenario-level how-to advice lives in [`references/best-practices.md`](references/best-practices.md).
+
 ## Trigger words (Chinese)
 
 `润色论文`查AI率` `论文AI率` `AIGC检测` `AIGC率` `GPT检测` `查AI写作` `论文润色` `改写论文` `AI论文检测` `学术写作助手` `AI写作检测` `毕业论文润色` `学位论文降重` `SCI论文编辑` `手稿润色` `AI写作评分` `AI改写检测` `文风对标顶刊` `这篇文章像不像AI`
@@ -365,15 +343,9 @@ No. `pp_fix_suggest.py` (`pp.py fix`) only locates sentences carrying improvable
 
 Docs & site: **docsor.cn**
 
-## Fingerprint freshness (against "detectors lag one generation")
-
-Coverage as of 2026-09-26: kimi-k3 & kimi-k2.7 registered (OpenCode Go fresh sampling, attribution-verified); qwen3.8 / deepseek-v4 / deepseek-v4.1 / minimax-m3 sampled — mining produced no family-distinctive low-FP patterns, honestly unregistered; glm-5.3 refreshed (no new patterns). Next: deepseek-v4.1 & minimax-m3 with larger corpora.
-
-On a new-model release day: `python scripts/fingerprint_miner.py --corpus <new_samples.jsonl> --model <family> --apply`
-Monthly full pass: `python scripts/freshness_refresh.py` (schedule it with your own system timer, e.g. monthly; the script never creates or modifies system schedules). Compare adjacent `eval/results/freshness_*.json`; investigate if AUROC drops by more than 3 percentage points.
-
 ## Version history (condensed)
 
+- **v6.1.0 (2026-10-20)** — report explainer (`pp.py explain`), error-glossary extension (AST/drift/signature/gate-layer phrases), quickstart timeouts + stability contract in docs, architecture deep-dive moved to `references/architecture.md`, new `references/best-practices.md`, examples annotated by scenario.
 - **v6.0.0 (2026-10-19)** — reporting & experience major: multi-run trend dashboard (`pp.py trend`); unified plain-language error presentation (`pp_errors.py`, wired into four entry points); grouped `pp.py` help with a beginner path and an English entry surface (`PP_LANG=en`); batch chaos test suite.
 - **v5.9.0 (2026-10-18)** — zero-config onboarding & batch robustness: supervised-model acquisition guide (`pp_setup.py --guide`, wired into doctor/check), batch circuit breaker (`--circuit`, default 5) + fix for one corrupt docx killing the whole batch, opt-in out-of-dictionary neologism probe (`term_check.py --neologism`), version-header hygiene with a release gate, FAQ group navigation.
 - **v5.8.1 (2026-10-17)** — terminology bank extended with practice-derived standardization aliases; term matching fixed to single-pass longest-first resolution (a short standard term no longer shadows a longer alias); count claims updated to 2,335.
