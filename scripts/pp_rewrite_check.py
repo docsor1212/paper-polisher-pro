@@ -122,20 +122,25 @@ def rewrite_check(original: str, revised: str, lang: str = "auto") -> dict:
     para_pairs = _align_pairs(paras_o, paras_r) if lang == "zh" else []
     para_rows, replaced, n_pairs = [], 0, 0
     for o, r, ratio in para_pairs:
+        def _ex(item):
+            return (item.get("text", "")[:100] if item else "")
         if o is not None and r is not None:
             n_pairs += 1
             d = (r["score"] or 0) - (o["score"] or 0)
             para_rows.append({"pair": f"O{o['index'] + 1}→R{r['index'] + 1}",
                               "similarity": round(ratio, 3),
                               "original_score": o["score"], "revised_score": r["score"],
-                              "delta": round(d, 1)})
+                              "delta": round(d, 1),
+                              "original_excerpt": _ex(o), "revised_excerpt": _ex(r)})
         elif o is not None:
             replaced += 1
             para_rows.append({"pair": f"O{o['index'] + 1}→(新增/重写)", "similarity": 0.0,
-                              "original_score": o["score"], "revised_score": None, "delta": None})
+                              "original_score": o["score"], "revised_score": None, "delta": None,
+                              "original_excerpt": _ex(o), "revised_excerpt": ""})
         else:
             para_rows.append({"pair": f"(原稿无)→R{r['index'] + 1}", "similarity": 0.0,
-                              "original_score": None, "revised_score": r["score"], "delta": None})
+                              "original_score": None, "revised_score": r["score"], "delta": None,
+                              "original_excerpt": "", "revised_excerpt": _ex(r)})
     replaced += sum(1 for o, r, _ in para_pairs if o is None)
 
     return {
@@ -163,6 +168,90 @@ def rewrite_check(original: str, revised: str, lang: str = "auto") -> dict:
                    "引擎读数变化，不与任何机构检测器互换（能力边界矩阵适用）。"),
     }
 
+
+
+# ── v6.2.0: 双栏对照 HTML（自包含，零外部资源，全部文本 html.escape） ──
+import html as _html
+
+_HTML_CSS = """
+body{font-family:-apple-system,'PingFang SC','Microsoft YaHei',sans-serif;margin:24px;color:#222;max-width:1180px}
+h1{font-size:20px}h2{font-size:16px;margin-top:24px}
+table{border-collapse:collapse;width:100%;font-size:13px;margin-top:10px}
+th,td{border:1px solid #ddd;padding:5px 8px;text-align:left;vertical-align:top}
+th{background:#f5f5f5}
+.cards{display:flex;gap:12px;margin:14px 0;flex-wrap:wrap}
+.card{border:1px solid #e3e3e3;border-radius:6px;padding:10px 16px;min-width:130px}
+.card b{font-size:22px;display:block}
+.badge{color:#fff;border-radius:3px;padding:1px 7px;font-size:12px}
+.down{color:#27ae60;font-weight:bold}.up{color:#c0392b;font-weight:bold}
+.note{color:#777;font-size:12px;margin-top:16px}.muted{color:#888;font-size:12px}
+td.ex{max-width:430px}
+"""
+
+
+def _esc(text, limit=100):
+    s = str(text or "").replace("\n", " ").strip()
+    return _html.escape(s[:limit] + ("…" if len(s) > limit else ""))
+
+
+def _badge(risk):
+    color = {"high": "#c0392b", "medium": "#e67e22", "low": "#27ae60",
+             "unknown": "#7f8c8d"}.get(str(risk or ""), "#7f8c8d")
+    return f'<span class="badge" style="background:{color}">{_html.escape(str(risk or "?"))}</span>'
+
+
+def render_html(r, title):
+    """对比结果 dict → 自包含双栏对照 HTML。"""
+    d = r["document"]
+    delta = d["delta"]
+    net = f"{delta:+.1f}"
+    cls = "down" if delta < -0.05 else ("up" if delta > 0.05 else "")
+    moved = "风险带迁移 ✓" if d["risk_moved"] else "风险带未变"
+    parts = [f"""<!DOCTYPE html><html lang="zh"><head><meta charset="utf-8">
+<title>{_html.escape(title)}</title><style>{_HTML_CSS}</style></head><body>
+<h1>{_html.escape(title)}</h1>
+<div class="cards">
+<div class="card"><b>{_html.escape(str(d["original_score"]))}</b>原稿 {_badge(d["original_risk"])}</div>
+<div class="card"><b>{_html.escape(str(d["revised_score"]))}</b>改稿 {_badge(d["revised_risk"])}</div>
+<div class="card"><b class="{cls}">{net}</b>分数变化（{moved}）</div>
+<div class="card"><b>{r["features"]["original_total"]} → {r["features"]["revised_total"]}</b>标记句数</div>
+</div>"""]
+    if d.get("degraded_mode"):
+        parts.append('<p class="muted">⚠️ 降级档对比（无监督模型）：医学文本只采信 @high 档；'
+                     '两轮同档位时对比才有意义。</p>')
+    parts.append("<h2>逐段对照（difflib 对齐，相似度 ≥0.5 配对）</h2>")
+    head = ("<tr><th>对齐</th><th>相似度</th>"
+            "<th>原稿摘录（分数）</th><th>改稿摘录（分数）</th><th>变化</th></tr>")
+    body = []
+    for row in r["paragraphs"]:
+        dl = row.get("delta")
+        if dl is None:
+            dcell, dcls = "—", ""
+        else:
+            dcell = f"{dl:+.1f}"
+            dcls = "down" if dl < -0.05 else ("up" if dl > 0.05 else "")
+        body.append(f"<tr><td>{_html.escape(row['pair'])}</td>"
+                    f"<td>{row['similarity']}</td>"
+                    f"<td class='ex'>{_esc(row.get('original_excerpt'))} "
+                    f"({row.get('original_score') if row.get('original_score') is not None else '—'})</td>"
+                    f"<td class='ex'>{_esc(row.get('revised_excerpt'))} "
+                    f"({row.get('revised_score') if row.get('revised_score') is not None else '—'})</td>"
+                    f"<td class='{dcls}'>{dcell}</td></tr>")
+    parts.append(f"<table>{head}{''.join(body)}</table>")
+    if r["features"]["delta_by_type"]:
+        frows = "".join(
+            f"<tr><td>{_html.escape(x['type'])}</td><td>{x['original']}</td>"
+            f"<td>{x['revised']}</td><td class='{'down' if x['change'] < 0 else ('up' if x['change'] > 0 else '')}'>"
+            f"{x['change']:+d}</td></tr>"
+            for x in r["features"]["delta_by_type"])
+        parts.append("<h2>特征类型增减</h2>"
+                     "<table><tr><th>类型</th><th>原稿</th><th>改稿</th><th>变化</th></tr>"
+                     + frows + "</table>")
+    parts.append(f'<p class="note">{_html.escape(r.get("integrity_notice", ""))}<br>'
+                 f'{_html.escape(r.get("notice", ""))} ｜ 引擎 {_html.escape(r.get("engine_version", "?"))} ｜ '
+                 f'单文件渲染，零外部资源、零网络</p>')
+    parts.append("</body></html>")
+    return "\n".join(parts)
 
 def to_text(r: dict) -> str:
     d = r["document"]
@@ -227,6 +316,8 @@ def main():
     ap.add_argument("original", nargs="?", help="原稿文件")
     ap.add_argument("revised", nargs="?", help="改稿文件")
     ap.add_argument("--json", action="store_true")
+    ap.add_argument("--html", metavar="PATH", default=None,
+                    help="输出双栏对照 HTML 报告（v6.2.0：原文/改稿并排+逐段分数迁移）")
     ap.add_argument("--lang", default="auto", choices=["auto", "zh", "en"])
     ap.add_argument("--demo", action="store_true")
     args = ap.parse_args()
@@ -246,6 +337,11 @@ def main():
             print(f"ERROR: {name}不足 100 字（铁律 2：短文本不出判定），无法做有效对比。", file=sys.stderr)
             return 2
     r = rewrite_check(orig, rev, lang=args.lang)
+    if getattr(args, "html", None):
+        out_html = Path(args.html)
+        out_html.write_text(render_html(r, f"改写对照 · {Path(args.original).stem} → {Path(args.revised).stem}"),
+                            encoding="utf-8")
+        print(f"对照 HTML 已生成: {out_html}")
     if args.json:
         print(json.dumps(r, ensure_ascii=False, indent=1))
     else:

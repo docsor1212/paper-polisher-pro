@@ -293,6 +293,21 @@ def _wf_blocks(wf):
         out.append(_kv_table("AIGC 合规标识（显式声明自查）", [
             ("evidence", "%d 条" % len(aigc.get("evidence") or [])),
             ("note", aigc.get("note", ""))]))
+    # 信号细节（v6.2.0）：语域提示/混写预警/篇章特征/LLM 腔命中——全部只在报告有值时呈现
+    sig = []
+    if wf.get("detect", {}).get("register_hint"):
+        sig.append(("语域提示", wf["detect"]["register_hint"]))
+    if wf.get("detect", {}).get("mixed_notice"):
+        sig.append(("混写预警", wf["detect"]["mixed_notice"]))
+    dh = (wf.get("detect") or {}).get("discourse_hits") or []
+    if dh:
+        sig.append(("篇章结构特征", "%d 处（%s）" % (len(dh), "、".join(
+            str(x.get("kind", x) if isinstance(x, dict) else x) for x in dh[:3]))))
+    jh = (wf.get("detect") or {}).get("jargon_hits") or []
+    if jh:
+        sig.append(("LLM 腔命中（只提示不计分）", "%d 处" % len(jh)))
+    if sig:
+        out.append(_kv_table("信号细节", sig))
     fl = wf.get("findings_ledger") or {}
     if fl.get("items"):
         lis = "".join("<li><b>%s</b>：%s（%s）</li>" % (

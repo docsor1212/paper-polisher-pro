@@ -3,6 +3,11 @@
 > **只想快速上手？** 回 `SKILL.md` § TL;DR（30 秒任务路由表）——本文件仅是完整版本历史，新用户无需阅读。
 > Historical release notes. Newest first. SKILL.md § Version history keeps only the last three releases; everything older lives here (single source, no duplication).
 
+## What's new in v6.2.0
+
+- **Side-by-side rewrite comparison (`pp_rewrite_check.py --html out.html`)**: the rewrite-effect check was text-only; it now renders one self-contained HTML with the original and revised drafts side by side per aligned paragraph (difflib pairing, similarity shown), per-paragraph score migration colored ↓improved/↑rebounded, header cards for the document-level move and risk-band migration, and the per-feature-type delta table. Aligned rows now carry ≤100-char excerpts (additive JSON fields `original_excerpt`/`revised_excerpt`). All text HTML-escaped; zero external resources; zero network.
+- **Signal details in the dashboard (`pp_report_html.py`)**: workflow-based dashboards now include a signal section — register hint, mixed-writing warning, discourse-structure hits and LLM-jargon hit counts (advisory-only, as everywhere) — rendered only when the report actually carries them.
+
 ## What's new in v6.1.0
 
 - **Report explainer (`pp_explain.py`, `pp.py explain`)**: any workflow/detect JSON becomes a three-part plain-language reading — verdict (score, risk band, engine mode with degraded-mode medical caveat), evidence (paragraph hi/med/lo with top excerpts, gate verdict, style/term findings aggregated, sentence-suggestion stats), and an action checklist of concrete next commands (paragraph review for mixed-writing, `fix`, `norm`, `term`, trend, bundle). Also reachable through the natural-language router ("解读这份报告").
@@ -223,6 +228,11 @@
 # 更新日志（中文）
 
 > v4.6.0 起历史更新说明移出 SKILL_ZH.md（新用户更快触达工作流）。最新在前。各版本摘要亦见 SKILL_ZH.md § 版本历史。
+
+## v6.2.0 更新内容
+
+- **改写对照双栏 HTML（`pp_rewrite_check.py --html out.html`）**：改写效果对比此前只有文本输出，现在可渲染一份自包含 HTML——按 difflib 对齐逐段并排展示原稿/改稿摘录（含相似度），逐段分数迁移着色（↓改善/↑回升），顶部卡片呈现文档级变化与风险带迁移，附特征类型增减表。对齐行新增 ≤100 字摘录字段（JSON 加法字段 `original_excerpt`/`revised_excerpt`）。全部文本 HTML 转义；零外部资源；零网络。
+- **仪表盘信号细节节（`pp_report_html.py`）**：workflow 仪表盘新增「信号细节」——语域提示、混写预警、篇章结构特征命中、LLM 腔命中数（与全工具一致：只提示不计分），仅在报告实际携带时渲染。
 
 ## v6.1.0 更新内容
 

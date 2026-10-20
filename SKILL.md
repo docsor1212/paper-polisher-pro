@@ -1,6 +1,6 @@
 ---
 name: paper-polisher
-version: 6.1.0
+version: 6.2.0
 author: DoctorQ Lab
 description: >-
   AI-rate self-check and polish guidance for academic writing: sentence-level rewrite
@@ -345,6 +345,7 @@ Docs & site: **docsor.cn**
 
 ## Version history (condensed)
 
+- **v6.2.0 (2026-10-21)** — side-by-side rewrite comparison (`pp_rewrite_check.py --html`): aligned per-paragraph original/revised excerpts with colored score migration, plus a signal-details section in the workflow dashboard.
 - **v6.1.0 (2026-10-20)** — report explainer (`pp.py explain`), error-glossary extension (AST/drift/signature/gate-layer phrases), quickstart timeouts + stability contract in docs, architecture deep-dive moved to `references/architecture.md`, new `references/best-practices.md`, examples annotated by scenario.
 - **v6.0.0 (2026-10-19)** — reporting & experience major: multi-run trend dashboard (`pp.py trend`); unified plain-language error presentation (`pp_errors.py`, wired into four entry points); grouped `pp.py` help with a beginner path and an English entry surface (`PP_LANG=en`); batch chaos test suite.
 - **v5.9.0 (2026-10-18)** — zero-config onboarding & batch robustness: supervised-model acquisition guide (`pp_setup.py --guide`, wired into doctor/check), batch circuit breaker (`--circuit`, default 5) + fix for one corrupt docx killing the whole batch, opt-in out-of-dictionary neologism probe (`term_check.py --neologism`), version-header hygiene with a release gate, FAQ group navigation.
