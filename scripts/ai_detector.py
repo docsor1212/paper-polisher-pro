@@ -1229,7 +1229,8 @@ def main():
     if not args.input:
         parser.error("the following arguments are required: input (or use --batch DIR)")
     if not os.path.exists(args.input):
-        print(f"Error: File not found: {args.input}", file=sys.stderr)
+        from pp_errors import print_friendly
+        print_friendly(FileNotFoundError(f"文件不存在: {args.input}"))
         sys.exit(2)  # 退出码契约 v5.8.0: 输入错误=2
     text = _read_input_text(args.input)
     if os.path.getsize(args.input) > 5 * 1024 * 1024:

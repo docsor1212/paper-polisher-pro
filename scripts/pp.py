@@ -87,7 +87,7 @@ GROUPS = (
 )
 
 # 内建子命令（非透传，本文件内实现）
-BUILTIN = ("quickstart", "test", "api", "recommend")
+BUILTIN = ("quickstart", "test", "api", "recommend", "faq")
 
 _QUICKSTART_SAMPLE = (
     "值得注意的是，随着人工智能技术的快速发展，其在医疗领域的应用日益受到关注。"
@@ -210,6 +210,63 @@ def _run_recommend(query):
     return 0
 
 
+
+_FAQ_PATH = HERE.parent / "references" / "faq.md"
+
+
+def _run_faq(query):
+    """FAQ 关键词检索（v6.3.0）：命中条目整段输出；无关键词列分组目录。"""
+    en = _LANG.startswith("en")
+    faq_path = _FAQ_PATH
+    if not faq_path.is_file():
+        print("未找到 references/faq.md（FAQ 随 v6.3.0 发布）", file=sys.stderr)
+        return 2
+    raw = faq_path.read_text(encoding="utf-8")
+    # 切条目：以 "**Q:" 开头的行切段
+    entries = []
+    cur = None
+    for ln in raw.splitlines():
+        is_head = ln.startswith("**Q:") or ln.startswith("**Q：") or ln.startswith("### ")
+        if is_head or (cur is not None and len(cur) >= 30):
+            if cur:
+                entries.append(cur)
+            cur = [ln] if is_head else None
+        elif cur is not None:
+            cur.append(ln)
+    if cur:
+        entries.append(cur)
+    q = (query or "").strip().lower()
+    if not q:
+        print("FAQ 检索（references/faq.md，共 %d 条）\n" % len(entries))
+        print("用法：python3 scripts/pp.py faq <关键词>   例：faq 医学 ｜ faq PDF ｜ faq 退出码 ｜ faq 熔断")
+        print("分组：判定边界 → 模式安装 → 输出解读 → 安全验证 → 工具工作流 → 具体技术问题")
+        return 0
+    kws = [k for k in q.replace("，", " ").replace(",", " ").split() if k]
+    scored = []
+    for e in entries:
+        blob = " ".join(e).lower()
+        head = e[0].lower() if e else ""
+        hits = sum(1 for k in kws if k in blob) + sum(2 for k in kws if k in head)
+        if hits:
+            scored.append((hits, e))
+    scored.sort(key=lambda x: (-x[0], x[1][0]))
+    if not scored:
+        if en:
+            print("No FAQ entry matched. Full file: references/faq.md")
+        else:
+            print("没有命中 FAQ 条目。完整文件：references/faq.md；换个关键词再试"
+                  "（如：医学 / PDF / 英文 / 熔断 / 退出码 / 装模 / 漂移）")
+        return 0
+    shown = 0
+    for hits, e in scored:
+        if shown >= 3:
+            break
+        print("\n".join(e).rstrip())
+        print("─" * 40)
+        shown += 1
+    print("完整 FAQ：references/faq.md ｜ 环境问题先跑 python3 scripts/pp.py doctor")
+    return 0
+
 def _print_help():
     en = _LANG.startswith("en")
     if en:
@@ -245,6 +302,7 @@ def _print_help():
     print("  %-*s  %s" % (width, "quickstart", "零模型零文件一键体验（detect→fix→doctor）"))
     print("  %-*s  %s" % (width, "test", "包内单元测试（unittest，秒级）"))
     print("  %-*s  %s" % (width, "recommend", "自然语言场景路由（描述需求 → 推荐命令）"))
+    print("  %-*s  %s" % (width, "faq", "FAQ 关键词检索（v6.3.0：pp.py faq 医学 / PDF / 退出码）"))
     print("\nPython SDK: import pp_api（无 CLI；编程接口见 SKILL.md § Python API）")
     print("提示：各子命令的参数同原脚本，例如 pp.py detect draft.txt --format json；"
           "英文入口面：PP_LANG=en pp.py")
@@ -266,6 +324,8 @@ def main():
         return _run_tests()
     if cmd == "recommend":
         return _run_recommend(" ".join(args[1:]))
+    if cmd == "faq":
+        return _run_faq(" ".join(args[1:]))
     if cmd not in COMMANDS:
         if _LANG.startswith("en"):
             print("Unknown subcommand: %s (available: %s quickstart test recommend)"

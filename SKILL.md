@@ -1,6 +1,6 @@
 ---
 name: paper-polisher
-version: 6.2.0
+version: 6.3.0
 author: DoctorQ Lab
 description: >-
   AI-rate self-check and polish guidance for academic writing: sentence-level rewrite
@@ -234,92 +234,16 @@ attribution with hi/med/lo classification, the 4-layer gate, terminology, transl
 style, quality report and AIGC label self-check — and produces a single readable Markdown
 report plus machine-readable JSON. Programmatic: `from pp_api import workflow`.
 
-## FAQ (grouped: verdicts → modes → output → safety → tools)
-
-### Verdicts & boundaries
+## FAQ (top 3 — full grouped FAQ in [`references/faq.md`](references/faq.md), searchable via `pp.py faq <keyword>`)
 
 **Q: Why no risk verdict for texts under 100 characters?**
-Short-text false positives are uncontrollable (a few sentences carry no style distribution). The tool returns `risk=unknown` by design; submit 100+ chars (300+ recommended).
+Short-text false positives are uncontrollable. The tool returns `risk=unknown` by design; submit 100+ chars (300+ recommended).
 
 **Q: Why is my medical text scored high?**
-You are most likely in degraded mode (optional supervised model not installed). Rules-only scoring systematically over-scores medical register (held-out human FPR at @medium: ~59% medical vs ~2% general). For medical text trust only @high verdicts, or install the supervised layer (next question).
-
-### Modes & install
-
-**Q: How do I install the supervised model and confirm it works?**
-one command: `python3 scripts/pp_setup.py --model <author-signed model.onnx>` — it verifies the md5 against the signed registry, installs, and runs an inference canary (GREEN = active; `degraded_mode=false` in reports confirms it). Manual placement of the two files at `~/.cache/paper-polisher/qwen3-detector/` still works and `python scripts/pp_doctor.py` remains the full check.
-
-**Q: What do degraded_mode / degraded_notice mean?**
-Engine-mode disclosure: true = rules+spectrum fallback, reason in the notice (model missing / PP_NO_SUP=1 / English language gating). See the capability boundary matrix.
+You are most likely in degraded mode (supervised model not installed) — rules-only scoring systematically over-scores medical register. Trust only `@high` verdicts there, or install the supervised layer (`pp_setup.py --guide`).
 
 **Q: Is this score interchangeable with CNKI/Wanfang official checks?**
-No. Thresholds are calibrated on our own held-out corpus and are not interchangeable with any institutional detector; self-check only (stated in journal-profile output too).
-
-### Output & interpretation
-
-**Q: A deai_gate layer shows "解析失败" (parse failure) — what now?**
-That layer falls back to a neutral 50; other layers and the verdict are unaffected. Usually a subprocess timeout or odd input encoding; retry once, then run `pp_doctor.py`.
-
-**Q: What is the edit-extent estimate?**
-A supervised-layer regression head estimating how much the text was AI-edited (0-1). Limited discriminative power (ρ=0.54) — report metadata only, never used in verdicts.
-
-**Q: Is English supported?**
-Partially: the supervised layer is Chinese-trained, so English skips fusion by design and gets rules-only skeleton scoring, advisory only (stated in the report).
-
-**Q: What about documents that mix human and AI writing?**
-Watch the mixed-register signal (`mixed_signal=true`): document-level scores are diluted by human paragraphs or pushed up by AI ones — unreliable either way. Run `paragraph_report.py` for per-paragraph attribution and work paragraph by paragraph.
-
-**Q: Why does a real, human-written journal paper still score medium/high?**
-Two measured reasons: distribution shift (our held-out corpus differs from real journal PDF→text, which carries layout noise) and register calibration. Paragraph attribution is the actionable signal — use it to locate suspect passages for human review; the document-level score is a triage hint, not a verdict. The journal precheck (distribution口径) offers a second view and may disagree with the main score by design.
-
-**Q: The fingerprint attribution says GPT-4o but my text is from another model?**
-Attribution is heuristic (top-n candidates, never scored) and may misattribute — known case: GLM-generated text has been attributed elsewhere. Treat family hints as weak evidence; the detection score and paragraph attribution are the substantive outputs.
-
-**Q: How do I use the AIGC label check?**
-`python scripts/aigc_label_check.py manuscript.docx figures/*.png` — checks metadata / C2PA watermark / explicit declaration (China 2025-09 labeling rules). Exit 0 = labeled, 1 = unlabeled; both are normal runs.
-
-### Safety & verification
-
-**Q: How can I verify the "100% local / zero upload" claim myself?**
-Run `python3 scripts/pp_verify.py` — an AST-level structural scan of every script. It flags network imports/calls and curl/wget-style subprocess commands, while URL strings in report footers are correctly treated as data (the old grep advice could not tell the two apart). Exit 0 = zero network calls. For behavior-level checks, the bundled test suite (`python -m unittest discover -s tests -t .`) exercises the iron laws and report contracts on your own machine.
-
-**Q: Does the style-norm check produce a score or a verdict?**
-No. `pp_style_norm.py` is a mechanical convention check (full/half-width, number styles, abbreviation definitions, unit formats). It lists findings with concrete advice; nothing is scored and nothing feeds into the AI-rate engine. The short-text iron law does not apply because no verdict is produced — but statistical checks (numbers/abbreviations) are naturally weak on very short samples and the output says so.
-
-**Q: Can several batch runs write to the same CSV safely?**
-Yes — since v4.9.0 batch CSV writes are atomic (write to a temp file, then rename into place). Two concurrent batch runs pointing at the same CSV cannot interleave or clobber each other's rows; the file always contains one complete run's output.
-
-**Q: How should I read `degraded_notice`?**
-It tells you which full-mode ingredient was skipped and why: supervised model missing, `PP_NO_SUP=1`, or English language gating. Consequences differ — degraded rules-only mode systematically over-scores medical register (see the boundary matrix), while English gating only means the Chinese-trained supervised layer does not apply. The notice names the reason so you can decide whether to install the model, unset the toggle, or treat scores as advisory.
-
-### Tools & workflow
-
-**Q: What do the rewrite suggestions do — do they change my text?**
-No. `pp_fix_suggest.py` (`pp.py fix`) only locates sentences carrying improvable features and explains the improvement strategy per feature type (e.g., replace an AI cliché with a concrete claim, split a template sentence). It never edits your file; the editing decision and execution stay with the author. `--demo` shows a built-in two-sample walkthrough.
-
-### Script cheat sheet
-
-| Script | Purpose | Key flags | Output |
-|---|---|---|---|
-| ai_detector.py | Main AI-writing detector | `--lang auto\|zh\|en` `--format json\|text\|summary` `--profile journal` `--batch DIR` | Score + paragraph detail + fingerprints (JSON incl. degraded_mode/integrity_notice) |
-| pp_fix_suggest.py | Sentence-level rewrite suggestions (v5.0.0) | `--top N` `--json` `--demo` | Per-sentence features + rewrite strategies (locates and suggests, never auto-rewrites) |
-| pp_doctor.py | Environment self-check | `--json` | Data/deps/model probes; exit 0 = green |
-| docx_text.py | .docx → text extraction (v5.3.0) | `file` `--output` | Paragraph-preserving text; zip-bomb guarded |
-| freshness_refresh.py | Monthly freshness pipeline / status (v5.4.0) | `--status` `--json` | Last run, latest eval record, baseline drift, due flag |
-| pp_report_bundle.py | Submission self-check bundle (v5.3.0) | `file` `--outdir` | Dated directory: workflow + paragraph HTML + suggestions + norm + manifest |
-| pp_style_norm.py | Academic style-norm self-check (v5.2.0; +consistency v5.5.0; +llm_jargon v5.6.0) | `--json` `--checks a,b` | Findings with advice (fullwidth/numbers/abbrev/units); no score |
-| pp_rewrite_check.py | Rewrite-effect regression check (v5.1.0) | `original revised` `--json` `--demo` | Score/risk-band migration + paragraph deltas + feature-type clears/remaining |
-| pp_batch_report.py | Batch CSV → HTML summary (v5.1.0) | `csv_file` `-o out.html` | Totals/mean/band cards + histogram + per-file table |
-| pp_report_html.py | Single-document visual dashboard (v5.8.0) | `json...` `-o out.html` `--title` | Self-contained HTML: gauge + histogram + paragraph/finding/ledger tables; zero external resources |
-| pp_trend.py | Multi-run trend dashboard (v6.0.0) | `workflow.json.../目录` `-o` | Score trajectory SVG + per-run delta table (↓/↑ flagged); degraded-mode runs marked |
-| pp_verify.py | Structured zero-network self-verification (v5.0.0) | `--json` | AST-level scan verdict; exit 0 = zero network calls |
-| quality_report.py | Overall quality report | `--json` | Readability/quality dimensions for the manuscript |
-| deai_gate.py | 4-layer fused gate | `--json` | composite score + verdict band (<35 pass / 35-55 review / ≥55 suspect) |
-| paragraph_report.py | Paragraph attribution | `--output report.html` | HTML report |
-| term_check.py | Terminology (2,344 terms) | `--auto-fix` `--output` | Standardization rate + fixed file |
-| translation_smell_check.py | Translation-smell scan | `--json` | Hits + blind-spot terms |
-| style_distance.py | Stylometry (human-likeness) | `--json` | style_score + verdict (advisory outside academic register) |
-| aigc_label_check.py | AIGC compliance labels | files: docx/pdf/png/txt | Per-file label verdict |
+No. Thresholds are calibrated on our own held-out corpus and are not interchangeable with any institutional detector; self-check only.
 
 ## Architecture & fingerprint freshness (reference)
 
@@ -345,6 +269,7 @@ Docs & site: **docsor.cn**
 
 ## Version history (condensed)
 
+- **v6.3.0 (2026-10-22)** — standalone searchable FAQ (`references/faq.md` + `pp.py faq <keyword>` with technical-questions section), SKILL.md keeps top-3 + link, friendly errors now carry the FAQ pointer.
 - **v6.2.0 (2026-10-21)** — side-by-side rewrite comparison (`pp_rewrite_check.py --html`): aligned per-paragraph original/revised excerpts with colored score migration, plus a signal-details section in the workflow dashboard.
 - **v6.1.0 (2026-10-20)** — report explainer (`pp.py explain`), error-glossary extension (AST/drift/signature/gate-layer phrases), quickstart timeouts + stability contract in docs, architecture deep-dive moved to `references/architecture.md`, new `references/best-practices.md`, examples annotated by scenario.
 - **v6.0.0 (2026-10-19)** — reporting & experience major: multi-run trend dashboard (`pp.py trend`); unified plain-language error presentation (`pp_errors.py`, wired into four entry points); grouped `pp.py` help with a beginner path and an English entry surface (`PP_LANG=en`); batch chaos test suite.

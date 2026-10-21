@@ -3,6 +3,11 @@
 > **只想快速上手？** 回 `SKILL.md` § TL;DR（30 秒任务路由表）——本文件仅是完整版本历史，新用户无需阅读。
 > Historical release notes. Newest first. SKILL.md § Version history keeps only the last three releases; everything older lives here (single source, no duplication).
 
+## What's new in v6.3.0
+
+- **Standalone FAQ (`references/faq.md`, `pp.py faq <keyword>`)**: the FAQ moved out of SKILL.md into its own searchable file — the full grouped Q&A (verdicts / modes / output / safety / tools) plus a new technical-questions section (why no PDF, why English is advisory-only, what the AST scan means, what the circuit breaker is, the exit-code contract, model-signature failures, why scores differ between runs). `pp.py faq 医学` / `faq PDF` / `faq 退出码` searches entries with header-hit ranking and a no-match fallback; SKILL.md keeps the top-3 questions plus a link (main file shrinks again).
+- **Errors link to the FAQ**: every friendly-error output now ends with a `pp.py faq <keyword>` pointer, closing the loop from failure message to answer.
+
 ## What's new in v6.2.0
 
 - **Side-by-side rewrite comparison (`pp_rewrite_check.py --html out.html`)**: the rewrite-effect check was text-only; it now renders one self-contained HTML with the original and revised drafts side by side per aligned paragraph (difflib pairing, similarity shown), per-paragraph score migration colored ↓improved/↑rebounded, header cards for the document-level move and risk-band migration, and the per-feature-type delta table. Aligned rows now carry ≤100-char excerpts (additive JSON fields `original_excerpt`/`revised_excerpt`). All text HTML-escaped; zero external resources; zero network.
@@ -228,6 +233,11 @@
 # 更新日志（中文）
 
 > v4.6.0 起历史更新说明移出 SKILL_ZH.md（新用户更快触达工作流）。最新在前。各版本摘要亦见 SKILL_ZH.md § 版本历史。
+
+## v6.3.0 更新内容
+
+- **独立 FAQ（`references/faq.md`，`pp.py faq <关键词>`）**：FAQ 从 SKILL.md 迁出成独立可检索档案——完整分组问答（判定/模式/输出/安全/工具）外加新增的「具体技术问题」节（为什么不支持 PDF、英文为什么仅参考、AST 自证是什么、熔断是什么、退出码契约、装模签名失败、分数为什么和上次不一样）。`pp.py faq 医学` / `faq PDF` / `faq 退出码` 按标题命中加权检索条目，无命中给兜底指引；SKILL.md 保留高频三条+链接（主文档再度瘦身）。
+- **错误信息联动 FAQ**：所有友好错误输出末尾附 `pp.py faq <关键词>` 指针——从报错到答案一条线走完。
 
 ## v6.2.0 更新内容
 

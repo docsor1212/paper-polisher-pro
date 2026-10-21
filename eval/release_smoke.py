@@ -120,7 +120,11 @@ chk("相关工具节在位(双语)", "## Related tools" in skill_md and "## 相�
 _ADTALK = ["全家桶", "搜招牌名直达", "五件套", "论文工具家族", "Paper Toolbox family"]
 _adtalk_hits = [w for w in _ADTALK if w in skill_md or w in skill_zh]
 chk("导流叫卖词零残留(家族/全家桶/搜招牌名/五件套)", not _adtalk_hits, "; ".join(_adtalk_hits))
-chk("FAQ 专节在位(评测C维驱动,双语)", "常见问题（FAQ" in skill_zh and "## FAQ" in skill_md)
+# v6.3.0: FAQ 独立成档——SKILL 保留高频三条+链接，完整分组与「具体技术问题」节在 references/faq.md
+chk("FAQ 独立档案在位(SKILL 三条+faq.md 完整版,双语)",
+    "## 常见问题（高频三条" in skill_zh and "## FAQ (top 3" in skill_md
+    and (ROOT / "references" / "faq.md").is_file()
+    and "具体技术问题" in (ROOT / "references" / "faq.md").read_text(encoding="utf-8"))
 chk("脚本速查表在位(评测C维驱动,双语)", "各脚本速查" in skill_zh and "Script cheat sheet" in skill_md)
 chk("FAQ 覆盖高频问法", "知网" in skill_zh and "degraded_mode" in skill_zh and "100 字" in skill_zh)
 for ref in set(re.findall(r"`?(\w+\.(?:py|json))`?", skill_md)):
@@ -861,9 +865,12 @@ _skill_zh = (ROOT / "SKILL_ZH.md").read_text(encoding="utf-8")
 chk("文档: 子功能适用域矩阵在位(双语)",
     "Sub-tool scope matrix" in _skill_md and "子功能适用域矩阵" in _skill_zh
     and "translation_smell_check" in _skill_md)
-chk("文档: FAQ 分组编号(双语)",
-    "### Tools & workflow" in _skill_md and "### 工具与工作流" in _skill_zh
-    and "### Verdicts & boundaries" in _skill_md and "### 判定与边界" in _skill_zh)
+# v6.3.0: 分组细节随 FAQ 迁 references/faq.md——断言改查 faq.md 分组与 SKILL 指针
+_faq_ref = (ROOT / "references" / "faq.md").read_text(encoding="utf-8")
+chk("文档: FAQ 分组编号(faq.md 完整版)",
+    "### Tools & workflow" in _faq_ref and "### 工具与工作流" in _faq_ref
+    and "### Verdicts & boundaries" in _faq_ref and "### 判定与边界" in _faq_ref
+    and "references/faq.md" in _skill_md and "references/faq.md" in _skill_zh)
 
 # ───────────────────────── K. 期刊语境与保鲜状态（v5.4.0） ─────────────────────────
 # K1. journal 2.0：学科自动识别 + 分学科语境 + --discipline 覆盖 + JSON 纯度

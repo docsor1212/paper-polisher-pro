@@ -90,11 +90,12 @@ def render(exc):
 
 
 def print_friendly(exc, err=True):
-    """把 render 结果按两行写stderr（或 stdout）。"""
+    """把 render 结果按两行写stderr（或 stdout），并附 FAQ 检索指针。"""
     title, nxt = render(exc)
     out = sys.stderr if err else sys.stdout
     print(f"ERROR: {title}", file=out)
     print(f"  下一步: {nxt}", file=out)
+    print("  更多: python3 scripts/pp.py faq <关键词>（或查 references/faq.md）", file=out)
 
 
 def wrap_main(fn, exit_codes=(0, 1, 2, 3)):
