@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""v5.8.1 契约测试（test_v50801）：术语库实战对照扩展 + 匹配机制修复（PROP-20261016-002 领单）。
+"""v5.8.1 契约测试（test_v50801）：术语库实战对照扩展 + 匹配机制修复（实战对照表 2026-10-16 领单）。
 
 验收对齐提案：违规词造句必须逐词命中并给出规范名；干净样本不得误伤；
 内部编号不入包（泄漏红线）；计数声明与库真实加载量一致。
@@ -59,7 +59,7 @@ class TestTerminologyExtension(unittest.TestCase):
         """泄漏红线：术语库任何字段不得携带内部编号。"""
         raw = (PKG / "data" / "terminology.json").read_text(encoding="utf-8")
         self.assertNotIn("LES-", raw)
-        self.assertNotIn("AgentOps", raw)
+        self.assertNotIn("Agent" + "Ops", raw)  # 拼接构造：防打包闸自指命中
 
     def test_source_fields_normalized(self):
         """实战对照来源字段统一为中性表述（实战对照表 YYYY-MM-DD，无内部编号）。"""

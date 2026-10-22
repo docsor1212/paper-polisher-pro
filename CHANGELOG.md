@@ -3,6 +3,14 @@
 > **只想快速上手？** 回 `SKILL.md` § TL;DR（30 秒任务路由表）——本文件仅是完整版本历史，新用户无需阅读。
 > Historical release notes. Newest first. SKILL.md § Version history keeps only the last three releases; everything older lives here (single source, no duplication).
 
+## What's new in v6.4.0
+
+- **Batch auto-retry (`--retries`, default 2)**: batch runs no longer leave transient failures (file locked, read hiccup) for manual re-runs — after the first pass, files that errored are automatically re-scanned up to `--retries` rounds; recovered rows are marked `retried: true` with `attempts`. Files still failing after the retry budget land in a new `failed_files` aggregate with a per-file diagnostic hint (`pp.py detect <file>` for the full error). The first-pass circuit breaker is unchanged, and a tripped circuit skips the retry rounds (a clearly bad batch gains nothing from re-scans); `--retries 0` restores the v6.3.0 behavior. Retry rounds stop early when a round recovers nothing (persistent corrupt files are not re-burned). Text summary lines show the actual retry rounds and the diagnostic pointer.
+- **Guided tour (`pp.py tour`)**: five stations, each a live run on real data — detection on the built-in sample, the report explainer on the bundled real `workflow_sample.json`, top-3 rewrite suggestions, a visuals/trends command map (pointing at the bundled real `report_html_sample.html`), and the environment tier check — ~10 seconds, all local, zero network. Follows `PP_LANG=en`; also reachable via the natural-language router ("功能太多不知从哪开始" → tour). Built for discoverability: the advanced tools (trend, paragraph attribution, bundle) were easy to miss.
+- **Quick-start now shows real outputs**: SKILL.md quick start references `examples/outputs/` (with a preview line) so new users can see what results look like before running anything; the `--batch --csv --report` one-pass combination and the new `--retries`/`--circuit` interaction are documented with copyable commands (EN + ZH).
+- **FAQ**: new entry on batch failures (auto-retry semantics, when to re-run manually — answer: usually never).
+- **Sample outputs regenerated on public data**: the bundled real-output samples (`detect_sample.json`, `workflow_sample.json`, `report_html_sample.html`) were rebuilt from a real public article (Chinese Wikipedia "免疫系统", CC BY-SA, source linked in `examples/outputs/README.md`) instead of an internal working note; the packaging hygiene gate now also rejects internal identifiers, private-range IPs and internal note IDs in any shipped text file, and bundled tests lock the samples clean.
+
 ## What's new in v6.3.0
 
 - **Standalone FAQ (`references/faq.md`, `pp.py faq <keyword>`)**: the FAQ moved out of SKILL.md into its own searchable file — the full grouped Q&A (verdicts / modes / output / safety / tools) plus a new technical-questions section (why no PDF, why English is advisory-only, what the AST scan means, what the circuit breaker is, the exit-code contract, model-signature failures, why scores differ between runs). `pp.py faq 医学` / `faq PDF` / `faq 退出码` searches entries with header-hit ranking and a no-match fallback; SKILL.md keeps the top-3 questions plus a link (main file shrinks again).
@@ -233,6 +241,14 @@
 # 更新日志（中文）
 
 > v4.6.0 起历史更新说明移出 SKILL_ZH.md（新用户更快触达工作流）。最新在前。各版本摘要亦见 SKILL_ZH.md § 版本历史。
+
+## v6.4.0 更新内容
+
+- **批量自动补扫（`--retries`，默认 2）**：批处理不再把瞬时失败（文件被占用、读取抖动）留给手动重跑——首轮结束后对失败文件自动补扫至多 `--retries` 轮，补扫成功的行如实标注 `retried: true` 与 `attempts`；耗尽仍失败的进新增的 `failed_files` 聚合清单并附逐文件诊断指引（`pp.py detect <文件>` 看完整错误）。首轮熔断器行为不变，且已熔断则跳过补扫（明确的坏批次重扫无益）；`--retries 0` 恢复 v6.3.0 行为。补扫整轮无一恢复即提前停止（持久坏文件不白烧）。文本摘要行显示实际补扫轮数与诊断指引。
+- **五站导览（`pp.py tour`）**：五站全部现场真实运行——内嵌样例检测、随包真实 workflow 产物的报告解读、前三条改写建议、可视化与多轮趋势命令地图（指向随包真实 `report_html_sample.html`）、环境档位自检——约 10 秒，全部本地零网络。跟随 `PP_LANG=en` 切英文面；自然语言路由可达（"功能太多不知从哪开始"→tour）。为可发现性而做：趋势、段落归因、自查包等增值功能此前容易被错过。
+- **快速开始引用真实产物**：SKILL.md 快速开始新增 `examples/outputs/` 预览行，新用户跑命令前就能看到输出长什么样；`--batch --csv --report` 一条龙组合与新的 `--retries`/`--circuit` 交互已配可直接复制的命令（中英双语）。
+- **FAQ**：新增批量失败条目（自动补扫语义、什么时候还需要手动重跑——答案通常是永远不用）。
+- **随包样例换真实公开数据重制**：`detect_sample.json` / `workflow_sample.json` / `report_html_sample.html` 改用真实公开文稿重新生成（维基百科「免疫系统」条目，CC BY-SA，溯源见 `examples/outputs/README.md`），不再使用内部工作笔记；打包卫生闸同步扩充——内部编号、内网 IP、内部笔记 ID 一律不得进随包文本文件，随包测试加样例卫生锁。
 
 ## v6.3.0 更新内容
 

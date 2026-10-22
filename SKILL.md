@@ -1,6 +1,6 @@
 ---
 name: paper-polisher
-version: 6.3.0
+version: 6.4.0
 author: DoctorQ Lab
 description: >-
   AI-rate self-check and polish guidance for academic writing: sentence-level rewrite
@@ -146,6 +146,10 @@ Programmatic mirror: `pp_api` raises `ValueError` for invalid input (↔ exit 2)
 ```bash
 # Zero-model, zero-file one-command demo (v5.0.0)
 python scripts/pp.py quickstart
+# 5-station guided tour with live runs: detect → explainer → fix → visuals → doctor (v6.4.0)
+python scripts/pp.py tour
+# Real bundled outputs to preview before running anything (README inside lists all five)
+ls examples/outputs/   # detect_sample.json / workflow_sample.json / report_html_sample.html / ...
 # AI writing detection (probability + layered evidence + fingerprint attribution)
 python scripts/ai_detector.py draft.txt --format json
 # Sentence-level rewrite suggestions (v5.0.0: which sentences, why, how to improve)
@@ -164,6 +168,11 @@ python scripts/pp_report_bundle.py thesis.docx --outdir ~/selfcheck
 python scripts/pp_rewrite_check.py draft_original.txt draft_revised.txt
 # Batch CSV -> self-contained HTML summary (v5.1.0)
 python scripts/pp_batch_report.py scores.csv -o report.html
+# Batch + CSV + HTML in one pass: --report renders the CSV after the run (v5.2.0; needs --csv)
+python scripts/ai_detector.py --batch manuscript_dir --csv scores.csv --report report.html
+# Batch resilience (v6.4.0): failed files are auto-retried (--retries, default 2 rounds);
+# a run stops early after --circuit consecutive failures (default 5; 0 disables; tripped = no retry round)
+python scripts/ai_detector.py --batch manuscript_dir --retries 2 --circuit 5 --format json
 # Single-document visual dashboard: render workflow/detect/fix/norm JSON into one HTML (v5.8.0)
 python scripts/pp.py html-report draft.workflow.json -o report.html
 # Multi-run trend dashboard: several workflow JSONs → rewrite trajectory (v6.0.0)
@@ -269,6 +278,7 @@ Docs & site: **docsor.cn**
 
 ## Version history (condensed)
 
+- **v6.4.0 (2026-10-23)** — batch auto-retry (`--retries`, default 2) with a `failed_files` aggregate + diagnostic hints (transient failures self-heal, no manual re-run); guided tour (`pp.py tour`, five live stations incl. the report explainer and a visuals/trends map); quick start now references the bundled real outputs and documents the `--batch --csv --report` one-pass combination.
 - **v6.3.0 (2026-10-22)** — standalone searchable FAQ (`references/faq.md` + `pp.py faq <keyword>` with technical-questions section), SKILL.md keeps top-3 + link, friendly errors now carry the FAQ pointer.
 - **v6.2.0 (2026-10-21)** — side-by-side rewrite comparison (`pp_rewrite_check.py --html`): aligned per-paragraph original/revised excerpts with colored score migration, plus a signal-details section in the workflow dashboard.
 - **v6.1.0 (2026-10-20)** — report explainer (`pp.py explain`), error-glossary extension (AST/drift/signature/gate-layer phrases), quickstart timeouts + stability contract in docs, architecture deep-dive moved to `references/architecture.md`, new `references/best-practices.md`, examples annotated by scenario.

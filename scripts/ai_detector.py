@@ -1093,13 +1093,22 @@ def _read_input_text(path, exit_on_error=True):
         raise  # 批处理入口: 转异常走逐文件 ERROR 行 + 熔断计数（v5.9.0 修复一个坏 docx 炸整批）
 
 
+def _risk_mark(risk):
+    return {"high": "🔴", "medium": "🟡", "low": "🟢", "unknown": "⚪"}.get(risk, "·")
+
+
 def batch_detect(dir_path: str, fmt: str, out_path: str, csv_path: str = None,
-                 recursive: bool = False, circuit: int = 5):
+                 recursive: bool = False, circuit: int = 5, retries: int = 2):
     """v3.11: 目录批处理——逐文件检测, 输出每文件分数+聚合。确定性、零网络。
 
     v5.9.0: 连续错误熔断器——连续 circuit 个文件解析/检测失败即中止剩余文件
     （防批量坏文件白烧时间），已完成部分照常出 CSV/报告，中止事实写进产物
     （JSON circuit 字段 + 文本摘要行）。circuit=0 关闭。退出码不变（0=按契约完成）。
+
+    v6.4.0: 自动重试——首轮结束后对失败文件补扫至多 retries 轮（瞬时错误自愈：
+    文件被占用/读取抖动），补扫成功的行标 retried/attempts；耗尽仍失败的进聚合
+    failed_files 清单并附单文件诊断指引。首轮已熔断则不补扫（坏批次明确）。
+    retries=0 关闭（行为同 v6.3.0）。
     """
     d = Path(dir_path)
     if not d.is_dir():
@@ -1113,6 +1122,18 @@ def batch_detect(dir_path: str, fmt: str, out_path: str, csv_path: str = None,
     rows = []
     consec_err = 0
     circuit_tripped = None
+
+    def _process(f):
+        """处理单个文件，成功返回结果行，失败向上抛异常。"""
+        text = _read_input_text(f, exit_on_error=False)
+        if len(text.strip()) < 100:
+            return {"file": str(f.relative_to(d)), "overall_ai_score": None, "overall_risk": "unknown",
+                    "note": "insufficient text (<100 chars)"}
+        rep = detect(text, "auto")
+        return {"file": str(f.relative_to(d)), "overall_ai_score": rep.overall_ai_score,
+                "overall_risk": rep.overall_risk, "language": rep.language,
+                "degraded_mode": rep.degraded_mode}
+
     for f in files:
         if circuit and consec_err >= circuit:
             circuit_tripped = {"tripped": True, "threshold": circuit,
@@ -1120,27 +1141,45 @@ def batch_detect(dir_path: str, fmt: str, out_path: str, csv_path: str = None,
                                "skipped_remaining": len(files) - len(rows)}
             break
         try:
-            text = _read_input_text(f, exit_on_error=False)
-            if len(text.strip()) < 100:
-                rows.append({"file": str(f.relative_to(d)), "overall_ai_score": None, "overall_risk": "unknown",
-                             "note": "insufficient text (<100 chars)"})
-                continue
-            rep = detect(text, "auto")
-            rows.append({"file": str(f.relative_to(d)), "overall_ai_score": rep.overall_ai_score,
-                         "overall_risk": rep.overall_risk, "language": rep.language,
-                         "degraded_mode": rep.degraded_mode})
+            rows.append(_process(f))
+            consec_err = 0
         except Exception as e:
             consec_err += 1
             rows.append({"file": str(f.relative_to(d)), "error": str(e)[:120]})
-        else:
-            consec_err = 0
+
+    # v6.4.0 补扫：只重试上一轮仍失败的文件；整轮无一恢复即停（持久坏文件不白烧）
+    if retries and not circuit_tripped:
+        for attempt in range(2, retries + 2):
+            pending = [r for r in rows if "error" in r]
+            if not pending:
+                break
+            recovered = False
+            for r in pending:
+                try:
+                    row = _process(d / r["file"])
+                    row["retried"] = True
+                    row["attempts"] = attempt
+                    rows[rows.index(r)] = row
+                    recovered = True
+                except Exception as e:
+                    r["error"] = str(e)[:120]
+                    r["attempts"] = attempt
+            if not recovered:
+                break
+    failed_files = [{"file": r["file"], "error": r["error"], "attempts": r.get("attempts", 1)}
+                    for r in rows if "error" in r]
     scored = [r["overall_ai_score"] for r in rows if isinstance(r.get("overall_ai_score"), (int, float))]
     agg = {"files": len(rows), "scored": len(scored),
            "mean_score": round(sum(scored) / len(scored), 1) if scored else None,
            "max_score": max(scored) if scored else None,
-           "high_risk_files": sum(1 for r in rows if r.get("overall_risk") == "high")}
+           "high_risk_files": sum(1 for r in rows if r.get("overall_risk") == "high"),
+           "failed": len(failed_files)}
     result = {"directory": str(d), "aggregate": agg, "files": rows,
               "integrity_notice": INTEG_ZH}
+    if failed_files:
+        result["failed_files"] = failed_files
+        result["failed_hint"] = ("失败文件可单跑 python3 scripts/pp.py detect <文件> 看完整错误；"
+                                 "docx 打不开多为加密/损坏，详见 python3 scripts/pp.py faq docx")
     if circuit_tripped:
         result["circuit"] = circuit_tripped
     if csv_path:
@@ -1151,7 +1190,8 @@ def batch_detect(dir_path: str, fmt: str, out_path: str, csv_path: str = None,
             w.writerow(["file", "ai_score", "risk", "language", "degraded_mode"])
             for r in rows:
                 if "error" in r:
-                    w.writerow([r["file"], "ERROR", "", "", r["error"][:60]])
+                    _att = f" (attempts={r.get('attempts', 1)})" if r.get("attempts", 1) > 1 else ""
+                    w.writerow([r["file"], "ERROR", "", "", (r["error"][:50] + _att)[:60]])
                 elif r.get("overall_ai_score") is None:
                     w.writerow([r["file"], "", "unknown", "", r.get("note", "")])
                 else:
@@ -1161,19 +1201,25 @@ def batch_detect(dir_path: str, fmt: str, out_path: str, csv_path: str = None,
     if fmt == "json" or out_path:
         out = json.dumps(result, ensure_ascii=False, indent=2)
     else:
-        lines = [f"批量检测: {agg['files']} 个文件 (可评 {agg['scored']})", 
-                 f"均分: {agg['mean_score']}  最高: {agg['max_score']}  高风险文件: {agg['high_risk_files']}",
+        lines = [f"批量检测: {agg['files']} 个文件 (可评 {agg['scored']})",
+                 f"均分: {agg['mean_score']}  最高: {agg['max_score']}  高风险文件: {agg['high_risk_files']}"
+                 + (f"  失败: {agg['failed']}" if failed_files else ""),
                  "─" * 40]
         if circuit_tripped:
             lines.append(f"⛔ 熔断: 连续 {circuit_tripped['failed_consecutive']} 个文件失败，已中止剩余 {circuit_tripped['skipped_remaining']} 个（已完成部分照常出 CSV/报告；--circuit 0 关闭熔断）")
         for r in rows:
             if "error" in r:
-                lines.append(f"  [错误] {r['file']}: {r['error'][:40]}")
+                _att = f"（重试 {r['attempts'] - 1} 次仍失败）" if r.get("attempts", 1) > 1 else ""
+                lines.append(f"  [错误] {r['file']}: {r['error'][:40]}{_att}")
             elif r.get("overall_ai_score") is None:
                 lines.append(f"  [过短] {r['file']}: 不判定")
+            elif r.get("retried"):
+                lines.append(f"  {_risk_mark(r['overall_risk'])} {r['overall_ai_score']:5.1f} {r['overall_risk']:7s} {r['file']} (重试后成功)")
             else:
-                mark = {"high": "🔴", "medium": "🟡", "low": "🟢", "unknown": "⚪"}.get(r["overall_risk"], "·")
-                lines.append(f"  {mark} {r['overall_ai_score']:5.1f} {r['overall_risk']:7s} {r['file']}")
+                lines.append(f"  {_risk_mark(r['overall_risk'])} {r['overall_ai_score']:5.1f} {r['overall_risk']:7s} {r['file']}")
+        if failed_files and not circuit_tripped:
+            _rounds = max(r.get("attempts", 1) for r in failed_files) - 1
+            lines.append(f"↩ {len(failed_files)} 个文件补扫 {_rounds} 轮仍失败：单跑 python3 scripts/pp.py detect <文件> 看完整错误（docx 打不开见 pp.py faq docx）")
         out = "\n".join(lines)
     if out_path:
         Path(out_path).parent.mkdir(parents=True, exist_ok=True)
@@ -1197,7 +1243,10 @@ def main():
     parser.add_argument("--csv", metavar="PATH",
                         help="With --batch: also write per-file results as CSV")
     parser.add_argument("--circuit", type=int, default=5,
-                      help="批处理连续错误熔断阈值（默认 5；0=关闭）")
+                      help="批处理连续错误熔断阈值（默认 5；0=关闭；熔断后不再补扫）")
+    parser.add_argument("--retries", type=int, default=2,
+                      help="批处理失败文件自动补扫轮数（v6.4.0，默认 2；0=关闭；瞬时错误自愈，"
+                           "耗尽仍失败的进 failed_files 清单并附诊断指引）")
     parser.add_argument("--recursive", action="store_true",
                         help="With --batch: recurse into subdirectories")
     parser.add_argument("--discipline", default=None,
@@ -1210,7 +1259,7 @@ def main():
 
     if args.batch:
         batch_detect(args.batch, args.format, args.output, csv_path=args.csv,
-                     recursive=args.recursive, circuit=args.circuit)
+                     recursive=args.recursive, circuit=args.circuit, retries=args.retries)
         if getattr(args, "report", None):
             if not args.csv:
                 print("Warning: --report 需要 --csv 先落盘逐文件结果，本次跳过 HTML 渲染。",

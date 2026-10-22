@@ -87,7 +87,7 @@ GROUPS = (
 )
 
 # 内建子命令（非透传，本文件内实现）
-BUILTIN = ("quickstart", "test", "api", "recommend", "faq")
+BUILTIN = ("quickstart", "tour", "test", "api", "recommend", "faq")
 
 _QUICKSTART_SAMPLE = (
     "值得注意的是，随着人工智能技术的快速发展，其在医疗领域的应用日益受到关注。"
@@ -140,6 +140,9 @@ _RECOMMEND_RULES = (
      "Python SDK 提示（import pp_api，无 CLI）", "import pp_api  # 见 SKILL.md § Python API"),
     (("全流程", "一步到位", "工作流", "workflow", "综合", "整体"), "workflow",
      "端到端自查：一次产出全部结果（MD + JSON）", "pp.py workflow draft.txt"),
+    (("导览", "入门", "从哪开始", "怎么上手", "功能太多", "演示", "tour", "get started"), "tour",
+     "五站导览：检测→解读→改写建议→可视化→环境，现场真实演示（v6.4.0）",
+     "pp.py tour"),
 )
 
 
@@ -159,6 +162,84 @@ def _run_quickstart():
     Path(demo).unlink(missing_ok=True)
     print("\n下一步：把你的文稿存成 txt，运行 python3 scripts/pp.py detect 你的文件.txt"
           "；想看逐句改写建议加 pp.py fix 你的文件.txt。")
+    return 0
+
+
+def _run_tour():
+    """五站导览（v6.4.0）：把检测/解读/改写建议/可视化/环境五条主路各跑一遍真实样例。
+
+    面向"功能多但不知从哪进"的用户：每站给可复制命令 + 现场运行 + 一句解说；
+    全部本地秒级零网络。样例解读站用 examples/outputs/ 随包真实产物，缺样例则跳过。
+    """
+    en = _LANG.startswith("en")
+    def _say(zh, eng):
+        # flush=True：tour 会同步跑子进程（直写 fd），父进程缓冲不冲会打乱输出顺序
+        print(zh if not en else eng, flush=True)
+    _say("paper-polisher-pro 五站导览（现场真实运行，约 10 秒，全部本地零网络）\n",
+         "paper-polisher-pro 5-station tour (live runs, ~10s, all local, zero network)\n")
+    with tempfile.NamedTemporaryFile("w", suffix=".txt", delete=False,
+                                     encoding="utf-8") as f:
+        f.write(_QUICKSTART_SAMPLE)
+        demo = f.name
+    try:
+        _say("【站 1/5 · AI 率检测】", "【Station 1/5 · AI-rate detection】")
+        _say("命令：python3 scripts/pp.py detect 你的文稿.txt --format json\n"
+             "现场用内嵌样例跑一遍（分数 0-100，附风险带与证据分层）：\n",
+             "command: python3 scripts/pp.py detect draft.txt --format json\n"
+             "Live run on the built-in sample (score 0-100 + risk band + evidence layers):\n")
+        subprocess.run([sys.executable, str(HERE / "ai_detector.py"), demo], timeout=180)
+
+        wf = HERE.parent / "examples" / "outputs" / "workflow_sample.json"
+        _say("\n【站 2/5 · 报告解读】", "\n【Station 2/5 · Report explainer】")
+        if wf.is_file():
+            _say("命令：python3 scripts/pp.py explain 报告.workflow.json（人话三段：结论/证据/行动）\n"
+                 "现场解读随包真实产物样例：\n",
+                 "command: python3 scripts/pp.py explain report.workflow.json\n"
+                 "Explaining the bundled real sample:\n")
+            subprocess.run([sys.executable, str(HERE / "pp_explain.py"), str(wf)], timeout=180)
+        else:
+            _say("（随包样例缺失，跳过现场运行。）命令：python3 scripts/pp.py explain 报告.workflow.json",
+                 "(Bundled sample missing; skipped.) command: python3 scripts/pp.py explain report.workflow.json")
+
+        _say("\n【站 3/5 · 句子级改写建议】", "\n【Station 3/5 · Rewrite suggestions】")
+        _say("命令：python3 scripts/pp.py fix 你的文稿.txt --top 10（指位+策略，不代改）\n"
+             "现场输出前三条：\n",
+             "command: python3 scripts/pp.py fix draft.txt --top 10 (locates + advises, never rewrites)\n"
+             "Top-3 live:\n")
+        subprocess.run([sys.executable, str(HERE / "pp_fix_suggest.py"), demo, "--top", "3"], timeout=180)
+
+        _say("\n【站 4/5 · 可视化与多轮趋势（命令模板，轮到你时直接换文件名）】",
+             "\n【Station 4/5 · Visuals & trends (templates; swap in your files)】")
+        if not en:
+            print("  单文档仪表盘：pp.py html-report draft.workflow.json -o report.html"
+                  + ("（随包真实样例 examples/outputs/report_html_sample.html 可直接浏览器打开）"
+                     if (HERE.parent / "examples" / "outputs" / "report_html_sample.html").is_file() else ""),
+                  flush=True)
+            print("  多轮趋势    ：每改一轮跑一次 workflow 并存 JSON，然后 pp.py trend 轮次目录/ -o trend.html",
+                  flush=True)
+            print("  段落归因    ：pp.py paragraph draft.txt（哪一段最像 AI，HTML 高亮）", flush=True)
+            print("  投稿自查包  ：pp.py bundle thesis.docx --outdir ~/selfcheck（一条命令全部产物）",
+                  flush=True)
+        else:
+            print("  Single-doc dashboard: pp.py html-report draft.workflow.json -o report.html"
+                  + (" (bundled real sample: examples/outputs/report_html_sample.html)"
+                     if (HERE.parent / "examples" / "outputs" / "report_html_sample.html").is_file() else ""),
+                  flush=True)
+            print("  Multi-run trend    : run workflow once per revision, then pp.py trend rundir/ -o trend.html",
+                  flush=True)
+            print("  Paragraph attribution: pp.py paragraph draft.txt (HTML highlight)", flush=True)
+            print("  Submission bundle  : pp.py bundle thesis.docx --outdir ~/selfcheck", flush=True)
+
+        _say("\n【站 5/5 · 环境档位】", "\n【Station 5/5 · Environment tier】")
+        _say("命令：python3 scripts/pp.py doctor（能跑吗/跑哪档/缺什么）\n现场：\n",
+             "command: python3 scripts/pp.py doctor\nLive:\n")
+        subprocess.run([sys.executable, str(HERE / "pp_doctor.py")], timeout=180)
+    finally:
+        Path(demo).unlink(missing_ok=True)
+    _say("\n路线图小结：日常自查 workflow → 逐句修改 fix → 改完对比 rewrite-check → "
+         "多轮复盘 trend；报错先 pp.py faq <关键词>，环境问题 pp.py doctor。",
+         "\nRoute map: workflow (daily) → fix (per-sentence) → rewrite-check (after edits) → "
+         "trend (across revisions); on errors pp.py faq <keyword>, on env issues pp.py doctor.")
     return 0
 
 
@@ -282,6 +363,7 @@ def _print_help():
             print()
         print("[helpers]")
         print("  quickstart      Zero-model, zero-file demo (detect→fix→doctor)")
+        print("  tour            5-station guided tour with live runs (v6.4.0)")
         print("  test            Bundled unit tests (unittest, seconds)")
         print("  recommend       Natural-language command router (describe the task)")
         print("\nPython SDK: import pp_api (no CLI; see SKILL.md § Python API)")
@@ -300,6 +382,7 @@ def _print_help():
         print()
     print("【辅助】")
     print("  %-*s  %s" % (width, "quickstart", "零模型零文件一键体验（detect→fix→doctor）"))
+    print("  %-*s  %s" % (width, "tour", "五站导览（现场真实运行：检测→解读→改写→可视化→环境；v6.4.0）"))
     print("  %-*s  %s" % (width, "test", "包内单元测试（unittest，秒级）"))
     print("  %-*s  %s" % (width, "recommend", "自然语言场景路由（描述需求 → 推荐命令）"))
     print("  %-*s  %s" % (width, "faq", "FAQ 关键词检索（v6.3.0：pp.py faq 医学 / PDF / 退出码）"))
@@ -320,6 +403,8 @@ def main():
         return 0
     if cmd == "quickstart":
         return _run_quickstart()
+    if cmd == "tour":
+        return _run_tour()
     if cmd == "test":
         return _run_tests()
     if cmd == "recommend":
@@ -328,11 +413,13 @@ def main():
         return _run_faq(" ".join(args[1:]))
     if cmd not in COMMANDS:
         if _LANG.startswith("en"):
-            print("Unknown subcommand: %s (available: %s quickstart test recommend)"
-                  % (cmd, " ".join(COMMANDS)), file=sys.stderr)
+            print("Unknown subcommand: %s (available: %s %s)"
+                  % (cmd, " ".join(COMMANDS), " ".join(k for k in BUILTIN if k != "api")),
+                  file=sys.stderr)
         else:
-            print("未知子命令: %s（可用：%s quickstart test recommend）"
-                  % (cmd, " ".join(COMMANDS)), file=sys.stderr)
+            print("未知子命令: %s（可用：%s %s）"
+                  % (cmd, " ".join(COMMANDS), " ".join(k for k in BUILTIN if k != "api")),
+                  file=sys.stderr)
         return 2
     script, _, _ = COMMANDS[cmd]
     p = subprocess.run([sys.executable, str(HERE / script)] + args[1:])

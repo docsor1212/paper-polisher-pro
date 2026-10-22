@@ -1,6 +1,6 @@
 {
   "name": "paper-polisher-pro",
-  "version": "6.3.0",
+  "version": "6.4.0",
   "description": "AI writing detector (author self-check) + academic polishing guidance + terminology protection, 100% local. 11-layer recalibrated rule engine + token-spectrum layer + length-routed fusion + optional supervised Qwen3-0.6B ONNX layer (AUROC 1.0 held-out) + LLM fingerprint attribution (GLM/DeepSeek/Qwen/Kimi/MiniMax/GPT/Claude/Gemini) + journal precheck + AIGC compliance label check + paragraph attribution + sentence-level rewrite suggestions (guidance, never auto-rewrite). Eval-driven: base-engine numbers reproduce via the bundled held-out evaluation; supervised-layer figures are author-side held-out measurements.",
   "author": "DoctorQ Lab",
   "changelog": "v6.3.0: standalone searchable FAQ — the full grouped Q&A plus a new technical-questions section (PDF/English/AST-scan/circuit-breaker/exit-codes/model-signature/score-drift) moved to references/faq.md; pp.py faq <keyword> searches it with header-hit ranking; SKILL.md keeps the top-3 questions and a link; friendly-error outputs carry a pp.py faq pointer so a failure message leads straight to the answer. No engine scoring changes — published numbers bit-reproducible. 零新增依赖。",
