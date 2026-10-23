@@ -1,6 +1,6 @@
 ---
 name: paper-polisher
-version: 6.4.0
+version: 6.5.0
 author: DoctorQ Lab
 description: >-
   AI-rate self-check and polish guidance for academic writing: sentence-level rewrite
@@ -132,6 +132,9 @@ This tool is for **authors self-reviewing and improving their own writing qualit
 Programmatic mirror: `pp_api` raises `ValueError` for invalid input (↔ exit 2) and `RuntimeError` for runtime failure (↔ exit 1), both carrying recovery advice in the message. These codes are a stability promise — future releases will not repurpose them.
 
 ## Anti-patterns (each with the right way)
+## Anti-patterns (each with the right way)
+
+> This section lists **judgment-type** rules only (what not to do); operational how-to questions live in [`references/faq.md`](references/faq.md) (searchable via `pp.py faq <keyword>`) — the two cross-reference each other instead of repeating.
 
 - **Don't feed <100 chars** and expect a verdict — `risk=unknown` is by design (short-text false positives are uncontrollable). ✅ Instead: submit 300+ chars, or use the style-norm check (`pp.py norm`) which has no verdict and works on short samples.
 - **Don't trust degraded-mode scores on medical text** — rules-only over-scores medical register (~59% human FPR @medium). ✅ Instead: install the supervised model, or trust only `@high` verdicts and lean on paragraph attribution.
@@ -222,6 +225,19 @@ print(r["overall_ai_score"], r["overall_risk"], r["degraded_mode"])
 
 `detect_text` runs in-process (no subprocess) and returns the same JSON structure as the CLI. Every function returns JSON-able dicts and raises on bad input — no silent failures. Zero network, stdlib-only.
 
+### MCP server (direct agent-client integration, v6.5.0)
+
+Zero-dependency MCP stdio server (JSON-RPC in pure stdlib — nothing to pip install), eight tools sharing the CLI engine and semantics:
+
+```jsonc
+// mcpServers config for Claude Code / Cursor etc.
+{ "mcpServers": { "paper-polisher-pro": {
+    "command": "python3",
+    "args": ["<skill>/scripts/pp_mcp_server.py"] } } }
+```
+
+Tools: `pp_detect` (AI-rate + layered evidence) | `pp_fix_suggest` (sentence suggestions, never rewrites) | `pp_style_norm` (style norms) | `pp_term_check` (terminology) | `pp_workflow` (full end-to-end report) | `pp_explain` (plain-language reading) | `pp_faq` (search) | `pp_doctor` (environment tier). All local, zero network; output auto-truncated (12k chars).
+
 ### One-command supervised setup
 
 ```bash
@@ -278,6 +294,7 @@ Docs & site: **docsor.cn**
 
 ## Version history (condensed)
 
+- **v6.5.0 (2026-10-24)** — MCP stdio server (`pp.py mcp`): eight tools over pure-stdlib JSON-RPC for agent clients (Claude Code/Cursor), zero dependencies, zero network; anti-patterns ↔ FAQ de-duplicated with cross-pointers and a reading-tier note.
 - **v6.4.0 (2026-10-23)** — batch auto-retry (`--retries`, default 2) with a `failed_files` aggregate + diagnostic hints (transient failures self-heal, no manual re-run); guided tour (`pp.py tour`, five live stations incl. the report explainer and a visuals/trends map); quick start now references the bundled real outputs and documents the `--batch --csv --report` one-pass combination.
 - **v6.3.0 (2026-10-22)** — standalone searchable FAQ (`references/faq.md` + `pp.py faq <keyword>` with technical-questions section), SKILL.md keeps top-3 + link, friendly errors now carry the FAQ pointer.
 - **v6.2.0 (2026-10-21)** — side-by-side rewrite comparison (`pp_rewrite_check.py --html`): aligned per-paragraph original/revised excerpts with colored score migration, plus a signal-details section in the workflow dashboard.

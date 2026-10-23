@@ -683,7 +683,7 @@ chk("CHANGELOG 顶部为当前版本(EN/ZH)", _en_top[:1] == [_cur] and _zh_top[
 try:
     _ut = subprocess.run([sys.executable, "-m", "unittest", "discover", "-s", "tests",
                           "-t", "."], capture_output=True, text=True, encoding="utf-8",
-                         cwd=str(ROOT), timeout=420)
+                         cwd=str(ROOT), timeout=900)  # v6.5.0: 套件随版本增长（MCP 全链会话），420→900s
     _m = _re2.search(r"Ran (\d+) tests", _ut.stderr + _ut.stdout)
     _ntests = int(_m.group(1)) if _m else 0
     chk("包内单测全绿", _ut.returncode == 0 and _ntests >= 40,

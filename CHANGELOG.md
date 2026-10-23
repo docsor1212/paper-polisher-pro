@@ -3,6 +3,11 @@
 > **只想快速上手？** 回 `SKILL.md` § TL;DR（30 秒任务路由表）——本文件仅是完整版本历史，新用户无需阅读。
 > Historical release notes. Newest first. SKILL.md § Version history keeps only the last three releases; everything older lives here (single source, no duplication).
 
+## What's new in v6.5.0
+
+- **MCP server (`scripts/pp_mcp_server.py`, `pp.py mcp`)**: paper-polisher-pro is now directly callable from agent clients (Claude Code, Cursor, anything speaking MCP) — a zero-dependency stdio server implementing JSON-RPC in pure stdlib, so nothing to pip install and the zero-network posture is unchanged. Eight tools share the CLI engine and exit-code semantics: `pp_detect`, `pp_fix_suggest`, `pp_style_norm`, `pp_term_check`, `pp_workflow`, `pp_explain`, `pp_faq`, `pp_doctor`. Inputs are size-capped (2M chars), outputs auto-truncated (12k chars), engine timeouts and errors are reported honestly as `mcp_error` instead of being masked. Usage config lives in SKILL.md § MCP server.
+- **Anti-patterns ↔ FAQ de-duplication**: the review noted the two overlapped (medical-text caveats appeared in both). The anti-patterns section now states its scope explicitly (judgment-type rules — what not to do), the FAQ states its own (operational how-to), the two cross-reference each other instead of repeating, and the FAQ header gains a reading-tier note (first five groups for everyone; the technical-questions section is for integrators/advanced debugging).
+
 ## What's new in v6.4.0
 
 - **Batch auto-retry (`--retries`, default 2)**: batch runs no longer leave transient failures (file locked, read hiccup) for manual re-runs — after the first pass, files that errored are automatically re-scanned up to `--retries` rounds; recovered rows are marked `retried: true` with `attempts`. Files still failing after the retry budget land in a new `failed_files` aggregate with a per-file diagnostic hint (`pp.py detect <file>` for the full error). The first-pass circuit breaker is unchanged, and a tripped circuit skips the retry rounds (a clearly bad batch gains nothing from re-scans); `--retries 0` restores the v6.3.0 behavior. Retry rounds stop early when a round recovers nothing (persistent corrupt files are not re-burned). Text summary lines show the actual retry rounds and the diagnostic pointer.
@@ -241,6 +246,11 @@
 # 更新日志（中文）
 
 > v4.6.0 起历史更新说明移出 SKILL_ZH.md（新用户更快触达工作流）。最新在前。各版本摘要亦见 SKILL_ZH.md § 版本历史。
+
+## v6.5.0 更新内容
+
+- **MCP server（`scripts/pp_mcp_server.py`，`pp.py mcp`）**：paper-polisher-pro 现在可被 agent 客户端（Claude Code、Cursor 及一切 MCP 客户端）直接调用——零依赖 stdio server，纯标准库实现 JSON-RPC，无需安装任何第三方包，零网络立场不变。八个工具与 CLI 同引擎同退出码语义：`pp_detect`、`pp_fix_suggest`、`pp_style_norm`、`pp_term_check`、`pp_workflow`、`pp_explain`、`pp_faq`、`pp_doctor`。输入限幅（200 万字符）、输出自动截断（1.2 万字符）、引擎超时与异常如实以 `mcp_error` 回传不伪装成功。配置示例见 SKILL.md § MCP server。
+- **反模式 ↔ FAQ 去重**：评审指出两处重叠（医学语域告诫双份）。反模式节现明确自身分工（判断类铁律——不该做什么），FAQ 明确自身分工（操作型怎么做），两边互为指针不再重复展开；FAQ 头部新增阅读分层提示（前五组面向所有用户，「具体技术问题」节面向集成者与进阶排障）。
 
 ## v6.4.0 更新内容
 

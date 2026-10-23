@@ -74,6 +74,8 @@ COMMANDS = {
     "setup": ("pp_setup.py", "监督层装模/状态/获取指南（--model / --check / --guide）",
               "Supervised-layer install/status/acquisition guide (--model / --check / --guide)"),
     "doctor": ("pp_doctor.py", "环境自检（能跑吗/跑哪档）", "Environment self-check (can it run / which mode)"),
+    "mcp": ("pp_mcp_server.py", "MCP stdio server（零依赖，供 Claude/Cursor 等 agent 客户端直连；v6.5.0）",
+            "MCP stdio server (zero-dependency, for agent clients like Claude/Cursor; v6.5.0)"),
 }
 
 # 场景分组（v6.0.0）：新手按需看一组，不再面对 21 行平铺清单
@@ -83,7 +85,7 @@ GROUPS = (
     ("规范与术语", "Conventions & terms", ("norm", "term", "smell", "style")),
     ("报告与可视化", "Reports & visuals", ("workflow", "quality", "bundle", "html-report", "trend", "batch-report")),
     ("合规与自证", "Compliance & assurance", ("aigc", "verify", "freshness")),
-    ("环境", "Environment", ("setup", "doctor")),
+    ("环境", "Environment", ("setup", "doctor", "mcp")),
 )
 
 # 内建子命令（非透传，本文件内实现）
@@ -138,6 +140,9 @@ _RECOMMEND_RULES = (
     (("质量", "可读性", "quality"), "quality", "综合质量报告", "pp.py quality draft.txt"),
     (("编程", "集成", "api", "sdk", "python"), "api",
      "Python SDK 提示（import pp_api，无 CLI）", "import pp_api  # 见 SKILL.md § Python API"),
+    (("mcp", "MCP", "agent 客户端", "claude配置", "cursor", "编辑器接入"), "mcp",
+     "MCP stdio server：agent 客户端直连八个工具（v6.5.0）",
+     "python3 scripts/pp.py mcp  # 客户端 stdio server 配置见 SKILL.md § MCP"),
     (("全流程", "一步到位", "工作流", "workflow", "综合", "整体"), "workflow",
      "端到端自查：一次产出全部结果（MD + JSON）", "pp.py workflow draft.txt"),
     (("导览", "入门", "从哪开始", "怎么上手", "功能太多", "演示", "tour", "get started"), "tour",
