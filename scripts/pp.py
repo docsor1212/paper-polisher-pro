@@ -49,6 +49,8 @@ COMMANDS = {
              "Academic style-norm self-check (fullwidth/numbers/abbrev/units/LLM jargon, no score)"),
     "term": ("term_check.py", "术语保护检查（--auto-fix 可自动修复；--neologism 新造词提示）",
              "Terminology standardization check (--auto-fix; --neologism out-of-bank probe)"),
+    "term-project": ("pp_term_consistency.py", "多文档术语一致性（跨文件写法矩阵+统一建议；v6.6.0）",
+                     "Cross-file terminology consistency matrix + unification advice (v6.6.0)"),
     "smell": ("translation_smell_check.py", "翻译腔检查（--json）", "Translationese check (--json)"),
     "style": ("style_distance.py", "文体距离/人类相似度（--json）", "Stylometry / human-likeness (--json)"),
     "workflow": ("pp_workflow.py", "端到端自查工作流（Markdown + JSON 报告）",
@@ -62,6 +64,8 @@ COMMANDS = {
               "Multi-run trend report (several workflow JSONs → trajectory dashboard; v6.0.0)"),
     "explain": ("pp_explain.py", "报告解读器（workflow/detect JSON → 结论/证据/行动清单人话三段；v6.1.0）",
                 "Report explainer (workflow JSON → plain-language verdict/evidence/actions; v6.1.0)"),
+    "evidence": ("pp_evidence_report.py", "检测证据报告（判定+逐特征证据+局限/诚信声明 → HTML+MD；v6.6.0）",
+                 "Evidence report (verdict + per-feature evidence + limitation/integrity statements → HTML+MD; v6.6.0)"),
     "batch-report": ("pp_batch_report.py", "批量 CSV → HTML 汇总报告",
                      "Batch CSV → HTML summary report"),
     "aigc": ("aigc_label_check.py", "AIGC 合规标识检查（docx/pdf/图片/文本）",
@@ -82,8 +86,8 @@ COMMANDS = {
 GROUPS = (
     ("检测", "Detection", ("detect", "gate", "paragraph")),
     ("改写建议", "Rewrite guidance", ("fix", "rewrite-check")),
-    ("规范与术语", "Conventions & terms", ("norm", "term", "smell", "style")),
-    ("报告与可视化", "Reports & visuals", ("workflow", "quality", "bundle", "html-report", "trend", "batch-report")),
+    ("规范与术语", "Conventions & terms", ("norm", "term", "term-project", "smell", "style")),
+    ("报告与可视化", "Reports & visuals", ("workflow", "quality", "bundle", "html-report", "trend", "batch-report", "evidence")),
     ("合规与自证", "Compliance & assurance", ("aigc", "verify", "freshness")),
     ("环境", "Environment", ("setup", "doctor", "mcp")),
 )
@@ -143,6 +147,12 @@ _RECOMMEND_RULES = (
     (("mcp", "MCP", "agent 客户端", "claude配置", "cursor", "编辑器接入"), "mcp",
      "MCP stdio server：agent 客户端直连八个工具（v6.5.0）",
      "python3 scripts/pp.py mcp  # 客户端 stdio server 配置见 SKILL.md § MCP"),
+    (("证据", "被质疑", "说明材料", "存档", "自证写作", "evidence", "report card"), "evidence",
+     "检测证据报告：判定+逐特征证据+局限/诚信声明（HTML+MD，v6.6.0）",
+     "pp.py evidence draft.txt --outdir evidence/"),
+    (("多文档", "全稿", "章节", "跨文件", "学位论文统一", "全文一致"), "term-project",
+     "多文档术语一致性：跨文件写法矩阵+统一建议（v6.6.0）",
+     "pp.py term-project 章节目录/ --html matrix.html"),
     (("全流程", "一步到位", "工作流", "workflow", "综合", "整体"), "workflow",
      "端到端自查：一次产出全部结果（MD + JSON）", "pp.py workflow draft.txt"),
     (("导览", "入门", "从哪开始", "怎么上手", "功能太多", "演示", "tour", "get started"), "tour",
@@ -224,6 +234,10 @@ def _run_tour():
                   flush=True)
             print("  段落归因    ：pp.py paragraph draft.txt（哪一段最像 AI，HTML 高亮）", flush=True)
             print("  投稿自查包  ：pp.py bundle thesis.docx --outdir ~/selfcheck（一条命令全部产物）",
+                  flush=True)
+            print("  检测证据报告：pp.py evidence draft.txt（判定+逐特征证据+局限/诚信声明，HTML+MD；v6.6.0）",
+                  flush=True)
+            print("  多文档一致性：pp.py term-project 章节目录/（学位论文全稿术语统一；v6.6.0）",
                   flush=True)
         else:
             print("  Single-doc dashboard: pp.py html-report draft.workflow.json -o report.html"

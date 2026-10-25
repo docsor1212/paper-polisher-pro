@@ -3,6 +3,11 @@
 > **只想快速上手？** 回 `SKILL.md` § TL;DR（30 秒任务路由表）——本文件仅是完整版本历史，新用户无需阅读。
 > Historical release notes. Newest first. SKILL.md § Version history keeps only the last three releases; everything older lives here (single source, no duplication).
 
+## What's new in v6.6.0
+
+- **Evidence report (`pp_evidence_report.py`, `pp.py evidence`)**: for the real moment when a reader asks "is this AI-written?" — one command renders the full detection evidence chain into a deliverable, self-contained HTML + Markdown report: verdict card (score/risk band/mode/supervised fingerprint), per-feature evidence with located excerpts, paragraph grading, threshold caliber as-is, and fixed limitation & academic-integrity statements that cannot be turned off. Honest positioning stated in the report header: it presents the engine's judgment and evidence faithfully for self-check and explanation — it is **not** a certificate of "no AI use", and the score is engine-relative, not equivalent to any institutional detector.
+- **Cross-file terminology consistency (`pp_term_consistency.py`, `pp.py term-project`)**: theses and group reports live as multiple chapter files, and single-file term checking cannot see "chapter 2 says X, chapter 5 says Y". Point it at a directory (≥2 files) and it builds the writing matrix per in-bank concept across files, lists inconsistent concepts with a unification recommendation (the bank's standard name; falling back to the most widely used variant when the standard name is absent), and renders a JSON/text/HTML matrix. Honest boundary stated everywhere: only in-bank concepts are visible; out-of-bank free phrasings need `term_check --neologism` as a companion probe. Scanning logic is same-source with `term_check` (longest-first claiming, derivation/organization-suffix exclusions), with the standard-name hits retained for matrix statistics.
+
 ## What's new in v6.5.0
 
 - **MCP server (`scripts/pp_mcp_server.py`, `pp.py mcp`)**: paper-polisher-pro is now directly callable from agent clients (Claude Code, Cursor, anything speaking MCP) — a zero-dependency stdio server implementing JSON-RPC in pure stdlib, so nothing to pip install and the zero-network posture is unchanged. Eight tools share the CLI engine and exit-code semantics: `pp_detect`, `pp_fix_suggest`, `pp_style_norm`, `pp_term_check`, `pp_workflow`, `pp_explain`, `pp_faq`, `pp_doctor`. Inputs are size-capped (2M chars), outputs auto-truncated (12k chars), engine timeouts and errors are reported honestly as `mcp_error` instead of being masked. Usage config lives in SKILL.md § MCP server.
@@ -246,6 +251,11 @@
 # 更新日志（中文）
 
 > v4.6.0 起历史更新说明移出 SKILL_ZH.md（新用户更快触达工作流）。最新在前。各版本摘要亦见 SKILL_ZH.md § 版本历史。
+
+## v6.6.0 更新内容
+
+- **检测证据报告（`pp_evidence_report.py`，`pp.py evidence`）**：面向「被质疑是不是 AI 写的」这一真实时刻——一条命令把完整检测证据链渲染成可交付的自包含 HTML + Markdown 报告：结论卡（分数/风险带/档位/监督模型指纹）、逐特征命中定位摘录、段落分级、阈值口径原样呈现、以及**不可关闭**的固定局限声明与学术诚信声明。报告头部即写明诚实定位：如实呈现引擎判定与证据，供自查与说明；**不构成「未使用 AI」的任何证明**；分数为引擎口径相对参考，不与任何机构检测器等价。
+- **多文档术语一致性（`pp_term_consistency.py`，`pp.py term-project`）**：学位论文/课题组报告由多个章节文件组成，单文件术语检查看不见「第 2 章写 A、第 5 章写 B」。对目录（≥2 份文稿）构建库内概念的跨文件写法矩阵，列出不一致概念并给统一建议（以库标准名为准；标准名未出现时回落到使用最广的写法并如实标注依据），JSON/文本/HTML 三形态。诚实边界处处声明：只覆盖库内概念，库外自由写法不可见，可配合 `term_check --neologism`；扫描逻辑与 term_check 同源（最长优先认领、派生词/机构名排除），额外保留标准词命中供矩阵统计。
 
 ## v6.5.0 更新内容
 

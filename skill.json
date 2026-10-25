@@ -1,8 +1,8 @@
 {
   "name": "paper-polisher-pro",
-  "version": "6.5.0",
+  "version": "6.6.0",
   "description": "AI writing detector (author self-check) + academic polishing guidance + terminology protection, 100% local. 11-layer recalibrated rule engine + token-spectrum layer + length-routed fusion + optional supervised Qwen3-0.6B ONNX layer (AUROC 1.0 held-out) + LLM fingerprint attribution (GLM/DeepSeek/Qwen/Kimi/MiniMax/GPT/Claude/Gemini) + journal precheck + AIGC compliance label check + paragraph attribution + sentence-level rewrite suggestions (guidance, never auto-rewrite). Eval-driven: base-engine numbers reproduce via the bundled held-out evaluation; supervised-layer figures are author-side held-out measurements.",
   "author": "DoctorQ Lab",
-  "changelog": "v6.4.0: batch auto-retry (--retries) with failed_files diagnostic list; guided tour (pp.py tour); quick start references bundled real outputs; sample outputs regenerated on public data (Wikipedia CC BY-SA). v6.5.0: zero-dependency MCP stdio server (pp_mcp_server.py, eight tools — detect/fix_suggest/style_norm/term_check/workflow/explain/faq/doctor — same engine, same semantics, JSON-RPC in pure stdlib for Claude Code/Cursor and any MCP client); anti-patterns vs FAQ de-duplicated with cross-pointers and a reading-tier note; skill.json changelog field now kept in sync. No engine scoring changes. 零新增依赖。",
+  "changelog": "v6.6.0: evidence report (pp.py evidence — verdict + per-feature located evidence + threshold caliber + supervised fingerprint + fixed limitation/integrity statements, HTML+Markdown) and cross-file terminology consistency (pp.py term-project — thesis-wide writing matrix for in-bank concepts with unification advice; honest boundary: out-of-bank phrasings are invisible, pair with --neologism). No engine scoring changes. 零新增依赖。",
   "license": "MIT-0"
 }

@@ -1,6 +1,6 @@
 ---
 name: paper-polisher
-version: 6.5.0
+version: 6.6.0
 author: DoctorQ Lab
 description: >-
   AI-rate self-check and polish guidance for academic writing: sentence-level rewrite
@@ -180,6 +180,10 @@ python scripts/ai_detector.py --batch manuscript_dir --retries 2 --circuit 5 --f
 python scripts/pp.py html-report draft.workflow.json -o report.html
 # Multi-run trend dashboard: several workflow JSONs → rewrite trajectory (v6.0.0)
 python scripts/pp.py trend 轮次目录/ -o trend.html
+# Evidence report (v6.6.0: verdict + per-feature evidence + limitation/integrity statements → HTML+MD)
+python scripts/pp.py evidence draft.txt --outdir evidence/
+# Cross-file terminology consistency (v6.6.0: thesis-wide writing matrix + unification advice)
+python scripts/pp.py term-project 章节目录/ --html matrix.html
 # Natural-language command router: describe the task, get the command (v5.8.0)
 python scripts/pp.py recommend "把这段的AI率降一降"
 # Journal precheck (suspected-AIGC ratio vs the 20-25% reference line, non-interchangeable disclaimer)
@@ -294,6 +298,7 @@ Docs & site: **docsor.cn**
 
 ## Version history (condensed)
 
+- **v6.6.0 (2026-10-26)** — evidence report (`pp.py evidence`, HTML+MD with fixed limitation/integrity statements) and cross-file terminology consistency (`pp.py term-project`, thesis-wide writing matrix + unification advice).
 - **v6.5.0 (2026-10-24)** — MCP stdio server (`pp.py mcp`): eight tools over pure-stdlib JSON-RPC for agent clients (Claude Code/Cursor), zero dependencies, zero network; anti-patterns ↔ FAQ de-duplicated with cross-pointers and a reading-tier note.
 - **v6.4.0 (2026-10-23)** — batch auto-retry (`--retries`, default 2) with a `failed_files` aggregate + diagnostic hints (transient failures self-heal, no manual re-run); guided tour (`pp.py tour`, five live stations incl. the report explainer and a visuals/trends map); quick start now references the bundled real outputs and documents the `--batch --csv --report` one-pass combination.
 - **v6.3.0 (2026-10-22)** — standalone searchable FAQ (`references/faq.md` + `pp.py faq <keyword>` with technical-questions section), SKILL.md keeps top-3 + link, friendly errors now carry the FAQ pointer.
