@@ -1,8 +1,8 @@
 {
   "name": "paper-polisher-pro",
-  "version": "6.6.0",
+  "version": "6.7.0",
   "description": "AI writing detector (author self-check) + academic polishing guidance + terminology protection, 100% local. 11-layer recalibrated rule engine + token-spectrum layer + length-routed fusion + optional supervised Qwen3-0.6B ONNX layer (AUROC 1.0 held-out) + LLM fingerprint attribution (GLM/DeepSeek/Qwen/Kimi/MiniMax/GPT/Claude/Gemini) + journal precheck + AIGC compliance label check + paragraph attribution + sentence-level rewrite suggestions (guidance, never auto-rewrite). Eval-driven: base-engine numbers reproduce via the bundled held-out evaluation; supervised-layer figures are author-side held-out measurements.",
   "author": "DoctorQ Lab",
-  "changelog": "v6.6.0: evidence report (pp.py evidence — verdict + per-feature located evidence + threshold caliber + supervised fingerprint + fixed limitation/integrity statements, HTML+Markdown) and cross-file terminology consistency (pp.py term-project — thesis-wide writing matrix for in-bank concepts with unification advice; honest boundary: out-of-bank phrasings are invisible, pair with --neologism). No engine scoring changes. 零新增依赖。",
+  "changelog": "v6.7.0: scenario catalog — references/scenarios.json as the single source (17 scenarios, each stating when to use it, the command, and what you get) with a filterable pp.py scenarios builtin (bilingual, space-insensitive CJK matching); SKILL quick start restructured scenario-first (every command annotated with when-to-use) slimming both language files ~30 lines; FAQ technical section reorganized into user-facing vs integrator tiers. No engine scoring changes. 零新增依赖。",
   "license": "MIT-0"
 }

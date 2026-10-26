@@ -26,6 +26,7 @@ v6.0.0：帮助按场景分组（新手三步置顶）；PP_LANG=en 切英文入
 退出码契约（v5.8.0 起稳定）：0 成功 ｜ 1 运行完成但未通过 ｜ 2 用法/输入错误 ｜ 3 环境不满足。
 详见 SKILL.md § Exit-code contract。
 """
+import json
 import os
 import subprocess
 import sys
@@ -93,7 +94,7 @@ GROUPS = (
 )
 
 # 内建子命令（非透传，本文件内实现）
-BUILTIN = ("quickstart", "tour", "test", "api", "recommend", "faq")
+BUILTIN = ("quickstart", "tour", "scenarios", "test", "api", "recommend", "faq")
 
 _QUICKSTART_SAMPLE = (
     "值得注意的是，随着人工智能技术的快速发展，其在医疗领域的应用日益受到关注。"
@@ -144,6 +145,9 @@ _RECOMMEND_RULES = (
     (("质量", "可读性", "quality"), "quality", "综合质量报告", "pp.py quality draft.txt"),
     (("编程", "集成", "api", "sdk", "python"), "api",
      "Python SDK 提示（import pp_api，无 CLI）", "import pp_api  # 见 SKILL.md § Python API"),
+    (("什么时候用", "哪个命令", "场景", "scenario"), "scenarios",
+     "场景目录：什么时候用哪个命令（带产出说明，v6.7.0）",
+     "pp.py scenarios 批量"),
     (("mcp", "MCP", "agent 客户端", "claude配置", "cursor", "编辑器接入"), "mcp",
      "MCP stdio server：agent 客户端直连八个工具（v6.5.0）",
      "python3 scripts/pp.py mcp  # 客户端 stdio server 配置见 SKILL.md § MCP"),
@@ -311,6 +315,65 @@ def _run_recommend(query):
 
 
 
+_SCENARIOS_PATH = HERE.parent / "references" / "scenarios.json"
+
+
+def _run_scenarios(query=None):
+    """场景目录（v6.7.0）：references/scenarios.json 单一来源。
+
+    无关键词列出全部场景（场景+什么时候用+命令）；有关键词按场景/说明/标签过滤。
+    面向「命令都会列、但不知道什么时候用哪个」的时机（评测 docQuality 点名）。"""
+    en = _LANG.startswith("en")
+    if not _SCENARIOS_PATH.is_file():
+        print("未找到 references/scenarios.json（场景目录随 v6.7.0 发布）", file=sys.stderr)
+        return 2
+    try:
+        data = json.loads(_SCENARIOS_PATH.read_text(encoding="utf-8"))
+    except Exception as e:
+        print(f"scenarios.json 解析失败: {e}", file=sys.stderr)
+        return 2
+    scs = data.get("scenarios", [])
+    q = (query or "").strip().lower()
+    if q:
+        kws = [k for k in q.replace("，", " ").replace(",", " ").split() if k]
+        hit = []
+        for s in scs:
+            blob = " ".join([s.get("scene_zh", ""), s.get("scene_en", ""),
+                             s.get("when_zh", ""), s.get("when_en", ""),
+                             " ".join(s.get("tags", []))]).lower()
+            blob_ns = blob.replace(" ", "")  # 紧凑中文查询兜底：「测AI率」命中「测 AI 率」
+            hits = sum(1 for k in kws if k in blob or k.replace(" ", "") in blob_ns)
+            if hits:
+                hit.append((hits, s))
+        hit.sort(key=lambda x: -x[0])
+        shown = [s for _, s in hit[:5]]
+        if not shown:
+            print("没有命中的场景。全部场景：python3 scripts/pp.py scenarios" if not en
+                  else "No scenario matched. All: python3 scripts/pp.py scenarios")
+            return 0
+    else:
+        shown = scs
+    if not en:
+        print(f"场景目录（{len(shown)}/{len(scs)} 个场景——什么时候用哪个命令）\n")
+        for s in shown:
+            print(f"◆ {s.get('scene_zh', '?')}")
+            print(f"  什么时候用：{s.get('when_zh', '')}")
+            print(f"  命令：{s.get('cmd', '')}")
+            print(f"  你会得到：{s.get('output_zh', '')}")
+            print()
+        print("场景级怎么用（6 类实战指导）：references/best-practices.md ｜ 自然语言路由：pp.py describe")
+    else:
+        print(f"Scenario catalog ({len(shown)}/{len(scs)})\n")
+        for s in shown:
+            print(f"◆ {s.get('scene_en', '?')}")
+            print(f"  When: {s.get('when_en', '')}")
+            print(f"  Command: {s.get('cmd', '')}")
+            print(f"  You get: {s.get('output_en', '')}")
+            print()
+        print("Scenario how-to: references/best-practices.md  |  natural-language router: pp.py recommend")
+    return 0
+
+
 _FAQ_PATH = HERE.parent / "references" / "faq.md"
 
 
@@ -385,6 +448,7 @@ def _print_help():
         print("  tour            5-station guided tour with live runs (v6.4.0)")
         print("  test            Bundled unit tests (unittest, seconds)")
         print("  recommend       Natural-language command router (describe the task)")
+        print("  scenarios       Scenario catalog: which command when (v6.7.0)")
         print("\nPython SDK: import pp_api (no CLI; see SKILL.md § Python API)")
         print("Exit-code contract (stable since v5.8.0): 0 ok | 1 ran-but-not-passed | "
               "2 usage/input error | 3 environment not ready")
@@ -405,6 +469,7 @@ def _print_help():
     print("  %-*s  %s" % (width, "test", "包内单元测试（unittest，秒级）"))
     print("  %-*s  %s" % (width, "recommend", "自然语言场景路由（描述需求 → 推荐命令）"))
     print("  %-*s  %s" % (width, "faq", "FAQ 关键词检索（v6.3.0：pp.py faq 医学 / PDF / 退出码）"))
+    print("  %-*s  %s" % (width, "scenarios", "场景目录：什么时候用哪个命令（v6.7.0：pp.py scenarios 测AI率/批量/投稿…）"))
     print("\nPython SDK: import pp_api（无 CLI；编程接口见 SKILL.md § Python API）")
     print("提示：各子命令的参数同原脚本，例如 pp.py detect draft.txt --format json；"
           "英文入口面：PP_LANG=en pp.py")
@@ -430,6 +495,8 @@ def main():
         return _run_recommend(" ".join(args[1:]))
     if cmd == "faq":
         return _run_faq(" ".join(args[1:]))
+    if cmd == "scenarios":
+        return _run_scenarios(" ".join(args[1:]))
     if cmd not in COMMANDS:
         if _LANG.startswith("en"):
             print("Unknown subcommand: %s (available: %s %s)"

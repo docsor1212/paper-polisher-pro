@@ -1,6 +1,6 @@
 ---
 name: paper-polisher
-version: 6.6.0
+version: 6.7.0
 author: DoctorQ Lab
 description: >-
   AI-rate self-check and polish guidance for academic writing: sentence-level rewrite
@@ -146,64 +146,37 @@ Programmatic mirror: `pp_api` raises `ValueError` for invalid input (↔ exit 2)
 
 ## Quick start
 
+Every command below is annotated with **when to use it** — pick by situation, not by name.
+The full annotated catalog (17 scenarios, filterable): `python scripts/pp.py scenarios`.
+
 ```bash
-# Zero-model, zero-file one-command demo (v5.0.0)
+# First time, no files yet — see what this toolkit does (zero-model demo)
 python scripts/pp.py quickstart
-# 5-station guided tour with live runs: detect → explainer → fix → visuals → doctor (v6.4.0)
-python scripts/pp.py tour
-# Real bundled outputs to preview before running anything (README inside lists all five)
-ls examples/outputs/   # detect_sample.json / workflow_sample.json / report_html_sample.html / ...
-# AI writing detection (probability + layered evidence + fingerprint attribution)
-python scripts/ai_detector.py draft.txt --format json
-# Sentence-level rewrite suggestions (v5.0.0: which sentences, why, how to improve)
-python scripts/pp_fix_suggest.py draft.txt --top 10
-# Academic style-norm self-check (v5.2.0: fullwidth/numbers/abbreviations/units)
-python scripts/pp_style_norm.py draft.txt
-# Word documents: read directly (.docx into any entry point)
-python scripts/ai_detector.py thesis.docx --format json
-# Submission self-check bundle (v5.3.0: one command -> dated directory with all artifacts)
-# Journal precheck with discipline context (v5.4.0; --discipline to override)
-python scripts/ai_detector.py draft.txt --profile journal --format json
-# Fingerprint freshness status (v5.4.0: baselines drift check + due indicator)
-python scripts/pp.py freshness --status
-python scripts/pp_report_bundle.py thesis.docx --outdir ~/selfcheck
-# Rewrite-effect regression check (v5.1.0: original vs revised, engine-source comparison)
-python scripts/pp_rewrite_check.py draft_original.txt draft_revised.txt
-# Batch CSV -> self-contained HTML summary (v5.1.0)
-python scripts/pp_batch_report.py scores.csv -o report.html
-# Batch + CSV + HTML in one pass: --report renders the CSV after the run (v5.2.0; needs --csv)
-python scripts/ai_detector.py --batch manuscript_dir --csv scores.csv --report report.html
-# Batch resilience (v6.4.0): failed files are auto-retried (--retries, default 2 rounds);
-# a run stops early after --circuit consecutive failures (default 5; 0 disables; tripped = no retry round)
-python scripts/ai_detector.py --batch manuscript_dir --retries 2 --circuit 5 --format json
-# Single-document visual dashboard: render workflow/detect/fix/norm JSON into one HTML (v5.8.0)
-python scripts/pp.py html-report draft.workflow.json -o report.html
-# Multi-run trend dashboard: several workflow JSONs → rewrite trajectory (v6.0.0)
-python scripts/pp.py trend 轮次目录/ -o trend.html
-# Evidence report (v6.6.0: verdict + per-feature evidence + limitation/integrity statements → HTML+MD)
+# Drafted 300+ chars — how AI-like is it, which paragraphs are worst
+python scripts/pp.py detect draft.txt --format json
+# Score is high — which sentences to fix and how (locates, never auto-rewrites)
+python scripts/pp.py fix draft.txt --top 10
+# Before submission — one end-to-end pass (detect + norms + terms + gate)
+python scripts/pp.py workflow draft.txt
+# Got a report JSON you don't follow — plain-language verdict/evidence/actions
+python scripts/pp.py explain draft.workflow.json
+# Questioned about AI use — faithful evidence archive (HTML+MD, fixed integrity statements)
 python scripts/pp.py evidence draft.txt --outdir evidence/
-# Cross-file terminology consistency (v6.6.0: thesis-wide writing matrix + unification advice)
+# Whole directory to process — per-file CSV + HTML summary (auto-retry included)
+python scripts/ai_detector.py --batch manuscript_dir --csv scores.csv --report report.html
+# Thesis split across chapter files — cross-file terminology consistency matrix
 python scripts/pp.py term-project 章节目录/ --html matrix.html
-# Natural-language command router: describe the task, get the command (v5.8.0)
-python scripts/pp.py recommend "把这段的AI率降一降"
-# Journal precheck (suspected-AIGC ratio vs the 20-25% reference line, non-interchangeable disclaimer)
-python scripts/ai_detector.py draft.txt --profile journal
-# Paragraph-level attribution (locate human/AI collaboration)
-python scripts/paragraph_report.py draft.txt --output report.html
-# AIGC compliance label check (docx/pdf/png/txt)
-python scripts/aigc_label_check.py manuscript.docx figures/*.png
-# Terminology / translation smell / 4-layer gate (same as v2)
-python scripts/term_check.py draft.txt --auto-fix
-python scripts/translation_smell_check.py draft.txt
-python scripts/deai_gate.py draft.txt
-# Environment self-check
-python scripts/pp_doctor.py
-# Structured zero-network self-verification + bundled unit tests (v5.0.0)
-python scripts/pp_verify.py
-python -m unittest discover -s tests -t .          # or: python scripts/pp.py test
-# Held-out regression (mandatory after any engine change)
-python eval/run_eval.py --split test --tag mytag
+# Several revision rounds done — score trajectory across runs
+python scripts/pp.py trend 轮次目录/ -o trend.html
+# Something errors / unsure which tier you're on
+python scripts/pp.py doctor
 ```
+
+More situations (style norms, terminology, rewrite comparison, dashboards, bundles,
+compliance labels, MCP integration): `python scripts/pp.py scenarios` — every entry
+states when to use it, the command, and what you get. Scenario-level how-to advice:
+[`references/best-practices.md`](references/best-practices.md).
+
 
 ### Optional supervised layer (recommended, v3.2+)
 
@@ -298,6 +271,7 @@ Docs & site: **docsor.cn**
 
 ## Version history (condensed)
 
+- **v6.7.0 (2026-10-27)** — scenario catalog (`pp.py scenarios`, 17 entries with when-to-use/output, single-source JSON); quick start restructured scenario-first (~30 lines slimmer); FAQ technical section split into user-facing vs integrator tiers.
 - **v6.6.0 (2026-10-26)** — evidence report (`pp.py evidence`, HTML+MD with fixed limitation/integrity statements) and cross-file terminology consistency (`pp.py term-project`, thesis-wide writing matrix + unification advice).
 - **v6.5.0 (2026-10-24)** — MCP stdio server (`pp.py mcp`): eight tools over pure-stdlib JSON-RPC for agent clients (Claude Code/Cursor), zero dependencies, zero network; anti-patterns ↔ FAQ de-duplicated with cross-pointers and a reading-tier note.
 - **v6.4.0 (2026-10-23)** — batch auto-retry (`--retries`, default 2) with a `failed_files` aggregate + diagnostic hints (transient failures self-heal, no manual re-run); guided tour (`pp.py tour`, five live stations incl. the report explainer and a visuals/trends map); quick start now references the bundled real outputs and documents the `--batch --csv --report` one-pass combination.

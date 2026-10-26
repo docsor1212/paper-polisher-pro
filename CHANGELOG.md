@@ -3,6 +3,12 @@
 > **只想快速上手？** 回 `SKILL.md` § TL;DR（30 秒任务路由表）——本文件仅是完整版本历史，新用户无需阅读。
 > Historical release notes. Newest first. SKILL.md § Version history keeps only the last three releases; everything older lives here (single source, no duplication).
 
+## What's new in v6.7.0
+
+- **Scenario catalog (`references/scenarios.json` + `pp.py scenarios`)**: a single-source catalog of 17 scenarios where each entry states **when to use it**, the command, and what you get — answering "which command for this situation" without reading reference docs. The builtin filters by keyword (bilingual, space-insensitive for compact CJK queries like 测AI率), and is reachable from `pp.py` help and the natural-language router ("什么时候用哪个命令").
+- **Quick start restructured scenario-first**: every command in the SKILL quick-start block now carries a when-to-use annotation line (the review noted the block was a bare command dump); the long tail moved out from behind a pointer, slimming both language files by ~30 lines back under 290.
+- **FAQ technical section tiered**: the technical Q&A is reorganized into「用户高频」(circuit breaker, batch retries, thesis-wide terminology, evidence packs, PDF stance, English advisory) and「集成者与进阶」(exit codes, AST verification, model signatures, score drift) — same content, explicit audience split matching the reading-tier note.
+
 ## What's new in v6.6.0
 
 - **Evidence report (`pp_evidence_report.py`, `pp.py evidence`)**: for the real moment when a reader asks "is this AI-written?" — one command renders the full detection evidence chain into a deliverable, self-contained HTML + Markdown report: verdict card (score/risk band/mode/supervised fingerprint), per-feature evidence with located excerpts, paragraph grading, threshold caliber as-is, and fixed limitation & academic-integrity statements that cannot be turned off. Honest positioning stated in the report header: it presents the engine's judgment and evidence faithfully for self-check and explanation — it is **not** a certificate of "no AI use", and the score is engine-relative, not equivalent to any institutional detector.
@@ -251,6 +257,12 @@
 # 更新日志（中文）
 
 > v4.6.0 起历史更新说明移出 SKILL_ZH.md（新用户更快触达工作流）。最新在前。各版本摘要亦见 SKILL_ZH.md § 版本历史。
+
+## v6.7.0 更新内容
+
+- **场景目录（`references/scenarios.json` + `pp.py scenarios`）**：17 个场景的单一来源目录，每条写明**什么时候用**、命令、你会得到什么——按情形挑命令，不用翻参考文档。内建命令支持关键词过滤（双语；紧凑中文查询去空格兜底匹配，如「测AI率」命中「测 AI 率」），可从 pp.py 帮助与自然语言路由（"什么时候用哪个命令"）到达。
+- **快速开始场景化重构**：SKILL 快速开始块里每条命令都带一行「什么时候用」注解（此前是裸命令堆叠）；长尾命令经指引外移，双语文档各瘦身约 30 行回到 290 行内。
+- **FAQ 技术节分层**：技术问答重组为「用户高频」（熔断/批量补扫/全稿术语统一/证据报告/PDF 立场/英文参考）与「集成者与进阶」（退出码/AST 自证/装模指纹/分数漂移）——内容不变，受众分层显式化，与阅读分层提示一致。
 
 ## v6.6.0 更新内容
 
