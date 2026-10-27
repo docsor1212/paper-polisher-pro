@@ -15,6 +15,7 @@
 零依赖、零网络；所有已知护栏异常类在此翻译，未知异常给通用自助路径。
 """
 import sys
+import subprocess
 from pathlib import Path
 
 _HERE = Path(__file__).resolve().parent
@@ -78,6 +79,16 @@ def render(exc):
         return ("监督模型指纹校验未通过：不是作者签发版本",
                 "重新获取当前签发版（python3 scripts/pp_setup.py --guide）；"
                 "签名注册表保护的是打分可信度，请勿绕过")
+    if "worker 崩溃" in s:
+        return ("批处理中有一个文件让引擎进程异常崩溃——已被子进程隔离，其余文件不受影响",
+                "单独跑该文件定位：python3 scripts/ai_detector.py <该文件> --format json；"
+                "持续复现请到 docsor1212 仓库提 issue 附输出")
+    if isinstance(exc, subprocess.TimeoutExpired) or "超时" in s or "timed out" in s.lower():
+        return ("处理超时（单文件/单步超出保护时限）",
+                "超长文稿请拆分后分次处理；仍复现请到 docsor1212 仓库提 issue 附 pp_doctor 输出")
+    if cls == "UnicodeDecodeError" or "编码" in s or "codec" in s.lower():
+        return ("文件编码不是可识别的文本（或损坏）",
+                "把文件另存为 UTF-8 纯文本（记事本/VS Code 另存为都行）或转存 .docx 再试")
     if "解析失败" in s and ("层" in s or "gate" in s.lower()):
         return ("某个门禁层临时解析失败（已自动回退中性分，不影响其他层与总判定）",
                 "重试一次；仍复现则 python3 scripts/pp_doctor.py 查环境")

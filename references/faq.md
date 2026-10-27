@@ -211,6 +211,9 @@ read on demand. Scenario-level how-to advice lives in [`references/best-practice
 **Q: 批量里有几个文件失败了，要手动重跑吗？**
 不用。v6.4.0 起失败文件在首轮结束后自动补扫（`--retries` 轮，默认 2；`--retries 0` 关闭）：瞬时错误（文件被占用、读取抖动）大多当场自愈，补扫成功的行标 `retried: true`。耗尽仍失败的进 JSON `failed_files` 清单（附诊断指引行）；首轮已熔断则不补扫（坏批次明确，补扫只是白烧时间）。单个失败文件想看完整错误：`python3 scripts/pp.py detect <该文件>`。
 
+**Q: 批量时某个文件把整个任务弄崩了怎么办？**
+不会了。v6.8.0 起批量默认子进程隔离（`--isolate auto`：装了监督模型即开启——崩溃源是模型原生层）：每个文件在独立 worker 里检测，硬崩溃只损失该文件、批处理继续，错误行如实标注；输入类错误（如损坏 docx）直接透传友好提示。纯规则档默认进程内快路径，`--isolate on` 可显式开启。
+
 **Q: 学位论文多个章节的术语写法不统一，怎么查？**
 `python3 scripts/pp.py term-project 章节目录/`：跨文件写法矩阵 + 统一建议（以库标准名为准）。边界如实声明：只覆盖术语库内概念（224 个概念带别名映射）；库外自由写法本工具不可见，可配合 `term_check --neologism` 的词典外提示。
 

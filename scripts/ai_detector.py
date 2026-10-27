@@ -16,6 +16,7 @@ Usage:
 
 import argparse
 import json
+import subprocess
 import math
 import os
 import re
@@ -1097,8 +1098,15 @@ def _risk_mark(risk):
     return {"high": "🔴", "medium": "🟡", "low": "🟢", "unknown": "⚪"}.get(risk, "·")
 
 
+def _model_cache_present():
+    """监督模型缓存是否在位（隔离模式 auto 判据：onnxruntime 原生层是硬崩溃源）。"""
+    return (Path.home() / ".cache" / "paper-polisher" / "qwen3-detector"
+            / "model.int8.onnx").is_file()
+
+
 def batch_detect(dir_path: str, fmt: str, out_path: str, csv_path: str = None,
-                 recursive: bool = False, circuit: int = 5, retries: int = 2):
+                 recursive: bool = False, circuit: int = 5, retries: int = 2,
+                 isolate: str = "auto"):
     """v3.11: 目录批处理——逐文件检测, 输出每文件分数+聚合。确定性、零网络。
 
     v5.9.0: 连续错误熔断器——连续 circuit 个文件解析/检测失败即中止剩余文件
@@ -1109,12 +1117,22 @@ def batch_detect(dir_path: str, fmt: str, out_path: str, csv_path: str = None,
     文件被占用/读取抖动），补扫成功的行标 retried/attempts；耗尽仍失败的进聚合
     failed_files 清单并附单文件诊断指引。首轮已熔断则不补扫（坏批次明确）。
     retries=0 关闭（行为同 v6.3.0）。
+
+    v6.8.0: 子进程隔离——每个文件在独立 worker 子进程中检测（CLI 同源作 worker），
+    单文件硬崩溃（原生层段错误/abort）只损失该文件、批处理继续——Python 异常隔离
+    （v5.9.0）之上的进程级容错。isolate=auto 时按「监督模型是否在位」决定
+    （onnxruntime 是硬崩溃来源；纯规则档崩溃面极小，保持进程内快路径）；
+    on/off 显式覆盖。JSON 产物加 worker_isolation 字段如实记录实际档。
     """
     d = Path(dir_path)
     if not d.is_dir():
         print(f"Error: not a directory: {dir_path}（--batch 需要目录；单文件请直接作为 input 传入）",
               file=sys.stderr)
         sys.exit(2)  # 退出码契约 v5.8.0: 输入错误=2
+    if isolate == "auto":
+        isolate_on = _model_cache_present()
+    else:
+        isolate_on = isolate == "on"
     it = d.rglob("*") if recursive else d.iterdir()
     files = sorted(f for f in it
                    if f.is_file() and f.suffix.lower() in (".txt", ".md", ".docx")
@@ -1134,6 +1152,34 @@ def batch_detect(dir_path: str, fmt: str, out_path: str, csv_path: str = None,
                 "overall_risk": rep.overall_risk, "language": rep.language,
                 "degraded_mode": rep.degraded_mode}
 
+    def _process_isolated(f):
+        """进程隔离版：CLI 作 worker（同源零新打分代码），崩溃/超时只损失本文件。
+
+        负返回码=worker 被信号杀死（原生层硬崩溃的直接证据），如实进错误行；
+        错误经 pp_errors 转人话（含下一步：单独重跑该文件定位）。"""
+        try:
+            p = subprocess.run([sys.executable, str(Path(__file__).resolve()),
+                                str(f), "--format", "json"],
+                               capture_output=True, timeout=600,
+                               text=True, encoding="utf-8", errors="replace")
+        except subprocess.TimeoutExpired as e:
+            raise RuntimeError(f"worker 崩溃: 单文件检测超时（>600s）——{f.name}") from e
+        if p.returncode != 0 and not p.stdout.strip():
+            if p.returncode == 2:
+                # worker 已对该文件打印友好错误（输入/解析类）——透传其标题，不包装成崩溃
+                for ln in p.stderr.splitlines():
+                    if ln.startswith("ERROR: "):
+                        raise RuntimeError(ln[len("ERROR: "):].strip()[:120])
+                raise RuntimeError(f"该文件无法解析（worker 退出码 2）：{p.stderr.strip()[-80:]}")
+            sig = f"，信号 {-p.returncode}" if p.returncode < 0 else ""
+            raise RuntimeError(f"worker 崩溃: 该文件使引擎进程异常退出"
+                               f"（退出码 {p.returncode}{sig}）——{p.stderr.strip()[-80:]}")
+        rep = json.loads(p.stdout)
+        return {"file": str(f.relative_to(d)), "overall_ai_score": rep["overall_ai_score"],
+                "overall_risk": rep["overall_risk"], "language": rep.get("language"),
+                "degraded_mode": rep.get("degraded_mode", False)}
+
+    _work = _process_isolated if isolate_on else _process
     for f in files:
         if circuit and consec_err >= circuit:
             circuit_tripped = {"tripped": True, "threshold": circuit,
@@ -1141,7 +1187,7 @@ def batch_detect(dir_path: str, fmt: str, out_path: str, csv_path: str = None,
                                "skipped_remaining": len(files) - len(rows)}
             break
         try:
-            rows.append(_process(f))
+            rows.append(_work(f))
             consec_err = 0
         except Exception as e:
             consec_err += 1
@@ -1156,7 +1202,7 @@ def batch_detect(dir_path: str, fmt: str, out_path: str, csv_path: str = None,
             recovered = False
             for r in pending:
                 try:
-                    row = _process(d / r["file"])
+                    row = _work(d / r["file"])
                     row["retried"] = True
                     row["attempts"] = attempt
                     rows[rows.index(r)] = row
@@ -1175,6 +1221,8 @@ def batch_detect(dir_path: str, fmt: str, out_path: str, csv_path: str = None,
            "high_risk_files": sum(1 for r in rows if r.get("overall_risk") == "high"),
            "failed": len(failed_files)}
     result = {"directory": str(d), "aggregate": agg, "files": rows,
+              "worker_isolation": ("on" if isolate_on else
+                                   "off（纯规则档进程内快路径；--isolate on 可显式开启）"),
               "integrity_notice": INTEG_ZH}
     if failed_files:
         result["failed_files"] = failed_files
@@ -1201,7 +1249,8 @@ def batch_detect(dir_path: str, fmt: str, out_path: str, csv_path: str = None,
     if fmt == "json" or out_path:
         out = json.dumps(result, ensure_ascii=False, indent=2)
     else:
-        lines = [f"批量检测: {agg['files']} 个文件 (可评 {agg['scored']})",
+        lines = [f"批量检测: {agg['files']} 个文件 (可评 {agg['scored']})"
+                 + ("（子进程隔离：单文件崩溃不炸整批）" if isolate_on else ""),
                  f"均分: {agg['mean_score']}  最高: {agg['max_score']}  高风险文件: {agg['high_risk_files']}"
                  + (f"  失败: {agg['failed']}" if failed_files else ""),
                  "─" * 40]
@@ -1247,6 +1296,9 @@ def main():
     parser.add_argument("--retries", type=int, default=2,
                       help="批处理失败文件自动补扫轮数（v6.4.0，默认 2；0=关闭；瞬时错误自愈，"
                            "耗尽仍失败的进 failed_files 清单并附诊断指引）")
+    parser.add_argument("--isolate", choices=["auto", "on", "off"], default="auto",
+                      help="批处理子进程隔离（v6.8.0）：auto=监督模型在位时开启"
+                           "（onnxruntime 原生层硬崩溃只损失单文件）；on/off 显式覆盖")
     parser.add_argument("--recursive", action="store_true",
                         help="With --batch: recurse into subdirectories")
     parser.add_argument("--discipline", default=None,
@@ -1259,7 +1311,8 @@ def main():
 
     if args.batch:
         batch_detect(args.batch, args.format, args.output, csv_path=args.csv,
-                     recursive=args.recursive, circuit=args.circuit, retries=args.retries)
+                     recursive=args.recursive, circuit=args.circuit, retries=args.retries,
+                     isolate=args.isolate)
         if getattr(args, "report", None):
             if not args.csv:
                 print("Warning: --report 需要 --csv 先落盘逐文件结果，本次跳过 HTML 渲染。",

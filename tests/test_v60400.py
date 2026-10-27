@@ -28,6 +28,7 @@ def _run_batch(d, **kw):
     orig = ad.detect
     if "detect_fn" in kw:
         ad.detect = kw.pop("detect_fn")
+    kw.setdefault("isolate", "off")  # v6.8.0: 隔离走子进程会绕过 detect 补丁——单测默认进程内
     try:
         buf = io.StringIO()
         with contextlib.redirect_stdout(buf):

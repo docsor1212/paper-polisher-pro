@@ -1,6 +1,6 @@
 ---
 name: paper-polisher
-version: 6.7.0
+version: 6.8.0
 author: DoctorQ Lab
 description: >-
   AI-rate self-check and polish guidance for academic writing: sentence-level rewrite
@@ -132,7 +132,6 @@ This tool is for **authors self-reviewing and improving their own writing qualit
 Programmatic mirror: `pp_api` raises `ValueError` for invalid input (↔ exit 2) and `RuntimeError` for runtime failure (↔ exit 1), both carrying recovery advice in the message. These codes are a stability promise — future releases will not repurpose them.
 
 ## Anti-patterns (each with the right way)
-## Anti-patterns (each with the right way)
 
 > This section lists **judgment-type** rules only (what not to do); operational how-to questions live in [`references/faq.md`](references/faq.md) (searchable via `pp.py faq <keyword>`) — the two cross-reference each other instead of repeating.
 
@@ -162,7 +161,8 @@ python scripts/pp.py workflow draft.txt
 python scripts/pp.py explain draft.workflow.json
 # Questioned about AI use — faithful evidence archive (HTML+MD, fixed integrity statements)
 python scripts/pp.py evidence draft.txt --outdir evidence/
-# Whole directory to process — per-file CSV + HTML summary (auto-retry included)
+# Whole directory to process — per-file CSV + HTML summary (auto-retry + per-file
+# crash isolation via --isolate auto: on when the supervised model is installed)
 python scripts/ai_detector.py --batch manuscript_dir --csv scores.csv --report report.html
 # Thesis split across chapter files — cross-file terminology consistency matrix
 python scripts/pp.py term-project 章节目录/ --html matrix.html
@@ -271,6 +271,7 @@ Docs & site: **docsor.cn**
 
 ## Version history (condensed)
 
+- **v6.8.0 (2026-10-27)** — per-file process isolation for batch (`--isolate auto`: on with the supervised model; hard crash costs one row, scoring bit-identical); error glossary + worker-crash/timeout/encoding; Traceback-residue hygiene lock.
 - **v6.7.0 (2026-10-27)** — scenario catalog (`pp.py scenarios`, 17 entries with when-to-use/output, single-source JSON); quick start restructured scenario-first (~30 lines slimmer); FAQ technical section split into user-facing vs integrator tiers.
 - **v6.6.0 (2026-10-26)** — evidence report (`pp.py evidence`, HTML+MD with fixed limitation/integrity statements) and cross-file terminology consistency (`pp.py term-project`, thesis-wide writing matrix + unification advice).
 - **v6.5.0 (2026-10-24)** — MCP stdio server (`pp.py mcp`): eight tools over pure-stdlib JSON-RPC for agent clients (Claude Code/Cursor), zero dependencies, zero network; anti-patterns ↔ FAQ de-duplicated with cross-pointers and a reading-tier note.

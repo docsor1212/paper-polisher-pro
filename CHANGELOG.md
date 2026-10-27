@@ -3,6 +3,12 @@
 > **只想快速上手？** 回 `SKILL.md` § TL;DR（30 秒任务路由表）——本文件仅是完整版本历史，新用户无需阅读。
 > Historical release notes. Newest first. SKILL.md § Version history keeps only the last three releases; everything older lives here (single source, no duplication).
 
+## What's new in v6.8.0
+
+- **Per-file process isolation (`--isolate`, default auto)**: Python-exception isolation (v5.9.0) now has a process-level sibling — each batch file runs in its own worker subprocess (the CLI itself is the worker, so scoring stays bit-identical; a test locks on/off equivalence). A hard crash in one file — a native segfault/abort in the optional onnxruntime layer, the class of failure the review called out — now costs only that file's row while the batch continues, with the failure honestly recorded (`worker 崩溃` + exit code/signal). `auto` enables isolation exactly when the supervised model is installed (the native layer is the crash source; the rules-only tier keeps the in-process fast path); `on`/`off` override. Input-type failures (exit 2 — the worker already printed its friendly message) pass through verbatim instead of being wrapped as crashes.
+- **Error glossary extended**: worker-crash, processing-timeout, and text-encoding failures now translate to plain language with next steps.
+- **Hygiene**: a residue lock asserts no raw `Traceback`/`print_exc` in any shipped script (technical-phrase leakage class), and the duplicate anti-patterns header that slipped into SKILL.md in v6.5.0 was caught and removed by the new docs test.
+
 ## What's new in v6.7.0
 
 - **Scenario catalog (`references/scenarios.json` + `pp.py scenarios`)**: a single-source catalog of 17 scenarios where each entry states **when to use it**, the command, and what you get — answering "which command for this situation" without reading reference docs. The builtin filters by keyword (bilingual, space-insensitive for compact CJK queries like 测AI率), and is reachable from `pp.py` help and the natural-language router ("什么时候用哪个命令").
@@ -257,6 +263,12 @@
 # 更新日志（中文）
 
 > v4.6.0 起历史更新说明移出 SKILL_ZH.md（新用户更快触达工作流）。最新在前。各版本摘要亦见 SKILL_ZH.md § 版本历史。
+
+## v6.8.0 更新内容
+
+- **批处理逐文件进程隔离（`--isolate`，默认 auto）**：v5.9.0 的 Python 异常隔离之上补齐进程级容错——每个文件在独立 worker 子进程中检测（CLI 本身作 worker，打分逐位不变；测试锁定 on/off 等价）。单文件硬崩溃（可选监督层 onnxruntime 原生层的段错误/abort——正是评审点名的失效类）只损失该文件的错误行，批处理继续，失败如实记录（worker 崩溃+退出码/信号）。auto=装了监督模型即开启（原生层是崩溃源；纯规则档保持进程内快路径），on/off 显式覆盖；输入类失败（退出码 2，worker 已打印友好提示）原样透传不包装成崩溃。
+- **错误词典扩展**：worker 崩溃、处理超时、文本编码三类失效转人话+下一步。
+- **卫生锁**：新增残留锁断言全部随包脚本无裸 `Traceback`/`print_exc`（技术词泄漏类）；v6.5.0 滑入 SKILL.md 的反模式重复标题由新文档测试抓出并移除。
 
 ## v6.7.0 更新内容
 
