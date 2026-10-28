@@ -681,9 +681,13 @@ chk("CHANGELOG 顶部为当前版本(EN/ZH)", _en_top[:1] == [_cur] and _zh_top[
 
 # G9. 包内测试套件可发现且全绿（计数只看规模下限，避免脆弱绑定）
 try:
+    # v6.9.0 机制化：超时上限随套件规模自适应（420→900→公式），套件每增一个
+    # 版本测试文件自动 +75s——不再每次撞墙手调。基线 420s + 每文件 75s。
+    _ntestfiles = len(list((ROOT / "tests").glob("test_*.py")))
+    _ut_timeout = 420 + 75 * _ntestfiles
     _ut = subprocess.run([sys.executable, "-m", "unittest", "discover", "-s", "tests",
                           "-t", "."], capture_output=True, text=True, encoding="utf-8",
-                         cwd=str(ROOT), timeout=900)  # v6.5.0: 套件随版本增长（MCP 全链会话），420→900s
+                         cwd=str(ROOT), timeout=_ut_timeout)
     _m = _re2.search(r"Ran (\d+) tests", _ut.stderr + _ut.stdout)
     _ntests = int(_m.group(1)) if _m else 0
     chk("包内单测全绿", _ut.returncode == 0 and _ntests >= 40,

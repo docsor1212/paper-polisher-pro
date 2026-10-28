@@ -47,9 +47,13 @@ class TestScenarioCatalog(unittest.TestCase):
                     self.assertIn(f'"{sub}": (', src, f"子命令 {sub} 不在 COMMANDS")
 
     def test_full_listing(self):
+        # 数量动态断言（铁律：断言读运行时真值，绝不硬编码——v6.9.0 加第 18 场景时的教训）
+        scs = json.loads((PKG / "references" / "scenarios.json")
+                         .read_text(encoding="utf-8"))["scenarios"]
+        n = len(scs)
         r = _run([str(SCRIPTS / "pp.py"), "scenarios"])
         self.assertEqual(r.returncode, 0, r.stderr[-200:])
-        self.assertIn("场景目录（17/17", r.stdout)
+        self.assertIn(f"场景目录（{n}/{n}", r.stdout)
         self.assertIn("什么时候用", r.stdout)
         self.assertIn("你会得到", r.stdout)
 

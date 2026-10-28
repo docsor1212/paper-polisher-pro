@@ -214,6 +214,9 @@ read on demand. Scenario-level how-to advice lives in [`references/best-practice
 **Q: 批量时某个文件把整个任务弄崩了怎么办？**
 不会了。v6.8.0 起批量默认子进程隔离（`--isolate auto`：装了监督模型即开启——崩溃源是模型原生层）：每个文件在独立 worker 里检测，硬崩溃只损失该文件、批处理继续，错误行如实标注；输入类错误（如损坏 docx）直接透传友好提示。纯规则档默认进程内快路径，`--isolate on` 可显式开启。
 
+**Q: 学位论文整个要自查一遍，有没有一条命令的？**
+有。`python3 scripts/pp.py project 章节目录/ --outdir project_report/`（v6.9.0 项目工作台）：逐文件跑完整自查（每章 workflow 报告照常落盘）、内嵌跨文件术语一致性矩阵、产出项目总览 HTML（逐文件分数对照+项目聚合+统一建议）。单文件失败只损失该文件（与批量同哲学）。
+
 **Q: 学位论文多个章节的术语写法不统一，怎么查？**
 `python3 scripts/pp.py term-project 章节目录/`：跨文件写法矩阵 + 统一建议（以库标准名为准）。边界如实声明：只覆盖术语库内概念（224 个概念带别名映射）；库外自由写法本工具不可见，可配合 `term_check --neologism` 的词典外提示。
 

@@ -1,8 +1,8 @@
 {
   "name": "paper-polisher-pro",
-  "version": "6.8.0",
+  "version": "6.9.0",
   "description": "AI writing detector (author self-check) + academic polishing guidance + terminology protection, 100% local. 11-layer recalibrated rule engine + token-spectrum layer + length-routed fusion + optional supervised Qwen3-0.6B ONNX layer (AUROC 1.0 held-out) + LLM fingerprint attribution (GLM/DeepSeek/Qwen/Kimi/MiniMax/GPT/Claude/Gemini) + journal precheck + AIGC compliance label check + paragraph attribution + sentence-level rewrite suggestions (guidance, never auto-rewrite). Eval-driven: base-engine numbers reproduce via the bundled held-out evaluation; supervised-layer figures are author-side held-out measurements.",
   "author": "DoctorQ Lab",
-  "changelog": "v6.8.0: per-file process isolation for batch runs (--isolate auto: on when the supervised model is installed — the native onnxruntime layer is the crash source; each file runs in its own worker subprocess so a hard crash costs only that file; rc=2 input errors pass the friendly message through instead of being wrapped as crashes; deterministic equivalence on/off locked by test) + error-glossary extensions (worker crash / encoding / timeout) + a Traceback-residue hygiene lock + duplicate anti-patterns header removed (caught by the new docs test). No engine scoring changes. 零新增依赖。",
+  "changelog": "v6.9.0: project workbench (pp.py project) — one command over a directory of chapter files runs the full per-file self-check (workflow reports as usual), embeds the cross-file terminology consistency matrix, and renders a project overview HTML + JSON summary (per-file score/risk/gate table, project aggregates, unification advice). Same-source engine (pp_workflow.workflow in-process), no new scoring code; per-file failures isolated like batch mode. No engine scoring changes. 零新增依赖。",
   "license": "MIT-0"
 }

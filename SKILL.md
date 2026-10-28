@@ -1,6 +1,6 @@
 ---
 name: paper-polisher
-version: 6.8.0
+version: 6.9.0
 author: DoctorQ Lab
 description: >-
   AI-rate self-check and polish guidance for academic writing: sentence-level rewrite
@@ -166,6 +166,8 @@ python scripts/pp.py evidence draft.txt --outdir evidence/
 python scripts/ai_detector.py --batch manuscript_dir --csv scores.csv --report report.html
 # Thesis split across chapter files — cross-file terminology consistency matrix
 python scripts/pp.py term-project 章节目录/ --html matrix.html
+# Thesis/book as chapter files — project-wide pass (per-file reports + term matrix + overview HTML)
+python scripts/pp.py project 章节目录/ --outdir project_report/
 # Several revision rounds done — score trajectory across runs
 python scripts/pp.py trend 轮次目录/ -o trend.html
 # Something errors / unsure which tier you're on
@@ -271,6 +273,7 @@ Docs & site: **docsor.cn**
 
 ## Version history (condensed)
 
+- **v6.9.0 (2026-10-29)** — project workbench (`pp.py project`): directory-wide full self-check + embedded term-consistency matrix + overview HTML/JSON, same-source engine, per-file failure isolation.
 - **v6.8.0 (2026-10-27)** — per-file process isolation for batch (`--isolate auto`: on with the supervised model; hard crash costs one row, scoring bit-identical); error glossary + worker-crash/timeout/encoding; Traceback-residue hygiene lock.
 - **v6.7.0 (2026-10-27)** — scenario catalog (`pp.py scenarios`, 17 entries with when-to-use/output, single-source JSON); quick start restructured scenario-first (~30 lines slimmer); FAQ technical section split into user-facing vs integrator tiers.
 - **v6.6.0 (2026-10-26)** — evidence report (`pp.py evidence`, HTML+MD with fixed limitation/integrity statements) and cross-file terminology consistency (`pp.py term-project`, thesis-wide writing matrix + unification advice).

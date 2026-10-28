@@ -3,6 +3,10 @@
 > **只想快速上手？** 回 `SKILL.md` § TL;DR（30 秒任务路由表）——本文件仅是完整版本历史，新用户无需阅读。
 > Historical release notes. Newest first. SKILL.md § Version history keeps only the last three releases; everything older lives here (single source, no duplication).
 
+## What's new in v6.9.0
+
+- **Project workbench (`pp_project.py`, `pp.py project`)**: the thesis/book scenario gets its one-command form — point it at a directory of chapter files and it runs the full per-file self-check (each chapter's `workflow.json`/`.md` lands as usual), embeds the cross-file terminology consistency matrix, and renders a project overview (self-contained HTML + machine-readable JSON): per-file score/risk-band/paragraph-grading/gate table, project-level aggregates (mean/max, high-risk count, unification counts), and per-concept unification advice. Same-source engine (`pp_workflow.workflow` called in-process — no new scoring code); a per-file failure costs only that row, same philosophy as batch mode; fixed integrity statement in the overview (self-check aid, not a compliance certificate).
+
 ## What's new in v6.8.0
 
 - **Per-file process isolation (`--isolate`, default auto)**: Python-exception isolation (v5.9.0) now has a process-level sibling — each batch file runs in its own worker subprocess (the CLI itself is the worker, so scoring stays bit-identical; a test locks on/off equivalence). A hard crash in one file — a native segfault/abort in the optional onnxruntime layer, the class of failure the review called out — now costs only that file's row while the batch continues, with the failure honestly recorded (`worker 崩溃` + exit code/signal). `auto` enables isolation exactly when the supervised model is installed (the native layer is the crash source; the rules-only tier keeps the in-process fast path); `on`/`off` override. Input-type failures (exit 2 — the worker already printed its friendly message) pass through verbatim instead of being wrapped as crashes.
@@ -263,6 +267,10 @@
 # 更新日志（中文）
 
 > v4.6.0 起历史更新说明移出 SKILL_ZH.md（新用户更快触达工作流）。最新在前。各版本摘要亦见 SKILL_ZH.md § 版本历史。
+
+## v6.9.0 更新内容
+
+- **项目工作台（`pp_project.py`，`pp.py project`）**：学位论文/书稿场景的一条命令形态——对章节目录跑逐文件完整自查（每章 workflow.json/.md 照常落盘）、内嵌跨文件术语一致性矩阵、渲染项目总览（自包含 HTML + 机读 JSON）：逐文件分数/风险带/段落分级/门禁对照表、项目级聚合（均分/最高/高风险文件数/统一建议数）、逐概念统一建议。引擎同源（进程内调用 pp_workflow.workflow——无新打分代码）；单文件失败只损失该行（与批量同哲学）；总览带固定诚信声明（自查辅助，非合规证明）。
 
 ## v6.8.0 更新内容
 
