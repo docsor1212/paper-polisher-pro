@@ -9,6 +9,9 @@ import unittest
 from pathlib import Path
 
 PKG = Path(__file__).resolve().parent.parent
+import sys as _sys
+_sys.path.insert(0, str(Path(__file__).resolve().parent))
+import _docs
 SCRIPTS = PKG / "scripts"
 
 _AI_TEXT = ("值得注意的是，随着人工智能技术的快速发展，其在医疗领域的应用日益受到关注。"
@@ -116,7 +119,7 @@ class TestWiring(unittest.TestCase):
         self.assertIn("term-project", p.stdout)
 
     def test_skill_quickstart_documents_both(self):
-        for f in ("SKILL.md", "SKILL_ZH.md"):
+        for f in _docs.DOCS:
             t = (PKG / f).read_text(encoding="utf-8")
             self.assertIn("pp.py evidence", t, f"{f} 缺 evidence")
             self.assertIn("pp.py term-project", t, f"{f} 缺 term-project")

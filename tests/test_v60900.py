@@ -8,6 +8,9 @@ import unittest
 from pathlib import Path
 
 PKG = Path(__file__).resolve().parent.parent
+import sys as _sys
+_sys.path.insert(0, str(Path(__file__).resolve().parent))
+import _docs
 SCRIPTS = PKG / "scripts"
 
 
@@ -84,7 +87,7 @@ class TestWiring(unittest.TestCase):
         self.assertIn("project", p.stdout)
 
     def test_skill_and_faq_documented(self):
-        for f in ("SKILL.md", "SKILL_ZH.md"):
+        for f in _docs.DOCS:
             t = (PKG / f).read_text(encoding="utf-8")
             self.assertIn("pp.py project", t, f"{f} 未记录 project")
         t = (PKG / "references" / "faq.md").read_text(encoding="utf-8")

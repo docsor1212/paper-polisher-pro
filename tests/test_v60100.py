@@ -10,6 +10,9 @@ import unittest
 from pathlib import Path
 
 PKG = Path(__file__).resolve().parent.parent
+import sys as _sys
+_sys.path.insert(0, str(Path(__file__).resolve().parent))
+import _docs
 SCRIPTS = PKG / "scripts"
 PY = sys.executable
 
@@ -101,7 +104,7 @@ class TestProgressiveMove(unittest.TestCase):
             self.assertIn(kw, content, f"外迁文件缺: {kw}")
 
     def test_skill_has_summary_and_link(self):
-        for doc in ("SKILL.md", "SKILL_ZH.md"):
+        for doc in _docs.DOCS:
             t = (PKG / doc).read_text(encoding="utf-8")
             self.assertIn("references/architecture.md", t, f"{doc} 缺外迁链接")
             self.assertIn("references/best-practices.md", t, f"{doc} 缺最佳实践链接")

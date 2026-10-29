@@ -8,6 +8,9 @@ import unittest
 from pathlib import Path
 
 PKG = Path(__file__).resolve().parent.parent
+import sys as _sys
+_sys.path.insert(0, str(Path(__file__).resolve().parent))
+import _docs
 SCRIPTS = PKG / "scripts"
 
 _LONG = ("值得注意的是，随着人工智能技术的快速发展，其在医疗领域的应用日益受到关注。" * 6
@@ -97,7 +100,7 @@ class TestResidueLock(unittest.TestCase):
 
 class TestDocs(unittest.TestCase):
     def test_skill_documents_isolation(self):
-        for f in ("SKILL.md", "SKILL_ZH.md"):
+        for f in _docs.DOCS:
             t = (PKG / f).read_text(encoding="utf-8")
             self.assertIn("--isolate", t, f"{f} 未记录隔离模式")
 

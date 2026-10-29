@@ -12,6 +12,9 @@ except ImportError:
 import pp_style_norm as sn
 
 PKG = Path(__file__).resolve().parent.parent
+import sys as _sys
+_sys.path.insert(0, str(Path(__file__).resolve().parent))
+import _docs
 
 
 class TestTermVariantsBank(unittest.TestCase):
@@ -58,7 +61,7 @@ class TestFindingsLedger(unittest.TestCase):
 
 class TestDescFirstLine(unittest.TestCase):
     def test_demand_words_head120(self):
-        t = (PKG / "SKILL_ZH.md").read_text(encoding="utf-8")
+        t = _docs.zh_text()
         import re
         m = re.search(r"description: >-?\n((?:  .+\n)+)", t)
         desc = " ".join(x.strip() for x in m.group(1).splitlines())
@@ -67,7 +70,7 @@ class TestDescFirstLine(unittest.TestCase):
         self.assertNotIn("Paper Polisher Pro", desc[:60])
 
     def test_skip_when_present_both_langs(self):
-        zh = (PKG / "SKILL_ZH.md").read_text(encoding="utf-8")
+        zh = _docs.zh_text()
         en = (PKG / "SKILL.md").read_text(encoding="utf-8")
         self.assertIn("不适用", zh)
         self.assertIn("Not for:", en)

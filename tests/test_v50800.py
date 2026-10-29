@@ -8,6 +8,9 @@ import unittest
 from pathlib import Path
 
 PKG = Path(__file__).resolve().parent.parent
+import sys as _sys
+_sys.path.insert(0, str(Path(__file__).resolve().parent))
+import _docs
 SCRIPTS = PKG / "scripts"
 PY = sys.executable
 
@@ -122,7 +125,7 @@ class TestExitCodeContract(unittest.TestCase):
         self.assertIn("退出码契约", r.stdout)
 
     def test_contract_documented(self):
-        for doc in ("SKILL.md", "SKILL_ZH.md"):
+        for doc in _docs.DOCS:
             t = (PKG / doc).read_text(encoding="utf-8")
             self.assertIn("5.8.0", t)
             self.assertTrue(("Exit-code contract" in t) or ("退出码契约" in t),
@@ -136,17 +139,17 @@ class TestDocs(unittest.TestCase):
         self.assertIn("The three limits that matter most",
                       (PKG / "SKILL.md").read_text(encoding="utf-8"))
         self.assertIn("三条最重要的限制",
-                      (PKG / "SKILL_ZH.md").read_text(encoding="utf-8"))
+                      _docs.zh_text())
 
     def test_stale_whatsnew_removed(self):
         en = (PKG / "SKILL.md").read_text(encoding="utf-8")
-        zh = (PKG / "SKILL_ZH.md").read_text(encoding="utf-8")
+        zh = _docs.zh_text()
         self.assertNotIn("What's new in v4.9.0", en)
         self.assertNotIn("v4.9.0 更新内容", zh)
         self.assertNotIn("v5.4.0 更新内容", zh)
 
     def test_zh_history_slimmed(self):
-        zh = (PKG / "SKILL_ZH.md").read_text(encoding="utf-8")
+        zh = _docs.zh_text()
         self.assertIn("v5.8.0", zh)
         self.assertNotIn("v3.7.0（2026-09-23 发布）", zh)  # 长列表已收敛
         self.assertNotIn("LES-", zh)  # 内部编号不入包

@@ -10,6 +10,9 @@ import unittest
 from pathlib import Path
 
 PKG = Path(__file__).resolve().parent.parent
+import sys as _sys
+_sys.path.insert(0, str(Path(__file__).resolve().parent))
+import _docs
 sys.path.insert(0, str(PKG / "scripts"))
 
 
@@ -75,7 +78,7 @@ class TestTerminologyExtension(unittest.TestCase):
         """文档计数声明必须等于运行时真实加载量（动态校验，词典增长不再脆断）。"""
         standards = {e["standard"] for e in self.terms.values()}
         claim = f"{len(standards):,}"
-        for doc in ("SKILL.md", "SKILL_ZH.md"):
+        for doc in _docs.DOCS:
             text = (PKG / doc).read_text(encoding="utf-8")
             self.assertIn(claim, text, f"{doc} 计数声明 {claim} 与真实加载量不符")
             self.assertNotIn("2,308", text, f"{doc} 残留旧计数 2,308")

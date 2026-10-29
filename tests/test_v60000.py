@@ -11,6 +11,9 @@ import zipfile
 from pathlib import Path
 
 PKG = Path(__file__).resolve().parent.parent
+import sys as _sys
+_sys.path.insert(0, str(Path(__file__).resolve().parent))
+import _docs
 SCRIPTS = PKG / "scripts"
 PY = sys.executable
 
@@ -115,7 +118,7 @@ class TestGroupedBilingualEntry(unittest.TestCase):
         self.assertIn("Unknown subcommand", r2.stderr)
 
     def test_lang_documented_as_env_var(self):
-        for doc in ("SKILL.md", "SKILL_ZH.md"):
+        for doc in _docs.DOCS:
             t = (PKG / doc).read_text(encoding="utf-8")
             self.assertIn("PP_LANG", t, f"{doc} 未声明 PP_LANG 环境变量")
 

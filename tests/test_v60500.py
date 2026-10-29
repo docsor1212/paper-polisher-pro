@@ -9,6 +9,9 @@ import unittest
 from pathlib import Path
 
 PKG = Path(__file__).resolve().parent.parent
+import sys as _sys
+_sys.path.insert(0, str(Path(__file__).resolve().parent))
+import _docs
 SCRIPTS = PKG / "scripts"
 SERVER = SCRIPTS / "pp_mcp_server.py"
 
@@ -160,7 +163,7 @@ class TestDocs(unittest.TestCase):
         self.assertIn("mcp", p.stdout)
 
     def test_skill_both_languages_document_mcp(self):
-        for f in ("SKILL.md", "SKILL_ZH.md"):
+        for f in _docs.DOCS:
             t = (PKG / f).read_text(encoding="utf-8")
             self.assertIn("pp_mcp_server.py", t, f"{f} 缺 MCP 配置节")
             self.assertIn("mcpServers", t)
@@ -169,7 +172,7 @@ class TestDocs(unittest.TestCase):
         t = (PKG / "references" / "faq.md").read_text(encoding="utf-8")
         self.assertIn("阅读分层", t)
         self.assertIn("反模式", t)
-        for f in ("SKILL.md", "SKILL_ZH.md"):
+        for f in _docs.DOCS:
             t = (PKG / f).read_text(encoding="utf-8")
             self.assertIn("references/faq.md", t)
 

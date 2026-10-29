@@ -281,6 +281,9 @@ def main():
     ap.add_argument("--json", action="store_true", help="结构化输出")
     ap.add_argument("--lang", default="auto", choices=["auto", "zh", "en"])
     ap.add_argument("--demo", action="store_true", help="内置双样例演示")
+    ap.add_argument("--worksheet", metavar="PATH",
+                    help="v7.0.0: 另存改稿工作单（Markdown 复选框清单：原句/问题/策略/改后留白）——"
+                         "把『指位+策略』变成可逐条执行的改稿文档，改完配 rewrite-check 验收")
     args = ap.parse_args()
 
     if args.demo:
@@ -315,7 +318,48 @@ def main():
         }, ensure_ascii=False, indent=1))
     else:
         print(to_text(results, stats, lang, args.top))
+    if args.worksheet:
+        _write_worksheet(results, stats, Path(args.worksheet), p)
+        print(f"改稿工作单: {args.worksheet}", file=sys.stderr)
     return 0
+
+
+def _write_worksheet(results, stats, out_path, src_path):
+    """v7.0.0 改稿工作单：Markdown 复选框清单（不代改——改后内容留白由作者填）。"""
+    lines = [f"# 改稿工作单 · {src_path.name}",
+             "",
+             f"> 生成依据 {stats.get('total_sentences', '?')} 句中的 {stats.get('flagged', len(results))} 句带可改进特征。"
+             "逐条处理：读懂问题与策略 → 在「改后」处写你的版本 → 全部完成后用 "
+             "`pp.py rewrite-check 原稿 改稿` 验收效果。改不改、怎么改由作者决定。",
+             "",
+             "| # | 原句 | 问题 | 策略 |",
+             "|---|---|---|---|"]
+    for i, r in enumerate(results, 1):
+        issues = "；".join(f"{x['type']}（{x['evidence']}）" for x in r["issues"][:3])
+        sentences = " ".join(r["sentence"].split())[:80]
+        advice0 = ADVICE[r["issues"][0]["type"]][:40] if r["issues"] else ""
+        lines.append(f"| {i} | {sentences} | {issues} | {advice0} |")
+    lines.append("")
+    for i, r in enumerate(results, 1):
+        lines.append(f"## {i}. 原句")
+        lines.append("")
+        lines.append(f"> {r['sentence']}")
+        lines.append("")
+        for x in r["issues"]:
+            lines.append(f"- **{x['type']}**：{x['evidence']}")
+            lines.append(f"  - 策略：{ADVICE.get(x['type'], '（见 to_text 输出的通用策略）')}")
+        lines.append("")
+        lines.append("- [ ] 改后：")
+        lines.append("")
+    lines.append("---")
+    lines.append("")
+    lines.append("改完验收：`python3 scripts/pp.py rewrite-check 原稿.txt 改稿.txt` ｜ "
+                 "多轮复盘：`pp.py trend 轮次目录/`")
+    lines.append("")
+    lines.append("_学术诚信：本工具不代改——工作单供作者自查与改进写作质量，每个字由作者写；"
+                 "请按所在机构政策规范披露 AI 使用。_")
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    out_path.write_text("\n".join(lines), encoding="utf-8")
 
 
 if __name__ == "__main__":

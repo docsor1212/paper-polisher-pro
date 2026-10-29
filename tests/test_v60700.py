@@ -9,6 +9,9 @@ import unittest
 from pathlib import Path
 
 PKG = Path(__file__).resolve().parent.parent
+import sys as _sys
+_sys.path.insert(0, str(Path(__file__).resolve().parent))
+import _docs
 SCRIPTS = PKG / "scripts"
 
 
@@ -84,7 +87,7 @@ class TestScenarioCatalog(unittest.TestCase):
 class TestQuickStartScenarioFirst(unittest.TestCase):
     def test_annotated_lines(self):
         """快速开始命令块内注释必须是「什么时候用」句式而非版本号堆叠。"""
-        for f in ("SKILL.md", "SKILL_ZH.md"):
+        for f in _docs.DOCS:
             t = (PKG / f).read_text(encoding="utf-8")
             self.assertIn("scenarios", t)
             # 快速开始块内至少 8 条场景注解注释（# 开头）
@@ -94,7 +97,7 @@ class TestQuickStartScenarioFirst(unittest.TestCase):
             self.assertGreaterEqual(len(comments), 8, f"{f} 快速开始注解不足")
 
     def test_slimmed(self):
-        for f, cap in (("SKILL.md", 295), ("SKILL_ZH.md", 292)):
+        for f, cap in zip(_docs.DOCS, (295, 292) if _docs.HAS_ZH else (295,)):
             n = len((PKG / f).read_text(encoding="utf-8").split("\n"))
             self.assertLessEqual(n, cap, f"{f} 仍偏重（{n} 行 > {cap}）")
 

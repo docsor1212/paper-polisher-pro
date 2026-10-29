@@ -3,6 +3,12 @@
 > **只想快速上手？** 回 `SKILL.md` § TL;DR（30 秒任务路由表）——本文件仅是完整版本历史，新用户无需阅读。
 > Historical release notes. Newest first. SKILL.md § Version history keeps only the last three releases; everything older lives here (single source, no duplication).
 
+## What's new in v7.0.0
+
+- **Package-form adaptive consistency (major)**: the review ran the package in its CH-English form and found real breakage — the bundled smoke battery and several tests hard-read `SKILL_ZH.md`, which the language rule deliberately excludes from the English package. The suite is now form-adaptive: `tests/_docs.py` turns ZH document reads into honest `SkipTest` (CH form: 235 tests run, 8 ZH assertions skip, zero errors; SH form: all 235 run), and the smoke battery's version/frontmatter/desc/FAQ/trigger assertions condition on the same flag with explicit package-form labels. The failure class "works in the author's tree, breaks in a shipped package form" is now structurally covered — both forms are exercised before release.
+- **Cross-file consistency gates**: Python minimum version is unified at 3.9 everywhere (requirements.txt said 3.8+ while pp_doctor enforces 3.9) and a new gate asserts every declared floor matches the doctor threshold; README no longer hardcodes a test count (it said "44 cases" while the suite grew to 235) and a gate forbids the pattern from returning.
+- **Rewrite worksheet (`pp_fix_suggest.py --worksheet`)**: the sentence-level suggestions become an executable document — a Markdown checklist (summary table + per-sentence sections with original/issues/strategy and a blank "改后" checkbox line for the author's own rewrite), closing the loop with `pp.py rewrite-check` for acceptance. The tool still never rewrites; the author writes every word.
+
 ## What's new in v6.9.0
 
 - **Project workbench (`pp_project.py`, `pp.py project`)**: the thesis/book scenario gets its one-command form — point it at a directory of chapter files and it runs the full per-file self-check (each chapter's `workflow.json`/`.md` lands as usual), embeds the cross-file terminology consistency matrix, and renders a project overview (self-contained HTML + machine-readable JSON): per-file score/risk-band/paragraph-grading/gate table, project-level aggregates (mean/max, high-risk count, unification counts), and per-concept unification advice. Same-source engine (`pp_workflow.workflow` called in-process — no new scoring code); a per-file failure costs only that row, same philosophy as batch mode; fixed integrity statement in the overview (self-check aid, not a compliance certificate).
@@ -267,6 +273,12 @@
 # 更新日志（中文）
 
 > v4.6.0 起历史更新说明移出 SKILL_ZH.md（新用户更快触达工作流）。最新在前。各版本摘要亦见 SKILL_ZH.md § 版本历史。
+
+## v7.0.0 更新内容
+
+- **包形态自适应一致性（major 主题）**：评审在 CH 英文包形态下实测出真缺陷——随包 smoke 电池与多个测试硬读 `SKILL_ZH.md`，而语言铁律规定英文包不含该文件。全套现在双形态自适应：`tests/_docs.py` 把 ZH 文档读取转为诚实的 `SkipTest`（CH 形态 235 例全跑、8 个 ZH 断言如实跳过、零 error；SH 形态 235 例全跑）；smoke 的版本/frontmatter/desc/FAQ/触发词断言按同一开关条件化并显式标注包形态。「作者目录里好好的、发出去的包形态里失效」这一失效类从此结构性覆盖——发布前两种形态都会被演练。
+- **跨文件一致性闸**：Python 最低版本全文档统一为 3.9（requirements.txt 写 3.8+ 而 pp_doctor 实际执行 3.9），新增闸断言所有声明与 doctor 门槛同源；README 不再硬编码测试计数（原文写「44 用例」而套件已增长到 235），新闸禁止该写法回潮。
+- **改稿工作单（`pp_fix_suggest.py --worksheet`）**：句子级建议升级为可执行文档——Markdown 复选框清单（汇总表+逐句原句/问题/策略+「改后」留白复选行，由作者亲笔填写），闭环 `pp.py rewrite-check` 验收。工具仍然绝不代改；每个字由作者写。
 
 ## v6.9.0 更新内容
 

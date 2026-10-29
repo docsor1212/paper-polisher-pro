@@ -7,6 +7,9 @@ import unittest
 from pathlib import Path
 
 PKG = Path(__file__).resolve().parent.parent
+import sys as _sys
+_sys.path.insert(0, str(Path(__file__).resolve().parent))
+import _docs
 SCRIPTS = PKG / "scripts"
 PY = sys.executable
 
@@ -30,7 +33,7 @@ class TestFaqFile(unittest.TestCase):
             self.assertIn(kw, t, f"FAQ 缺: {kw}")
 
     def test_skill_keeps_top3_and_link(self):
-        for doc in ("SKILL.md", "SKILL_ZH.md"):
+        for doc in _docs.DOCS:
             t = (PKG / doc).read_text(encoding="utf-8")
             self.assertIn("references/faq.md", t, f"{doc} 缺 FAQ 链接")
             self.assertIn("100", t)  # 高频第一条仍在

@@ -8,6 +8,9 @@ import unittest
 from pathlib import Path
 
 PKG = Path(__file__).resolve().parent.parent
+import sys as _sys
+_sys.path.insert(0, str(Path(__file__).resolve().parent))
+import _docs
 SCRIPTS = PKG / "scripts"
 PY = sys.executable
 
@@ -125,11 +128,11 @@ class TestProgressiveNav(unittest.TestCase):
 
     def test_faq_nav_lines(self):
         self.assertIn("five parts", (PKG / "SKILL.md").read_text(encoding="utf-8"))
-        self.assertIn("分五组", (PKG / "SKILL_ZH.md").read_text(encoding="utf-8"))
+        self.assertIn("分五组", _docs.zh_text())
 
     def test_architecture_read_on_demand(self):
         self.assertIn("read on demand", (PKG / "SKILL.md").read_text(encoding="utf-8"))
-        self.assertIn("按需阅读", (PKG / "SKILL_ZH.md").read_text(encoding="utf-8"))
+        self.assertIn("按需阅读", _docs.zh_text())
 
 
 if __name__ == "__main__":

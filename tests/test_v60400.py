@@ -8,6 +8,9 @@ import unittest
 from pathlib import Path
 
 PKG = Path(__file__).resolve().parent.parent
+import sys as _sys
+_sys.path.insert(0, str(Path(__file__).resolve().parent))
+import _docs
 SCRIPTS = PKG / "scripts"
 
 _LONG = ("值得注意的是，随着人工智能技术的快速发展，其在医疗领域的应用日益受到关注。" * 6
@@ -135,7 +138,7 @@ class TestQuickStartDocs(unittest.TestCase):
         self.assertIn("--retries", t)
 
     def test_skill_zh_quickstart_references_examples(self):
-        t = (PKG / "SKILL_ZH.md").read_text(encoding="utf-8")
+        t = _docs.zh_text()
         self.assertIn("examples/outputs", t)
         self.assertIn("五站导览", t)
 

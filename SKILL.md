@@ -1,6 +1,6 @@
 ---
 name: paper-polisher
-version: 6.9.0
+version: 7.0.0
 author: DoctorQ Lab
 description: >-
   AI-rate self-check and polish guidance for academic writing: sentence-level rewrite
@@ -273,6 +273,7 @@ Docs & site: **docsor.cn**
 
 ## Version history (condensed)
 
+- **v7.0.0 (2026-10-30)** — package-form adaptive consistency major: bundled tests & smoke run in both package forms (CH English package: ZH assertions skip honestly); cross-file gates unify Python floor at 3.9 and forbid hardcoded test counts; fix gains `--worksheet` rewrite checklist.
 - **v6.9.0 (2026-10-29)** — project workbench (`pp.py project`): directory-wide full self-check + embedded term-consistency matrix + overview HTML/JSON, same-source engine, per-file failure isolation.
 - **v6.8.0 (2026-10-27)** — per-file process isolation for batch (`--isolate auto`: on with the supervised model; hard crash costs one row, scoring bit-identical); error glossary + worker-crash/timeout/encoding; Traceback-residue hygiene lock.
 - **v6.7.0 (2026-10-27)** — scenario catalog (`pp.py scenarios`, 17 entries with when-to-use/output, single-source JSON); quick start restructured scenario-first (~30 lines slimmer); FAQ technical section split into user-facing vs integrator tiers.
