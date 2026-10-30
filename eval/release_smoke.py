@@ -133,6 +133,16 @@ chk("ZH 中 F1 98.3 仅出现在铁律引述(≤1处)", skill_zh.count("98.3") <
 # v7.0.0 文档交叉一致闸（评监委 10-29 实测点名：Python 版本不一致/README 硬编码测试计数）
 _req = (ROOT / "requirements.txt").read_text(encoding="utf-8") if (ROOT / "requirements.txt").is_file() else ""
 _doc_py = re.findall(r"Python[ ]*3\.(\d)\+", _req + skill_md + (skill_zh if HAS_ZH else ""))
+# v7.1.0 一致闸：标题禁版本化石（"v3" 标题与 7.x 实际版本脱节——评监委 10-30 点名）+ AUROC 口径锚定
+_chk_title = re.search(r"^# (.+)$", skill_md, re.M)
+chk("文档交叉一致: SKILL.md 标题不带版本号（版本历史管版本，标题管名字）",
+    _chk_title and not re.search(r"\bv\d", _chk_title.group(1)),
+    f"title={_chk_title.group(1) if _chk_title else '?'}")
+_auroc_md = "0.9998" in skill_md
+_readme_t = (ROOT / "README.md").read_text(encoding="utf-8") if (ROOT / "README.md").is_file() else ""
+chk("文档交叉一致: AUROC 声明锚定指纹绑定口径（0.9998 现行；README 禁裸 1.0）",
+    _auroc_md and "0.9998" in _readme_t and "AUROC 1.0（作者侧实测）" not in _readme_t,
+    f"md={_auroc_md} readme_ok={'0.9998' in _readme_t}")
 chk("文档交叉一致: Python 最低版本统一（与 pp_doctor 门槛 3.9 同源）",
     _doc_py and all(x == "9" for x in _doc_py) and "3.8+" not in _req,
     f"declared={sorted(set(_doc_py)) or '无'}")

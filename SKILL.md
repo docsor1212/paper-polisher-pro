@@ -1,6 +1,6 @@
 ---
 name: paper-polisher
-version: 7.0.0
+version: 7.1.0
 author: DoctorQ Lab
 description: >-
   AI-rate self-check and polish guidance for academic writing: sentence-level rewrite
@@ -19,7 +19,7 @@ description: >-
 tags: [ai-detection, deai, academic-writing, paraphrase, paper-polish]
 ---
 
-# Paper Polisher Pro v3
+# Paper Polisher Pro
 
 AI writing detection (AI-rate self-check for authors) · academic polishing guidance · terminology standardization · translation-smell check · quality report · AIGC compliance label check · paragraph-level attribution · journal precheck.
 100% local, zero upload, zero credentials, pure standard library (optional onnxruntime enhancement layer).
@@ -273,6 +273,7 @@ Docs & site: **docsor.cn**
 
 ## Version history (condensed)
 
+- **v7.1.0 (2026-10-31)** — custom terminology banks (`--bank` for term_check & term-project; project-owned standard spellings merged over the built-in bank with same-cn override, line-numbered validation); title version fossil removed + README AUROC aligned to the fingerprint-bound 0.9998 caliber, both gated.
 - **v7.0.0 (2026-10-30)** — package-form adaptive consistency major: bundled tests & smoke run in both package forms (CH English package: ZH assertions skip honestly); cross-file gates unify Python floor at 3.9 and forbid hardcoded test counts; fix gains `--worksheet` rewrite checklist.
 - **v6.9.0 (2026-10-29)** — project workbench (`pp.py project`): directory-wide full self-check + embedded term-consistency matrix + overview HTML/JSON, same-source engine, per-file failure isolation.
 - **v6.8.0 (2026-10-27)** — per-file process isolation for batch (`--isolate auto`: on with the supervised model; hard crash costs one row, scoring bit-identical); error glossary + worker-crash/timeout/encoding; Traceback-residue hygiene lock.

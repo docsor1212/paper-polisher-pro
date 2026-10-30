@@ -3,6 +3,11 @@
 > **只想快速上手？** 回 `SKILL.md` § TL;DR（30 秒任务路由表）——本文件仅是完整版本历史，新用户无需阅读。
 > Historical release notes. Newest first. SKILL.md § Version history keeps only the last three releases; everything older lives here (single source, no duplication).
 
+## What's new in v7.1.0
+
+- **Custom terminology banks (`--bank`)**: thesis writers have their own abbreviations, institution names and project-internal conventions that will never be in the built-in 2,344-term bank. `term_check.py --bank 项目词表.json` and `pp_term_consistency.py --bank` accept a project bank (JSON array, same entry format as the built-in bank: `cn`/`en`/`aliases`/`source`) merged over the built-in entries with same-`cn` override — the project decides which spelling is standard, and cross-file consistency uses the same bank. Entries are validated with line numbers (a malformed entry is reported, never silently dropped). The built-in bank stays untouched.
+- **Consistency**: the SKILL.md title carried a version fossil ("Paper Polisher Pro v3" while the package was at 7.0.0 — the review flagged it); the title is now version-free and a gate rejects version markers in the title. README's AUROC claim ("1.0, author-side") predated the fingerprint-bound recalibration — aligned to the current 0.9998 caliber with a gate anchoring the number in both SKILL.md and README.
+
 ## What's new in v7.0.0
 
 - **Package-form adaptive consistency (major)**: the review ran the package in its CH-English form and found real breakage — the bundled smoke battery and several tests hard-read `SKILL_ZH.md`, which the language rule deliberately excludes from the English package. The suite is now form-adaptive: `tests/_docs.py` turns ZH document reads into honest `SkipTest` (CH form: 235 tests run, 8 ZH assertions skip, zero errors; SH form: all 235 run), and the smoke battery's version/frontmatter/desc/FAQ/trigger assertions condition on the same flag with explicit package-form labels. The failure class "works in the author's tree, breaks in a shipped package form" is now structurally covered — both forms are exercised before release.
@@ -273,6 +278,11 @@
 # 更新日志（中文）
 
 > v4.6.0 起历史更新说明移出 SKILL_ZH.md（新用户更快触达工作流）。最新在前。各版本摘要亦见 SKILL_ZH.md § 版本历史。
+
+## v7.1.0 更新内容
+
+- **项目自定义术语库（`--bank`）**：学位论文有自己的缩写、机构名与课题组内部约定，这些永远不会进内置 2,344 条词库。`term_check.py --bank 项目词表.json` 与 `pp_term_consistency.py --bank` 接受项目词表（JSON 数组，条目格式同内置库：`cn`/`en`/`aliases`/`source`），与内置条目合并、同 `cn` 覆盖——哪个写法算标准由项目词表说了算，跨文件一致性同样走该词表。条目逐条带行号校验（坏条目如实报告，绝不静默吞掉）。内置词库不动。
+- **一致性**：SKILL.md 标题带版本化石（包已到 7.0.0 标题仍是 "v3"——评审点名）；标题现不含版本号，并新增闸拒绝标题版本标记回潮。README 的 AUROC 声明（"1.0，作者侧实测"）早于指纹绑定重校准——对齐现行 0.9998 口径，新增闸把该数字锚定在 SKILL.md 与 README 两处。
 
 ## v7.0.0 更新内容
 

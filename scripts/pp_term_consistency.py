@@ -41,19 +41,20 @@ _DERIVATION_SUFFIXES = ("学家", "学会", "学分", "学科", "科学",
 _PRECEDING_NAME_CHARS = ("国", "华", "洲", "际", "盟")
 
 
-_TERMS_CACHE = []
+_TERMS_CACHE = {}
 
 
-def scan_usages(text):
+def scan_usages(text, bank_path=None):
     """单遍最长优先收集库内概念的全部写法命中 → [(写法, 标准名, 位置, 摘录)]。
 
     与 term_check.check_terms 的候选/裁决逻辑同源（标准词+别名一次收集、
     长者优先认领区间、派生词与机构名排除）；本函数额外保留标准词命中，
-    供跨文件写法矩阵统计。"""
+    供跨文件写法矩阵统计。v7.1.0: bank_path（项目自定义词表）按路径缓存。"""
     global _TERMS_CACHE
-    if not _TERMS_CACHE:
-        _TERMS_CACHE.append(load_terminology())
-    terms_db = _TERMS_CACHE[0]
+    key = bank_path or ""
+    if key not in _TERMS_CACHE:
+        _TERMS_CACHE[key] = load_terminology(bank_path)
+    terms_db = _TERMS_CACHE[key]
     if not terms_db:
         return []
     standard_terms = {}
@@ -105,7 +106,7 @@ def collect_files(d, recursive=False):
                   and f.stat().st_size < 5 * 1024 * 1024)
 
 
-def analyze(dir_path, recursive=False):
+def analyze(dir_path, recursive=False, bank_path=None):
     from docx_text import read_text_any
     files = collect_files(Path(dir_path), recursive)
     if len(files) < 2:
@@ -120,7 +121,7 @@ def analyze(dir_path, recursive=False):
         except Exception as e:
             per_file.append({"file": f.name, "error": str(e)[:120]})
             continue
-        usages = scan_usages(text)
+        usages = scan_usages(text, bank_path)
         per_file.append({"file": f.name, "usages": usages,
                          "nonstandard": sum(1 for u in usages if not u["is_standard"])})
         for u in usages:
@@ -221,12 +222,14 @@ def main():
     ap.add_argument("--json", action="store_true", help="输出 JSON（stdout 或 --output）")
     ap.add_argument("--output", metavar="PATH", help="JSON 落盘路径")
     ap.add_argument("--html", metavar="PATH", help="HTML 矩阵报告落盘路径")
+    ap.add_argument("--bank", metavar="PATH",
+                    help="v7.1.0: 项目自定义术语库（JSON，格式同内置库）；与内置合并、同 cn 覆盖")
     a = ap.parse_args()
     d = Path(a.directory)
     if not d.is_dir():
         print(f"Error: not a directory: {a.directory}", file=sys.stderr)
         sys.exit(2)
-    r = analyze(a.directory, a.recursive)
+    r = analyze(a.directory, a.recursive, bank_path=a.bank)
     if a.html:
         render_html(r, Path(a.html))
         print(f"HTML 矩阵报告: {a.html}", file=sys.stderr)

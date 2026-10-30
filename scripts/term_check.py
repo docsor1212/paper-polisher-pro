@@ -37,8 +37,29 @@ class TermReport:
     summary: str = ""
 
 
-def load_terminology() -> dict:
-    """Load terms from local terminology.json (portable, no external dependencies)."""
+def load_custom_bank(path):
+    """v7.1.0: 加载自定义术语库（--bank）——格式与内置 terminology.json 相同
+    （数组，每条 {cn, en?, aliases?, source?}），逐条校验带行号（坏条目不静默吞）。"""
+    items, warns = [], []
+    try:
+        data = json.loads(Path(path).read_text(encoding="utf-8"))
+    except Exception as e:
+        return [], [f"自定义词表解析失败: {e}"]
+    if not isinstance(data, list):
+        return [], ["自定义词表必须是数组（[{cn, en?, aliases?, source?}, …]）"]
+    for i, item in enumerate(data, 1):
+        if not isinstance(item, dict) or not item.get("cn"):
+            warns.append(f"第 {i} 条缺 cn 字段，已跳过")
+            continue
+        items.append(item)
+    return items, warns
+
+
+def load_terminology(custom_path=None) -> dict:
+    """Load terms from local terminology.json (portable, no external dependencies).
+
+    v7.1.0: custom_path（--bank）非空时加载自定义词表并与内置合并——
+    同 cn 覆盖内置条目（项目自有缩写/机构名的统一走项目词表）。"""
     terms = {}
     
     if not LOCAL_JSON.exists():
@@ -59,6 +80,23 @@ def load_terminology() -> dict:
                     if re.fullmatch(r"[a-zA-Z]{1,3}", alias):
                         continue
                     terms[alias.lower()] = entry
+        if custom_path:
+            citems, cwarns = load_custom_bank(custom_path)
+            for w in cwarns:
+                print(f"Warning: {w}", file=sys.stderr)
+            for item in citems:
+                cn_name = str(item["cn"]).strip()
+                entry = {"standard": cn_name, "en": item.get("en", ""),
+                         "source": item.get("source", "") or "项目自定义词表"}
+                terms[cn_name.lower()] = entry
+                for alias in item.get("aliases", []):
+                    alias = str(alias).strip()
+                    if alias and len(alias) >= 2 and alias.lower() != cn_name.lower():
+                        if re.fullmatch(r"[a-zA-Z]{1,3}", alias):
+                            continue
+                        terms[alias.lower()] = entry
+            print(f"自定义词表: +{len(citems)} 条（合并后共 "
+                  f"{len(set(e['standard'] for e in terms.values()))} 个概念）", file=sys.stderr)
         print(f"Loaded {len(set(e['standard'] for e in terms.values()))} terms from local JSON", file=sys.stderr)
     except Exception as e:
         print(f"Error: Failed to load terminology: {e}", file=sys.stderr)
@@ -315,6 +353,9 @@ def main():
     parser.add_argument("--auto-fix", action="store_true", help="Auto-fix and output corrected text")
     parser.add_argument("--neologism", action="store_true",
                         help="附加词典外高频字串提示（启发式、未校准、不计分；人工核对线索）")
+    parser.add_argument("--bank", metavar="PATH",
+                        help="v7.1.0: 项目自定义术语库（JSON 数组，格式同内置库：cn/en/aliases/source）；"
+                             "与内置合并、同 cn 覆盖——学位论文自有缩写/机构名的统一走项目词表")
     args = parser.parse_args()
 
     if not os.path.exists(args.input):
@@ -323,7 +364,7 @@ def main():
     with open(args.input, "r", encoding="utf-8", errors="replace") as f:
         text = f.read()
 
-    terms_db = load_terminology()
+    terms_db = load_terminology(args.bank if getattr(args, "bank", None) else None)
     report = check_terms(text, terms_db)
     report.file = args.input
 
