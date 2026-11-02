@@ -3,6 +3,14 @@
 > **只想快速上手？** 回 `SKILL.md` § TL;DR（30 秒任务路由表）——本文件仅是完整版本历史，新用户无需阅读。
 > Historical release notes. Newest first. SKILL.md § Version history keeps only the last three releases; everything older lives here (single source, no duplication).
 
+## What's new in v7.2.0
+
+- **MCP HTTP transport (`--transport http`)**: alongside stdio, the server now listens on 127.0.0.1 (loopback only) — `POST /mcp` takes one JSON-RPC message per request, `GET /health` is a liveness probe. This follows the MCP direction of streamable HTTP and enables same-machine multi-client reuse (several agent sessions sharing one server). Honest boundary stated in code and docs: loopback only, no auth, cross-machine exposure out of scope — consistent with the zero-network posture (listening locally is not an outbound service).
+- **Zero-network verifier precision (`pp_verify`)**: the HTTP transport introduced an `http.server` import and the AST scan flagged it (caught in the release battery — exactly what the verifier exists for). The verifier now distinguishes listeners from clients: `http.server` passes only when the same file carries a loopback (`127.0.0.1`) bind assertion, which is also tested in both directions (a `0.0.0.0` bind still fails). SKILL safety statements (EN+ZH) state the precise posture: zero **outbound** calls; the single listener-capable component binds loopback only.
+- **Version single-sourcing**: the server reported its own hardcoded version ("6.5.0" while the package was at 7.x — caught during the HTTP verification); it now reads `skill.json` at import, one source of truth.
+- **AUROC caliber cleanup completed**: the "AUROC 1.0" legacy caliber survived in `skill.json` and the SKILL_ZH frontmatter (the 10-31 review caught both after v7.1.0 cleaned only README/EN title); all shipped surfaces now state the fingerprint-bound 0.9998, with a gate asserting zero "AUROC 1.0" residue across skill.json/SKILL_ZH/README.
+- **Caliber navigation (`eval/results/CURRENT.md`)**: the results directory mixed current and archived evaluation artifacts with no guidance; a single index table (file / fingerprint / eval set / key numbers / referencing section) now declares the only citable baselines, archived files are marked non-citable, and a gate reconciles the table against files on disk and against SKILL.md references.
+
 ## What's new in v7.1.0
 
 - **Custom terminology banks (`--bank`)**: thesis writers have their own abbreviations, institution names and project-internal conventions that will never be in the built-in 2,344-term bank. `term_check.py --bank 项目词表.json` and `pp_term_consistency.py --bank` accept a project bank (JSON array, same entry format as the built-in bank: `cn`/`en`/`aliases`/`source`) merged over the built-in entries with same-`cn` override — the project decides which spelling is standard, and cross-file consistency uses the same bank. Entries are validated with line numbers (a malformed entry is reported, never silently dropped). The built-in bank stays untouched.
@@ -278,6 +286,14 @@
 # 更新日志（中文）
 
 > v4.6.0 起历史更新说明移出 SKILL_ZH.md（新用户更快触达工作流）。最新在前。各版本摘要亦见 SKILL_ZH.md § 版本历史。
+
+## v7.2.0 更新内容
+
+- **MCP HTTP transport（`--transport http`）**：stdio 之外新增本地回环 HTTP 形态——仅监听 127.0.0.1，`POST /mcp` 每请求一条 JSON-RPC，`GET /health` 存活探针。跟进 MCP 规范的 streamable HTTP 方向，支持同机多客户端复用一个 server（多个 agent 会话共享）。诚实边界代码与文档双写：仅回环、无鉴权、跨机暴露不在支持范围——与零网络立场一致（本地监听不构成对外服务）。
+- **零网络自证精确化（`pp_verify`）**：HTTP transport 引入的 `http.server` import 被 AST 扫描命中（发布电池当场抓获——这正是自证存在的意义）。自证器现在区分监听器与客户端：`http.server` 仅在同文件携带回环（127.0.0.1）绑定断言时放行，双向测试锁定（0.0.0.0 绑定仍 fail）。SKILL 安全声明（中英）改为精确表述：零**出站**调用；唯一监听组件仅绑回环。
+- **版本单一来源化**：server 自报版本硬编码 "6.5.0"（包已到 7.x——HTTP 验证时当场抓获）；现改为 import 时读 `skill.json`，唯一权威源。
+- **AUROC 口径清尾**：'AUROC 1.0' 旧口径残留在 `skill.json` 与 SKILL_ZH frontmatter（10-31 评审在 v7.1.0 只清了 README/EN 标题后抓到这两处）；现在全部随包面均声明指纹绑定 0.9998，新增闸断言三处零残留。
+- **口径导航（`eval/results/CURRENT.md`）**：结果目录历史/作废/现行混存无导航；现有一张唯一索引表（文件/指纹/评测集/关键数字/引用节），声明唯一可引用基线，档案标记不可引用，新增闸按表与磁盘、SKILL.md 引用三方对账。
 
 ## v7.1.0 更新内容
 

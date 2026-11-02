@@ -138,6 +138,26 @@ _chk_title = re.search(r"^# (.+)$", skill_md, re.M)
 chk("文档交叉一致: SKILL.md 标题不带版本号（版本历史管版本，标题管名字）",
     _chk_title and not re.search(r"\bv\d", _chk_title.group(1)),
     f"title={_chk_title.group(1) if _chk_title else '?'}")
+# v7.2.0 一致闸补强：AUROC 1.0 残留清零（skill.json/SKILL_ZH 双处 10-31 评监委点名）
+_skj = json.dumps(skill_json, ensure_ascii=False)
+_zh_probe = skill_zh if HAS_ZH else ""
+_readme_t = (ROOT / "README.md").read_text(encoding="utf-8") if (ROOT / "README.md").is_file() else ""
+chk("文档交叉一致: AUROC 1.0 旧口径零残留（skill.json/SKILL_ZH/README 三处）",
+    "AUROC 1.0" not in _skj and "AUROC 1.0" not in _zh_probe and "AUROC 1.0（作者侧实测）" not in _readme_t,
+    "残留见发布日志")
+# v7.2.0: eval/results 口径导航（CURRENT.md 对账——SKILL 引用的现行基线必须在表内且文件在位）
+_cur = ROOT / "eval" / "results" / "CURRENT.md"
+if _cur.is_file():
+    _cur_t = _cur.read_text(encoding="utf-8")
+    _listed = re.findall(r"`(v35ctl_[a-z0-9_.]+\.json)`", _cur_t)
+    _missing = [f for f in _listed if not (ROOT / "eval" / "results" / f).is_file()]
+    chk("口径导航: CURRENT.md 现行基线文件全部在位",
+        bool(_listed) and not _missing, f"missing={_missing[:3]}")
+    chk("口径导航: SKILL.md 引用的基线文件在 CURRENT.md 表内",
+        all(f in _cur_t for f in ("v35ctl_oldgen", "v35ctl_gen2026")),
+        "SKILL 引用的现行口径未入表")
+else:
+    chk("口径导航: CURRENT.md 在位", False, "eval/results/CURRENT.md 缺失")
 _auroc_md = "0.9998" in skill_md
 _readme_t = (ROOT / "README.md").read_text(encoding="utf-8") if (ROOT / "README.md").is_file() else ""
 chk("文档交叉一致: AUROC 声明锚定指纹绑定口径（0.9998 现行；README 禁裸 1.0）",
@@ -150,18 +170,23 @@ _readme = (ROOT / "README.md").read_text(encoding="utf-8") if (ROOT / "README.md
 _bad_counts = re.findall(r"\d+\s*(?:用例|tests\b|个测试)", _readme)
 chk("文档交叉一致: README 不硬编码测试计数（计数随版本增长，写法须动态）",
     not _bad_counts, f"hits={_bad_counts[:3]}")
-chk("触发词含 AI率 词位", "查AI率" in skill_zh and "AI率" in skill_zh)
-chk("相关工具节在位(双语)", "## Related tools" in skill_md and "## 相关工具" in skill_zh)
+chk("触发词含 AI率 词位" + ("（双语）" if HAS_ZH else "［CH 英文包］"),
+    "AI率" in skill_md and (not HAS_ZH or "查AI率" in skill_zh))
+chk("相关工具节在位" + ("（双语）" if HAS_ZH else "［CH 英文包］"),
+    "## Related tools" in skill_md and (not HAS_ZH or "## 相关工具" in skill_zh))
 _ADTALK = ["全家桶", "搜招牌名直达", "五件套", "论文工具家族", "Paper Toolbox family"]
 _adtalk_hits = [w for w in _ADTALK if w in skill_md or w in skill_zh]
 chk("导流叫卖词零残留(家族/全家桶/搜招牌名/五件套)", not _adtalk_hits, "; ".join(_adtalk_hits))
 # v6.3.0: FAQ 独立成档——SKILL 保留高频三条+链接，完整分组与「具体技术问题」节在 references/faq.md
-chk("FAQ 独立档案在位(SKILL 三条+faq.md 完整版,双语)",
-    "## 常见问题（高频三条" in skill_zh and "## FAQ (top 3" in skill_md
+chk("FAQ 独立档案在位(SKILL 三条+faq.md 完整版" + ("（双语）" if HAS_ZH else "［CH 英文包］"),
+    "## FAQ (top 3" in skill_md
+    and (not HAS_ZH or "## 常见问题（高频三条" in skill_zh)
     and (ROOT / "references" / "faq.md").is_file()
     and "具体技术问题" in (ROOT / "references" / "faq.md").read_text(encoding="utf-8"))
-chk("脚本速查表在位(评测C维驱动,双语)", "各脚本速查" in skill_zh and "Script cheat sheet" in skill_md)
-chk("FAQ 覆盖高频问法", "知网" in skill_zh and "degraded_mode" in skill_zh and "100 字" in skill_zh)
+chk("脚本速查表在位(评测C维驱动" + ("（双语）" if HAS_ZH else "［CH 英文包］"),
+    "Script cheat sheet" in skill_md and (not HAS_ZH or "各脚本速查" in skill_zh))
+chk("FAQ 覆盖高频问法" + ("（双语）" if HAS_ZH else "［CH 英文包］"),
+    "degraded_mode" in skill_md and (not HAS_ZH or ("知网" in skill_zh and "100 字" in skill_zh)))
 for ref in set(re.findall(r"`?(\w+\.(?:py|json))`?", skill_md)):
     if ref.endswith(".py"):
         chk(f"文档引用脚本存在 {ref}", (SCRIPTS / ref).exists() or (ROOT / "eval" / ref).exists())
@@ -258,7 +283,7 @@ for _nm, _fm in (("EN", fm_md), ("ZH", fm_zh)):
     chk(f"YAML 冒烟: {_nm} frontmatter 无行内冒号+空格", not _bad, "; ".join(_bad[:2]))
 try:
     import yaml as _yaml
-    for _nm, _fm in (("EN", fm_md), ("ZH", fm_zh)):
+    for _nm, _fm in (("EN", fm_md),) if not HAS_ZH else (("EN", fm_md), ("ZH", fm_zh)):
         try:
             _parsed = _yaml.safe_load(_fm)
             _ok = isinstance(_parsed, dict) and isinstance(_parsed.get("description"), str) and len(_parsed["description"]) > 20
@@ -267,7 +292,8 @@ try:
             chk(f"YAML 解析: {_nm} frontmatter 可解析且 description 有效", False, str(_e)[:80])
 except ImportError:
     chk("YAML 解析(pyyaml 未装, 跳过)", True)
-chk("安全与行为声明节在位(双语)", "安全与行为声明" in skill_zh and "Safety and behavior statement" in skill_md)
+chk("安全与行为声明节在位" + ("（双语）" if HAS_ZH else "［CH 英文包］"),
+    "Safety and behavior statement" in skill_md and (not HAS_ZH or "安全与行为声明" in skill_zh))
 
 
 rc1, r1, _ = detect_json(ZH_HUMAN)
@@ -908,10 +934,11 @@ chk("文档: 子功能适用域矩阵在位" + ("(双语)" if HAS_ZH else "［CH
     and "translation_smell_check" in _skill_md)
 # v6.3.0: 分组细节随 FAQ 迁 references/faq.md——断言改查 faq.md 分组与 SKILL 指针
 _faq_ref = (ROOT / "references" / "faq.md").read_text(encoding="utf-8")
-chk("文档: FAQ 分组编号(faq.md 完整版)",
-    "### Tools & workflow" in _faq_ref and "### 工具与工作流" in _faq_ref
-    and "### Verdicts & boundaries" in _faq_ref and "### 判定与边界" in _faq_ref
-    and "references/faq.md" in _skill_md and "references/faq.md" in _skill_zh)
+chk("文档: FAQ 分组编号(faq.md 完整版" + ("（双语）" if HAS_ZH else "［CH 英文包］"),
+    "### Tools & workflow" in _faq_ref and "### Verdicts & boundaries" in _faq_ref
+    and "### 工具与工作流" in _faq_ref and "### 判定与边界" in _faq_ref
+    and "references/faq.md" in _skill_md
+    and (not HAS_ZH or "references/faq.md" in _skill_zh))
 
 # ───────────────────────── K. 期刊语境与保鲜状态（v5.4.0） ─────────────────────────
 # K1. journal 2.0：学科自动识别 + 分学科语境 + --discipline 覆盖 + JSON 纯度

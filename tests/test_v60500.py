@@ -152,7 +152,8 @@ class TestZeroDependency(unittest.TestCase):
                 mods.update(a.name.split(".")[0] for a in node.names)
             elif isinstance(node, ast.ImportFrom) and node.level == 0 and node.module:
                 mods.add(node.module.split(".")[0])
-        allowed = {"io", "json", "os", "subprocess", "sys", "tempfile", "pathlib"}
+        allowed = {"io", "json", "os", "subprocess", "sys", "tempfile", "pathlib",
+                   "http", "argparse"}  # v7.2.0: http.server 回环监听（pp_verify 白名单+绑定断言管着）
         self.assertTrue(mods <= allowed, f"引入了非标准库依赖: {mods - allowed}")
 
 

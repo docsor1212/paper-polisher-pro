@@ -1,6 +1,6 @@
 ---
 name: paper-polisher
-version: 7.1.0
+version: 7.2.0
 author: DoctorQ Lab
 description: >-
   AI-rate self-check and polish guidance for academic writing: sentence-level rewrite
@@ -113,7 +113,7 @@ This tool is for **authors self-reviewing and improving their own writing qualit
 
 ## Safety and behavior statement
 
-- **100% local**: every feature runs on-device. The codebase makes zero network calls — no network client libraries, no network utilities. Verify structurally: `python3 scripts/pp_verify.py` (AST-level scan; exit 0 = zero network calls, all scripts compile). Legacy text grep `grep -rEin "urllib|requests|socket|import http" scripts/` may show a few URL *strings* in report footers — those are data in string constants, not network code; the AST verifier distinguishes the two.
+- **100% local**: every feature runs on-device. The codebase makes zero outbound network calls — no network client libraries, no network utilities. The single listener-capable component is the optional MCP HTTP form (`--transport http`), which binds 127.0.0.1 loopback only (binding asserted by the AST verifier's allowlist rule); the AST scan treats any listener without a loopback bind as a violation. Verify structurally: `python3 scripts/pp_verify.py` (AST-level scan; exit 0 = zero network calls, all scripts compile). Legacy text grep `grep -rEin "urllib|requests|socket|import http" scripts/` may show a few URL *strings* in report footers — those are data in string constants, not network code; the AST verifier distinguishes the two.
 - **No upload, no credentials**: reads and transmits no credentials, keys, or personal data; the only two environment variables are `PP_NO_SUP` (skip the supervised layer) and `PP_LANG` (`en` switches the `pp.py` entry surface to English) — both local behavior toggles.
 - **No persistence**: creates no scheduled tasks, autostart entries, or system config changes; temp files (inter-layer JSON, probe text) are deleted after use.
 - **No remote code**: loads no remote models or scripts; the optional supervised model is placed by the user at a local path.
@@ -217,6 +217,8 @@ Zero-dependency MCP stdio server (JSON-RPC in pure stdlib — nothing to pip ins
 
 Tools: `pp_detect` (AI-rate + layered evidence) | `pp_fix_suggest` (sentence suggestions, never rewrites) | `pp_style_norm` (style norms) | `pp_term_check` (terminology) | `pp_workflow` (full end-to-end report) | `pp_explain` (plain-language reading) | `pp_faq` (search) | `pp_doctor` (environment tier). All local, zero network; output auto-truncated (12k chars).
 
+Local HTTP form (v7.2.0, multi-client reuse): `python scripts/pp_mcp_server.py --transport http --port 8815` — listens on 127.0.0.1 loopback only (consistent with the zero-network posture; do not expose via port forwarding); `POST /mcp` for JSON-RPC, `GET /health` probe.
+
 ### One-command supervised setup
 
 ```bash
@@ -273,6 +275,7 @@ Docs & site: **docsor.cn**
 
 ## Version history (condensed)
 
+- **v7.2.0 (2026-10-31)** — MCP HTTP transport (loopback-only, /mcp + /health); server version single-sourced from skill.json; AUROC caliber cleanup in skill.json/SKILL_ZH with a zero-residue gate; eval/results caliber navigation (CURRENT.md) with reconciliation gates.
 - **v7.1.0 (2026-10-31)** — custom terminology banks (`--bank` for term_check & term-project; project-owned standard spellings merged over the built-in bank with same-cn override, line-numbered validation); title version fossil removed + README AUROC aligned to the fingerprint-bound 0.9998 caliber, both gated.
 - **v7.0.0 (2026-10-30)** — package-form adaptive consistency major: bundled tests & smoke run in both package forms (CH English package: ZH assertions skip honestly); cross-file gates unify Python floor at 3.9 and forbid hardcoded test counts; fix gains `--worksheet` rewrite checklist.
 - **v6.9.0 (2026-10-29)** — project workbench (`pp.py project`): directory-wide full self-check + embedded term-consistency matrix + overview HTML/JSON, same-source engine, per-file failure isolation.

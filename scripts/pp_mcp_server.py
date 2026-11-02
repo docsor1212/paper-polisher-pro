@@ -9,6 +9,7 @@ MCP 客户端（Claude Code / Cursor / 其它 agent）把本文件注册为 stdi
 
     python3 scripts/pp_mcp_server.py        # stdio（默认）
     python3 scripts/pp.py mcp               # 等价入口
+    python3 scripts/pp_mcp_server.py --transport http --port 8815   # 本地 HTTP（v7.2.0）
 
 工具面（全部只读自查，不代改文稿；与 CLI 同一引擎、同一退出码语义）：
   pp_detect      文本 → AI 率 + 风险带 + 分层证据（<100 字按铁律返回 unknown）
@@ -32,7 +33,17 @@ import tempfile
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-SERVER_VERSION = "6.5.0"
+
+
+def _pkg_version():
+    """包版本单一来源：skill.json（v7.2.0 根治 server 自报 6.5.0 化石）。"""
+    try:
+        return json.loads((HERE.parent / "skill.json").read_text(encoding="utf-8"))["version"]
+    except Exception:
+        return "unknown"
+
+
+SERVER_VERSION = _pkg_version()
 PROTOCOL_VERSION = "2024-11-05"   # 与主流客户端兼容的稳定基线
 MAX_OUTPUT = 12000                # 单工具返回上限（字符）
 MAX_TEXT = 2_000_000              # 输入文本上限（字符，约 2MB）——防撑爆
@@ -320,7 +331,20 @@ def handle(req):
     return _error(msg_id, -32601, f"method not found: {method}")
 
 
-def main():
+def main(argv=None):
+    import argparse
+    ap = argparse.ArgumentParser(description="paper-polisher-pro MCP server (stdio / local HTTP)")
+    ap.add_argument("--transport", choices=("stdio", "http"), default="stdio",
+                    help="v7.2.0: stdio（默认，客户端子进程直连）或 http（本地回环监听，"
+                         "供同机多客户端/浏览器侧 agent 复用）")
+    ap.add_argument("--port", type=int, default=8815, help="HTTP 端口（仅 127.0.0.1）")
+    a = ap.parse_args(argv)
+    if a.transport == "http":
+        return _serve_http(a.port)
+    return _serve_stdio()
+
+
+def _serve_stdio():
     # 行缓冲读 stdin；每行一条 JSON。stdout 只写协议消息（引擎输出全部被捕获）。
     instream = io.TextIOWrapper(sys.stdin.buffer, encoding="utf-8",
                                 errors="replace")
@@ -341,6 +365,76 @@ def main():
         if resp is not None:
             sys.stdout.write(resp + "\n")
             sys.stdout.flush()
+    return 0
+
+
+def _serve_http(port):
+    """v7.2.0: 本地 HTTP transport——POST /mcp 收单条 JSON-RPC，回单条 JSON。
+
+    诚实边界：只监听 127.0.0.1（本机回环），与引擎零网络立场一致——监听本地
+    不构成对外服务；跨机访问不在支持范围（也未加任何鉴权，勿用端口转发暴露）。
+    GET /health → {"ok": true}（存活探针）。"""
+    from http.server import BaseHTTPRequestHandler, HTTPServer
+
+    class _Handler(BaseHTTPRequestHandler):
+        def _cors(self):
+            # 本机回环场景无需跨域；如需浏览器页直连由调用方自行评估
+            pass
+
+        def do_GET(self):
+            if self.path == "/health":
+                body = json.dumps({"ok": True, "server": "paper-polisher-pro",
+                                   "version": SERVER_VERSION}).encode()
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json")
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+            else:
+                self.send_response(404)
+                self.end_headers()
+
+        def do_POST(self):
+            if self.path != "/mcp":
+                self.send_response(404)
+                self.end_headers()
+                return
+            n = int(self.headers.get("Content-Length") or 0)
+            if n > MAX_TEXT + 65536:
+                self.send_response(413)
+                self.end_headers()
+                return
+            raw = self.rfile.read(n)
+            try:
+                req = json.loads(raw.decode("utf-8", "replace"))
+            except json.JSONDecodeError:
+                resp = _error(None, -32700, "parse error")
+            else:
+                try:
+                    resp = handle(req)
+                except Exception as e:
+                    resp = _error(req.get("id") if isinstance(req, dict) else None,
+                                  -32603, repr(e)[:200])
+            code = 200 if resp is not None else 202
+            body = (resp or "").encode()
+            self.send_response(code)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            if body:
+                self.wfile.write(body)
+
+        def log_message(self, *a):  # 静默访问日志（引擎输出纪律一致）
+            pass
+
+    srv = HTTPServer(("127.0.0.1", port), _Handler)
+    print(f"paper-polisher-pro MCP http://127.0.0.1:{port}/mcp （仅本机回环；"
+          f"POST JSON-RPC，GET /health 探活；Ctrl-C 停止）", file=sys.stderr, flush=True)
+    try:
+        srv.serve_forever()
+    except KeyboardInterrupt:
+        pass
+    return 0
 
 
 if __name__ == "__main__":

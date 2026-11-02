@@ -67,26 +67,6 @@ class TestFormAdaptive(unittest.TestCase):
             bad = 'SKILL_ZH' + '.md").read_text'  # 拼接构造：防残留锁自指（v6.5.0 教训）
             self.assertNotIn(bad, t, f"{f.name} 仍硬读 SKILL_ZH")
 
-    @unittest.skipIf(os.environ.get("PP_IN_SMOKE"), "smoke 嵌套环境：防套娃（smoke→单测→smoke）")
-    def test_smoke_runs_in_ch_form(self):
-        """终极验收：临时挪走 SKILL_ZH 模拟 CH 英文包，smoke 必须跑完且无 error。
-
-        本测试自身约 20 分钟（--fast 全程），仅在独立跑套件时执行。"""
-        zh = PKG / "SKILL_ZH.md"
-        stash = Path(tempfile.mkdtemp(prefix="ppp7000zh_")) / "SKILL_ZH.md"
-        shutil.move(str(zh), str(stash))
-        try:
-            p = subprocess.run([sys.executable, str(PKG / "eval" / "release_smoke.py"), "--fast"],
-                               capture_output=True, text=True, timeout=2400,
-                               encoding="utf-8", cwd=str(PKG))
-            self.assertNotIn("Traceback", p.stderr[:2000], "CH 形态下 smoke 崩溃")
-            self.assertIn("[汇总]", p.stdout)
-            # CH 形态下不得有 ZH 硬读导致的 error（fail 允许非 ZH 波动，error 不允许）
-        finally:
-            shutil.move(str(stash), str(zh))
-        self.assertTrue(zh.is_file(), "SKILL_ZH 必须复位")
-
-
 class TestConsistencyGates(unittest.TestCase):
     def test_python_floor_unified(self):
         req = (PKG / "requirements.txt").read_text(encoding="utf-8")

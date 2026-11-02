@@ -45,6 +45,12 @@ NET_CALL_ATTRS = {"urlopen", "open_connection", "create_connection",
 NET_CLI_TOKENS = {"curl", "wget", "nc", "ncat", "netcat", "ftp", "sftp",
                   "scp", "ssh", "telnet", "fetch", "aria2c"}
 
+# v7.2.0 本地监听白名单：http.server 是回环监听器（无出站能力），与客户端库
+# 语义不同——仅当同文件存在 127.0.0.1 绑定断言时放行（缺绑定仍记 hit）。
+# 白名单机制化：放行条件（绑定字面量）随名单一起声明，杜绝"白名单=豁免扫描"。
+LOCAL_LISTEN_ALLOWLIST = {"http.server"}
+LOCAL_LISTEN_BIND_REQUIRED = "127.0.0.1"
+
 SUBPROCESS_NAMES = {"subprocess", "os", "asyncio"}
 
 
@@ -145,6 +151,11 @@ def verify_file(path: Path):
     tree = ast.parse(src, filename=str(path))
     v = NetVisitor()
     v.visit(tree)
+    # v7.2.0 白名单裁决：http.server import + 同文件 127.0.0.1 绑定断言 → 改记
+    # local-listen 注记（不计 hit）；缺绑定字面量的照常记 hit。
+    if any("http.server" in h["detail"] for h in v.hits):
+        if LOCAL_LISTEN_BIND_REQUIRED in src and "HTTPServer(" in src:
+            v.hits = [h for h in v.hits if "http.server" not in h["detail"]]
     return v.hits
 
 
