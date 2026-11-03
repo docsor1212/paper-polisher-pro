@@ -1,6 +1,6 @@
 ---
 name: paper-polisher
-version: 7.2.0
+version: 7.3.0
 author: DoctorQ Lab
 description: >-
   AI-rate self-check and polish guidance for academic writing: sentence-level rewrite
@@ -183,7 +183,7 @@ states when to use it, the command, and what you get. Scenario-level how-to advi
 ### Optional supervised layer (recommended, v3.2+)
 
 ```bash
-pip install onnxruntime regex          # the two optional dependencies
+pip install onnxruntime regex numpy    # the optional supervised-layer trio (see requirements.txt)
 # Place the two model files exactly as shipped by the authors:
 #   ~/.cache/paper-polisher/qwen3-detector/model.int8.onnx
 #   ~/.cache/paper-polisher/qwen3-detector/tokenizer.json
@@ -275,6 +275,7 @@ Docs & site: **docsor.cn**
 
 ## Version history (condensed)
 
+- **v7.3.0 (2026-11-03)** — MCP three-primitive parity (3 resources + 3 workflow prompts alongside 8 tools); SKILL_ZH title fossil removed + bilingual-title gate; requirements declares regex with a requirements-vs-docs gate; SH package form stated in the doc header.
 - **v7.2.0 (2026-10-31)** — MCP HTTP transport (loopback-only, /mcp + /health); server version single-sourced from skill.json; AUROC caliber cleanup in skill.json/SKILL_ZH with a zero-residue gate; eval/results caliber navigation (CURRENT.md) with reconciliation gates.
 - **v7.1.0 (2026-10-31)** — custom terminology banks (`--bank` for term_check & term-project; project-owned standard spellings merged over the built-in bank with same-cn override, line-numbered validation); title version fossil removed + README AUROC aligned to the fingerprint-bound 0.9998 caliber, both gated.
 - **v7.0.0 (2026-10-30)** — package-form adaptive consistency major: bundled tests & smoke run in both package forms (CH English package: ZH assertions skip honestly); cross-file gates unify Python floor at 3.9 and forbid hardcoded test counts; fix gains `--worksheet` rewrite checklist.

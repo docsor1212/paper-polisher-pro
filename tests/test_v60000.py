@@ -156,8 +156,10 @@ class TestBatchChaos(unittest.TestCase):
 
     def test_chaos_batch_isolated_and_disclosed(self):
         out = self.dir / "chaos.csv"
+        # v7.3.0: 420→900s——三线并行（单测+smoke+CH 形态验收）时隔离模式 49 worker
+        # 与其他套件抢 CPU，需并行环境余量
         r = _run(SCRIPTS / "ai_detector.py", "--batch", self.dir,
-                 "--csv", out, "--format", "json", timeout=420)
+                 "--csv", out, "--format", "json", timeout=900)
         self.assertEqual(r.returncode, 0, r.stderr[-300:])
         d = json.loads(r.stdout)
         # 交错布局下坏文件不连续 → 熔断不触发，49 个文件全部逐文件隔离处理

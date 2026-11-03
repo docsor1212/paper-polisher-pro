@@ -170,6 +170,21 @@ _readme = (ROOT / "README.md").read_text(encoding="utf-8") if (ROOT / "README.md
 _bad_counts = re.findall(r"\d+\s*(?:用例|tests\b|个测试)", _readme)
 chk("文档交叉一致: README 不硬编码测试计数（计数随版本增长，写法须动态）",
     not _bad_counts, f"hits={_bad_counts[:3]}")
+# v7.3.0 一致闸：双语标题一致（无版本无旧营销尾注——SKILL_ZH 标题化石 10-31 评监委点名）
+_t_en = re.search(r"^# (.+)$", skill_md, re.M)
+_t_zh = re.search(r"^# (.+)$", skill_zh, re.M) if HAS_ZH else None
+chk("文档交叉一致: 双语标题一致且无版本/旧尾注",
+    _t_en and "v3" not in _t_en.group(1)
+    and (not HAS_ZH or (_t_zh and _t_zh.group(1) == _t_en.group(1))),
+    f"en={_t_en.group(1) if _t_en else '?'} zh={_t_zh.group(1) if _t_zh else 'NA'}")
+# v7.3.0 一致闸：requirements 与文档 pip install 提及一致（regex 曾漏声明——评监委点名）
+_req_mods = [m for m in ("onnxruntime", "regex", "numpy") if m + ">=" in _req]
+_docs_t = skill_md + (skill_zh if HAS_ZH else "")
+_missing_req = [m for m in _req_mods if m not in _docs_t]
+chk("文档交叉一致: requirements 可选依赖在文档 pip install 行均有提及",
+    bool(_req_mods) and not _missing_req, f"missing={_missing_req}")
+chk("文档交叉一致: README 不硬编码测试计数（计数随版本增长，写法须动态）",
+    not _bad_counts, f"hits={_bad_counts[:3]}")
 chk("触发词含 AI率 词位" + ("（双语）" if HAS_ZH else "［CH 英文包］"),
     "AI率" in skill_md and (not HAS_ZH or "查AI率" in skill_zh))
 chk("相关工具节在位" + ("（双语）" if HAS_ZH else "［CH 英文包］"),

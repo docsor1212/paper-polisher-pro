@@ -2,10 +2,12 @@
 # -*- coding: utf-8 -*-
 """pp_mcp_server.py — paper-polisher-pro MCP server（v6.5.0 新增；pp.py mcp）
 
-零依赖 Model Context Protocol (MCP) stdio server：纯标准库实现 JSON-RPC 2.0
-（newline-delimited），不引入任何第三方包——与引擎的零依赖立场一致。任何
-MCP 客户端（Claude Code / Cursor / 其它 agent）把本文件注册为 stdio server
-即可直接调用八个工具，全部本地运行、零网络：
+零依赖 Model Context Protocol (MCP) server：纯标准库实现 JSON-RPC 2.0
+（stdio newline-delimited；v7.3.0 起亦支持本地回环 HTTP），不引入任何第三方包
+——与引擎的零依赖立场一致。任何 MCP 客户端（Claude Code / Cursor / 其它 agent）
+注册后可用三原语：8 个 tools（检测/建议/规范/术语/工作流/解读/FAQ/环境）、
+3 个 resources（能力边界矩阵/现行评测口径/最新更新说明）、3 个 prompts
+（自查/改稿循环/投稿前自查 工作流模板）。全部本地运行、零网络：
 
     python3 scripts/pp_mcp_server.py        # stdio（默认）
     python3 scripts/pp.py mcp               # 等价入口
@@ -261,6 +263,84 @@ TOOLS = [
      "inputSchema": {"type": "object", "properties": {}}},
 ]
 
+# ── MCP resources（ppp:// 只读文档资源）与 prompts（工作流提示模板） ────────
+
+def _read_capability_matrix():
+    t = (HERE.parent / "SKILL.md").read_text(encoding="utf-8")
+    i = t.find("### Capability boundary matrix")
+    j = t.find("### Sub-tool scope matrix")
+    return t[i:j].strip() if 0 <= i < j else "(section moved — see SKILL.md)"
+
+
+def _read_current_caliber():
+    p = HERE.parent / "eval" / "results" / "CURRENT.md"
+    return p.read_text(encoding="utf-8") if p.is_file() else "(caliber index not shipped)"
+
+
+def _read_changelog_head():
+    t = (HERE.parent / "CHANGELOG.md").read_text(encoding="utf-8")
+    i = t.find("## What's new in")
+    j = t.find("## What's new in", i + 5)
+    return t[i:j].strip() if 0 <= i < j else t[:2000]
+
+
+RESOURCES = [
+    {"uri": "ppp://capability-matrix",
+     "name": "Capability boundary matrix",
+     "description": "哪些场景可信/哪些场景仅供参考（含每子工具校准域）——检测结论采信前先读",
+     "mimeType": "text/markdown"},
+    {"uri": "ppp://current-caliber",
+     "name": "Current evaluation caliber",
+     "description": "现行可引用评测基线（CURRENT.md）：文件/指纹/关键数字，历史档案边界",
+     "mimeType": "text/markdown"},
+    {"uri": "ppp://changelog-latest",
+     "name": "Latest release notes",
+     "description": "当前版本更新说明（CHANGELOG 头部）",
+     "mimeType": "text/markdown"},
+]
+
+_RESOURCE_FN = {
+    "ppp://capability-matrix": _read_capability_matrix,
+    "ppp://current-caliber": _read_current_caliber,
+    "ppp://changelog-latest": _read_changelog_head,
+}
+
+PROMPTS = [
+    {"name": "paper-selfcheck",
+     "description": "单文稿完整自查工作流：检测→解读→逐句建议→规范/术语，按顺序引导用户执行",
+     "arguments": [{"name": "file", "description": "文稿路径", "required": True}],
+     "template": ("对 {file} 执行完整自查，按顺序：\n"
+                  "1. pp_detect 取总分与风险带；\n"
+                  "2. 若分高，pp_fix_suggest 取逐句建议（不代改，由作者定）；\n"
+                  "3. pp_style_norm 查机械体例（全半角/数字/缩写/单位/LLM 腔）；\n"
+                  "4. 汇总三步结果并给出作者行动清单（命令可复制）。\n"
+                  "全程本地零网络；医学文本只采信 @high 并提示装监督层。")},
+    {"name": "rewrite-loop",
+     "description": "改稿循环工作流：建议→作者改→对比验收→多轮趋势",
+     "arguments": [{"name": "original", "description": "原稿路径", "required": True},
+                   {"name": "revised", "description": "改稿路径", "required": True}],
+     "template": ("对 {original}/{revised} 执行改写循环验收：\n"
+                  "1. pp_fix_suggest 解释原稿每条建议的意图；\n"
+                  "2. 逐段对比改稿是否落实策略（引用原句与改句）；\n"
+                  "3. pp_detect 对比两版分数迁移，如实说明升/降与证据；\n"
+                  "4. 提醒：分数下降≠内容更好，以写作质量为准；多轮后可用 pp_trend 看轨迹。")},
+    {"name": "submission-precheck",
+     "description": "投稿前自查包工作流：bundle→期刊口径→证据报告→AIGC 标识",
+     "arguments": [{"name": "manuscript", "description": "稿件（docx/txt/md）", "required": True}],
+     "template": ("对 {manuscript} 执行投稿前自查：\n"
+                  "1. pp_workflow 端到端报告；\n"
+                  "2. ai_detector --profile journal 期刊口径预检（分布口径，非机构等价）；\n"
+                  "3. pp_evidence 生成证据报告（如实呈现，不构成未使用 AI 证明）；\n"
+                  "4. aigc_label_check 合规标识检查；\n"
+                  "5. 汇总为投稿自查清单，标出需要作者人工复核的项。")},
+]
+
+_PROMPT_FN = {
+    "paper-selfcheck": lambda a: PROMPTS[0]["template"].replace("{file}", a.get("file", "<文稿>")),
+    "rewrite-loop": lambda a: PROMPTS[1]["template"].replace("{original}", a.get("original", "<原稿>")).replace("{revised}", a.get("revised", "<改稿>")),
+    "submission-precheck": lambda a: PROMPTS[2]["template"].replace("{manuscript}", a.get("manuscript", "<稿件>")),
+}
+
 _TOOL_FN = {
     "pp_detect": lambda a: tool_detect(a["text"]),
     "pp_fix_suggest": lambda a: tool_fix(a["text"], a.get("top", 10)),
@@ -294,7 +374,9 @@ def handle(req):
         return _reply(msg_id, {
             "protocolVersion": req.get("params", {}).get("protocolVersion",
                                                          PROTOCOL_VERSION),
-            "capabilities": {"tools": {"listChanged": False}},
+            "capabilities": {"tools": {"listChanged": False},
+                             "resources": {},
+                             "prompts": {}},
             "serverInfo": {"name": "paper-polisher-pro",
                            "version": SERVER_VERSION},
         })
@@ -304,6 +386,28 @@ def handle(req):
         return _reply(msg_id, {})
     if method == "tools/list":
         return _reply(msg_id, {"tools": TOOLS})
+    if method == "resources/list":
+        return _reply(msg_id, {"resources": RESOURCES})
+    if method == "resources/read":
+        uri = (req.get("params") or {}).get("uri", "")
+        fn = _RESOURCE_FN.get(uri)
+        if fn is None:
+            return _error(msg_id, -32602, f"unknown resource: {uri}")
+        return _reply(msg_id, {"contents": [{"uri": uri, "mimeType": "text/markdown",
+                                             "text": _clip(fn())}]})
+    if method == "prompts/list":
+        return _reply(msg_id, {"prompts": PROMPTS})
+    if method == "prompts/get":
+        params = req.get("params") or {}
+        name = params.get("name", "")
+        fn = _PROMPT_FN.get(name)
+        if fn is None:
+            return _error(msg_id, -32602, f"unknown prompt: {name}")
+        return _reply(msg_id, {"description": next(p["description"] for p in PROMPTS
+                                                   if p["name"] == name),
+                               "messages": [{"role": "user",
+                                             "content": {"type": "text",
+                                                         "text": _clip(fn(params.get("arguments") or {}))}}]})
     if method == "tools/call":
         params = req.get("params", {})
         name = params.get("name", "")

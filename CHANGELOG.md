@@ -3,6 +3,11 @@
 > **只想快速上手？** 回 `SKILL.md` § TL;DR（30 秒任务路由表）——本文件仅是完整版本历史，新用户无需阅读。
 > Historical release notes. Newest first. SKILL.md § Version history keeps only the last three releases; everything older lives here (single source, no duplication).
 
+## What's new in v7.3.0
+
+- **MCP three-primitive parity**: the server now exposes resources and prompts alongside its 8 tools — resources: `ppp://capability-matrix` (the boundary matrix, read-before-trusting detections), `ppp://current-caliber` (the citable-baseline index from `eval/results/CURRENT.md`), `ppp://changelog-latest`; prompts: `paper-selfcheck` (detect→suggest→norms→action list), `rewrite-loop` (suggestion intent → revision check → honest score migration), `submission-precheck` (workflow → journal precheck → evidence report → label compliance), each rendered with arguments into an executable workflow template. Same zero-dependency zero-network server; capabilities now declared.
+- **Consistency (the review caught three real ones)**: the SKILL_ZH title still carried the "v3" fossil plus a stale marketing tail (v7.1.0 fixed only the English title — the SH package publishes SKILL_ZH as SKILL.md, so reviewers saw it there); removed and a bilingual-title-parity gate added. `requirements.txt` never declared `regex` while SKILL.md's pip line teaches `onnxruntime regex` and pp_doctor probes it — declared with a requirements-vs-docs gate. The SH package form (SKILL_ZH.md published AS SKILL.md, no duplicate) is now stated in the doc header so the packing convention can't read as a missing file.
+
 ## What's new in v7.2.0
 
 - **MCP HTTP transport (`--transport http`)**: alongside stdio, the server now listens on 127.0.0.1 (loopback only) — `POST /mcp` takes one JSON-RPC message per request, `GET /health` is a liveness probe. This follows the MCP direction of streamable HTTP and enables same-machine multi-client reuse (several agent sessions sharing one server). Honest boundary stated in code and docs: loopback only, no auth, cross-machine exposure out of scope — consistent with the zero-network posture (listening locally is not an outbound service).
@@ -286,6 +291,11 @@
 # 更新日志（中文）
 
 > v4.6.0 起历史更新说明移出 SKILL_ZH.md（新用户更快触达工作流）。最新在前。各版本摘要亦见 SKILL_ZH.md § 版本历史。
+
+## v7.3.0 更新内容
+
+- **MCP 三原语对齐**：server 在 8 个 tools 之外新增 resources 与 prompts——resources：`ppp://capability-matrix`（能力边界矩阵，采信检测结论前先读）、`ppp://current-caliber`（现行可引用评测基线索引）、`ppp://changelog-latest`（最新更新说明）；prompts：`paper-selfcheck`（检测→建议→规范→行动清单）、`rewrite-loop`（建议意图→改稿核对→如实分数迁移）、`submission-precheck`（工作流→期刊口径→证据报告→标识合规），带参数渲染成可执行工作流模板。同一个零依赖零网络 server；capabilities 已声明。
+- **一致性（评审抓到三处实的）**：SKILL_ZH 标题仍带 "v3" 化石与旧营销尾注（v7.1.0 只修了英文标题——SH 包把 SKILL_ZH 以 SKILL.md 名义发布，评审正是在那里看到）；已移除并新增双语标题一致闸。`requirements.txt` 一直没声明 `regex`，而 SKILL 的 pip 安装行教的是 `onnxruntime regex`、pp_doctor 也探针它——已声明并新增 requirements↔文档一致闸。SH 包形态（SKILL_ZH.md 以 SKILL.md 名义发布、包内不重复附带）现写入文档头部，打包约定不再会被误读为文件缺失。
 
 ## v7.2.0 更新内容
 
