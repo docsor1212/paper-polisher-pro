@@ -156,6 +156,14 @@ if _cur.is_file():
     chk("口径导航: SKILL.md 引用的基线文件在 CURRENT.md 表内",
         all(f in _cur_t for f in ("v35ctl_oldgen", "v35ctl_gen2026")),
         "SKILL 引用的现行口径未入表")
+    # v7.4.0 物理分层闸：results 顶层 json 必须全部在 CURRENT.md 表内（防历史文件再混存）
+    _top_json = sorted(x.name for x in (ROOT / "eval" / "results").glob("*.json"))
+    _uncited = [f for f in _top_json if f != "score_cache.json" and f not in _cur_t]
+    chk("口径导航: results 顶层 json 全部入 CURRENT.md（物理分层对账）",
+        not _uncited, f"uncited={_uncited[:3]}")
+    _arch = list((ROOT / "eval" / "results" / "archive").glob("*.json"))
+    chk("口径导航: archive/ 物理分层在位（历史文件已移入）",
+        len(_arch) >= 25, f"archive={len(_arch)}")
 else:
     chk("口径导航: CURRENT.md 在位", False, "eval/results/CURRENT.md 缺失")
 _auroc_md = "0.9998" in skill_md
@@ -1080,7 +1088,7 @@ try:
         bool(_mjrep.jargon_hits) and _mjrep.jargon_bonus == 0.0,
         f"hits={len(_mjrep.jargon_hits)} bonus={_mjrep.jargon_bonus}")
     chk("负结果工件随包",
-        (ROOT / "eval" / "results" / "meddocs_20261014.json").exists())
+        (ROOT / "eval" / "results" / "archive" / "meddocs_20261014.json").exists())
 except Exception as _e:
     chk("负结果披露: 检测器报命中不计分", False, f"exception: {_e}")
 

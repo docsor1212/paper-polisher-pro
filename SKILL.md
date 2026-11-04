@@ -1,6 +1,6 @@
 ---
 name: paper-polisher
-version: 7.3.0
+version: 7.4.0
 author: DoctorQ Lab
 description: >-
   AI-rate self-check and polish guidance for academic writing: sentence-level rewrite
@@ -81,7 +81,7 @@ This tool is for **authors self-reviewing and improving their own writing qualit
 
 > **v4.4.0 fingerprint-bound re-measurement** of the shipping supervised model (md5 `2631df3d388b`): AUROC **0.9998** (test half, n_base=927), TPR@FPR1% 99.4%, human FPR@medium 2.3% — `eval/results/v35ctl_oldgen.json`. Columns above are preserved as version-era records (earlier model lineage; binaries were not fingerprinted before v4.4.0).
 
-**Which column applies to you?** The base package runs the **v3.0 rules+spectrum engine** (0.9187 AUROC column, measured on the full held-out corpus; pre-4.4.0 archived baselines predate fingerprint binding — every eval result since v4.4.0 carries the deployed model's md5 as `model_fp`, current bound numbers in `eval/results/v35ctl_*.json`). The two right-hand columns require the optional local supervised model (see below). The engine tells you honestly which mode you are in: every report carries `degraded_mode` / `degraded_notice` when the supervised layer is absent or skipped.
+**Which column applies to you?** (Caliber navigation: the only citable current baselines are `v35ctl_*` in [`eval/results/CURRENT.md`](eval/results/CURRENT.md); columns to the left are version-era records.) The base package runs the **v3.0 rules+spectrum engine** (0.9187 AUROC column, measured on the full held-out corpus; pre-4.4.0 archived baselines predate fingerprint binding — every eval result since v4.4.0 carries the deployed model's md5 as `model_fp`, current bound numbers in `eval/results/v35ctl_*.json`). The two right-hand columns require the optional local supervised model (see below). The engine tells you honestly which mode you are in: every report carries `degraded_mode` / `degraded_notice` when the supervised layer is absent or skipped.
 
 ### Capability boundary matrix (read before trusting any detector)
 
@@ -275,6 +275,7 @@ Docs & site: **docsor.cn**
 
 ## Version history (condensed)
 
+- **v7.4.0 (2026-11-05)** — physical caliber separation (29 historical result files archived; top level = CURRENT.md + 3 baselines + cache, gated); version-era pointer in the measured table; pp_api SDK gains fix_suggest/evidence_sections/term_project/scenarios.
 - **v7.3.0 (2026-11-03)** — MCP three-primitive parity (3 resources + 3 workflow prompts alongside 8 tools); SKILL_ZH title fossil removed + bilingual-title gate; requirements declares regex with a requirements-vs-docs gate; SH package form stated in the doc header.
 - **v7.2.0 (2026-10-31)** — MCP HTTP transport (loopback-only, /mcp + /health); server version single-sourced from skill.json; AUROC caliber cleanup in skill.json/SKILL_ZH with a zero-residue gate; eval/results caliber navigation (CURRENT.md) with reconciliation gates.
 - **v7.1.0 (2026-10-31)** — custom terminology banks (`--bank` for term_check & term-project; project-owned standard spellings merged over the built-in bank with same-cn override, line-numbered validation); title version fossil removed + README AUROC aligned to the fingerprint-bound 0.9998 caliber, both gated.

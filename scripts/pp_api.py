@@ -34,6 +34,7 @@ __all__ = [
     "engine_version", "model_fingerprint", "detect_text", "detect_file",
     "gate_text", "term_report", "smell_report", "style_report",
     "quality_report_file", "attribution", "doctor_summary", "workflow",
+    "fix_suggest", "evidence_sections", "term_project", "scenarios",
 ]
 
 
@@ -270,3 +271,94 @@ def doctor_summary() -> dict:
 
 if __name__ == "__main__":
     print(json.dumps(doctor_summary(), ensure_ascii=False, indent=2))
+
+
+def fix_suggest(text: str, top: int = None, lang: str = "auto") -> dict:
+    """句子级改写建议（v7.4.0 SDK 化）：指位+策略，不代改。
+
+    返回 {stats, suggestions}，与 pp_fix_suggest.py --json 同构。"""
+    if not isinstance(text, str) or not text.strip():
+        raise ValueError("text 必须是非空字符串")
+    import pp_fix_suggest
+    try:
+        results, stats, lang2 = pp_fix_suggest.analyze(text, lang, top)
+        return {"stats": stats, "suggestions": [
+            {"index": r["index"] + 1, "sentence": r["sentence"],
+             "issues": [{"type": x["type"], "evidence": x["evidence"],
+                         "advice": pp_fix_suggest.ADVICE.get(x["type"], "")}
+                        for x in r["issues"]]}
+            for r in results], "language": lang2,
+            "notice": "改写建议是排序辅助：指位与策略供人工润稿参考，不构成任何合规判定。"}
+    except ValueError:
+        raise
+    except Exception as e:
+        raise RuntimeError("fix_suggest 失败: %s（恢复建议: 单跑 python3 scripts/pp_fix_suggest.py "
+                           "<文件> --json 定位）" % e) from e
+
+
+def evidence_sections(text: str) -> dict:
+    """检测证据报告的区块化证据链（v7.4.0 SDK 化）：结论卡+逐特征定位+段落分级+阈值口径。
+
+    返回 {meta, sections}；渲染版（HTML/MD）见 pp_evidence_report.py。"""
+    if not isinstance(text, str) or not text.strip():
+        raise ValueError("text 必须是非空字符串")
+    import ai_detector, pp_evidence_report
+    try:
+        d = _asdict(ai_detector.detect(text, lang="auto"))
+        secs = pp_evidence_report.build_sections(d, text, "sdk-input")
+        return {"meta": {"overall_ai_score": d.get("overall_ai_score"),
+                         "overall_risk": d.get("overall_risk"),
+                         "degraded_mode": d.get("degraded_mode")},
+                "sections": [{"title": s[0], "html": s[1]} for s in secs],
+                "integrity_notice": pp_evidence_report._INTEGRITY}
+    except ValueError:
+        raise
+    except Exception as e:
+        raise RuntimeError("evidence_sections 失败: %s（恢复建议: 先 pp_api.detect_text 确认可检测）" % e) from e
+
+
+def term_project(directory: str, recursive: bool = False, bank: str = None) -> dict:
+    """多文档术语一致性（v7.4.0 SDK 化）：目录级库内概念跨文件写法矩阵+统一建议。
+
+    与 pp_term_consistency.py --json 同构；单文件场景请用 term_report。"""
+    from pathlib import Path as _P
+    d = _P(directory)
+    if not d.is_dir():
+        raise ValueError("directory 必须是存在的目录: %s" % directory)
+    import pp_term_consistency
+    try:
+        return pp_term_consistency.analyze(str(d), recursive=recursive,
+                                           bank_path=bank)
+    except SystemExit:
+        raise ValueError("目录内有效文稿不足 2 份（txt/md/docx）")
+    except Exception as e:
+        raise RuntimeError("term_project 失败: %s（恢复建议: 单文件用 pp_api.term_report；"
+                           "坏文件会被逐文件隔离并在 per_file.error 如实标注）" % e) from e
+
+
+def scenarios(query: str = None) -> list:
+    """场景目录（v7.4.0 SDK 化）：什么时候用哪个命令。
+
+    返回场景列表（scene/when/cmd/output/tags）；无 query 返回全部，
+    有 query 按场景/说明/标签过滤（紧凑中文去空格兜底）。"""
+    import json as _json
+    from pathlib import Path as _Path
+    p = _Path(__file__).resolve().parent.parent / "references" / "scenarios.json"
+    if not p.is_file():
+        raise RuntimeError("scenarios.json 缺失（场景目录随 v6.7.0 随包）")
+    scs = _json.loads(p.read_text(encoding="utf-8"))["scenarios"]
+    if not query:
+        return scs
+    q = query.strip().lower()
+    kws = [k for k in q.replace("，", " ").replace(",", " ").split() if k]
+    hit = []
+    for s in scs:
+        blob = " ".join([s.get("scene_zh", ""), s.get("scene_en", ""),
+                         s.get("when_zh", ""), s.get("when_en", ""),
+                         " ".join(s.get("tags", []))]).lower()
+        blob_ns = blob.replace(" ", "")
+        hits = sum(1 for k in kws if k in blob or k.replace(" ", "") in blob_ns)
+        if hits:
+            hit.append((hits, s))
+    hit.sort(key=lambda x: -x[0])
+    return [s for _, s in hit]

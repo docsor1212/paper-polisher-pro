@@ -68,7 +68,7 @@ class TestNegativeResultDisclosure(unittest.TestCase):
                    "综上所述，检出结果要把另一面讲透，免疫力失守就会塌方。")
 
     def test_artifact_shipped(self):
-        d = json.load(open(PKG / "eval" / "results" / "meddocs_20261014.json", encoding="utf-8"))
+        d = json.load(open(PKG / "eval" / "results" / "archive" / "meddocs_20261014.json", encoding="utf-8"))
         self.assertIn("negative_result", d)
         self.assertEqual(d["negative_result"]["decision"].find("回退"), 0)
         self.assertGreaterEqual(len(d.get("docs", [])), 5)

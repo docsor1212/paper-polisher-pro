@@ -3,6 +3,12 @@
 > **只想快速上手？** 回 `SKILL.md` § TL;DR（30 秒任务路由表）——本文件仅是完整版本历史，新用户无需阅读。
 > Historical release notes. Newest first. SKILL.md § Version history keeps only the last three releases; everything older lives here (single source, no duplication).
 
+## What's new in v7.4.0
+
+- **Physical caliber separation**: v7.3.0's CURRENT.md declared which result files are citable, but the directory still physically mixed 29 historical/voided files among them. All history is now `git mv`-ed into `eval/results/archive/` — the top level holds only `CURRENT.md`, the three citable baselines and the runtime cache — with two gates: top-level `*.json` must all appear in the CURRENT.md table, and the archive layer must exist. The review's "lots of historical files, hard to tell the valid caliber" is closed structurally, not by convention.
+- **Version-era pointer**: SKILL.md's measured-performance table keeps version-era columns as evolution records; a caliber-navigation pointer now says explicitly that only `v35ctl_*` (fingerprint-bound) is current, closing the stale-number misreading the review noted.
+- **pp_api SDK parity (`fix_suggest` / `evidence_sections` / `term_project` / `scenarios`)**: programmatic users get the capabilities that previously existed only as CLI commands — sentence-level suggestions (same structured suggestions), the evidence report's sectioned chain, the cross-file terminology matrix (with `--bank` support), and the filterable scenario catalog. Same-source engines, same error semantics (ValueError ↔ exit 2, RuntimeError with recovery advice).
+
 ## What's new in v7.3.0
 
 - **MCP three-primitive parity**: the server now exposes resources and prompts alongside its 8 tools — resources: `ppp://capability-matrix` (the boundary matrix, read-before-trusting detections), `ppp://current-caliber` (the citable-baseline index from `eval/results/CURRENT.md`), `ppp://changelog-latest`; prompts: `paper-selfcheck` (detect→suggest→norms→action list), `rewrite-loop` (suggestion intent → revision check → honest score migration), `submission-precheck` (workflow → journal precheck → evidence report → label compliance), each rendered with arguments into an executable workflow template. Same zero-dependency zero-network server; capabilities now declared.
@@ -291,6 +297,12 @@
 # 更新日志（中文）
 
 > v4.6.0 起历史更新说明移出 SKILL_ZH.md（新用户更快触达工作流）。最新在前。各版本摘要亦见 SKILL_ZH.md § 版本历史。
+
+## v7.4.0 更新内容
+
+- **评测口径物理分层**：v7.3.0 的 CURRENT.md 已逻辑声明哪些结果可引用，但目录里 29 个历史/作废文件仍与其物理混存。现全部 `git mv` 入 `eval/results/archive/`——顶层只留 CURRENT.md、三个现行基线与运行缓存——并加两道闸：顶层 `*.json` 必须全部入 CURRENT.md 表、archive 分层必须在位。评审点名的「历史文件多、难辨有效口径」从约定变成结构。
+- **版本时代表指针**：SKILL.md 实测表的版本时代列保留为演进记录；现明确标注只有 `v35ctl_*`（指纹绑定）是现行口径，评审点名的旧数字误读风险关闭。
+- **pp_api SDK 补齐（`fix_suggest` / `evidence_sections` / `term_project` / `scenarios`）**：编程用户拿到此前仅 CLI 可用的能力——句子级建议（同构结构化输出）、证据报告区块化证据链、跨文件术语矩阵（含 --bank）、可过滤场景目录。引擎同源、错误语义一致（ValueError↔退出码 2，RuntimeError 带恢复建议）。
 
 ## v7.3.0 更新内容
 

@@ -14,9 +14,12 @@
 
 ## 历史/作废（不得引用）
 
-- 其余全部文件（`gen2026*.json` 早期代际、`layer_surprisal_*` 已回退实验、
-  `mixed_*` 基准档案、`leak_audit_*` 一次性审计、`v36fix_*`/`v370_fresh*` 历史模型
-  代际、`score_cache.json` 运行缓存、`archive/` 目录）——**只作过程留痕**。
+- **物理分层（v7.4.0）**：全部历史/作废结果已 `git mv` 入 `archive/` 子目录——
+  本目录顶层只保留：`CURRENT.md`（本表）+ 三个现行基线 + `score_cache.json`
+  （运行缓存）。新增闸保证顶层 `*.json` 与本表一致。
+- 其余文件（`gen2026*.json` 早期代际、`layer_surprisal_*` 已回退实验、
+  `mixed_*` 基准档案、`leak_audit_*` 一次性审计、`v36fix_*`/`v370_fresh*`/
+  `v480_*`/`v5*_*` 历史模型代际）——**只作过程留痕，全部在 `archive/`**。
 - 版本时代列（v2.0/v3.0/v3.1/v3.4 各列）保留在 SKILL.md 表中仅为演进记录，
   指纹绑定前的数字一律以 `v35ctl_*` 为现行口径。
 
