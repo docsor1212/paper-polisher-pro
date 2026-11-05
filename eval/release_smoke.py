@@ -94,6 +94,12 @@ ver_md = re.search(r"^version:\s*(\S+)", fm_md, re.M).group(1)
 def has_cjk(s):
     return any("\u4e00" <= c <= "\u9fff" for c in s)
 
+# v7.5.0 形态自检：打包副本里 HAS_ZH 恒 False（两种形态都无独立 SKILL_ZH.md），
+# 按 SKILL.md 语言判形态（sh=中文版作 SKILL.md / ch=英文版）——内容断言据此分支。
+FORM = "ch" if "30-second task routing" in skill_md else "sh"
+IS_SH = FORM == "sh"
+chk("包形态自检", FORM in ("ch", "sh"), f"FORM={FORM}")
+
 
 if HAS_ZH:
     chk("版本三处一致(SKILL.md=SKILL_ZH=skill.json)",
@@ -103,7 +109,8 @@ else:
     chk("版本一致(SKILL.md=skill.json)［CH 英文包：SKILL_ZH 不在包内，双语断言自适应跳过］",
         ver_md == skill_json["version"],
         f"md={ver_md} json={skill_json['version']}")
-chk("英文 frontmatter 无 CJK", not has_cjk(fm_md))
+chk("frontmatter 语言与形态匹配" + ("［SH 形态=中文版］" if IS_SH else ""),
+    has_cjk(fm_md) if IS_SH else not has_cjk(fm_md))
 chk("中文 frontmatter 含 CJK" + ("" if HAS_ZH else "［CH 英文包：自适应跳过］"),
     (not HAS_ZH) or has_cjk(fm_zh))
 desc_md = " ".join(x.strip() for x in re.search(r"description: >-?\n((?:  .+\n)+)", skill_md).group(1).splitlines())
@@ -116,8 +123,8 @@ else:
 # v4.6.0: ZH frontmatter 增 metadata.displayName（10-05 全家族搜索审计任务要求, SH 页面一致性同步点）——EN 仍 ≤5
 _k_en = len(re.findall(r"^(\w+):", fm_md, re.M))
 _k_zh = len(re.findall(r"^(\w+):", fm_zh, re.M)) if HAS_ZH else 0
-chk("frontmatter 键数（EN ≤5; ZH 含 metadata.displayName ≤6）" + ("" if HAS_ZH else "［CH 英文包：ZH 侧跳过］"),
-    _k_en <= 5 and (not HAS_ZH or _k_zh <= 6),
+chk("frontmatter 键数" + ("（EN ≤5）" if not IS_SH else "（SH=中文版 ≤6）"),
+    (_k_en <= 6) if IS_SH else (_k_en <= 5),
     f"EN={_k_en} ZH={_k_zh}")
 _BANNED = ["全部100%检出", "10个模型测试", "100% detection rate", "detection rate: 100"]
 def _banned_outside_quote(doc):
@@ -140,6 +147,11 @@ chk("文档交叉一致: SKILL.md 标题不带版本号（版本历史管版本�
     f"title={_chk_title.group(1) if _chk_title else '?'}")
 # v7.2.0 一致闸补强：AUROC 1.0 残留清零（skill.json/SKILL_ZH 双处 10-31 评监委点名）
 _skj = json.dumps(skill_json, ensure_ascii=False)
+# v7.5.0: 架构层级数与正文一致（skill.json 曾写 11-layer 而正文已到 L12）
+_l12_in_map = "L12" in skill_md or "L12" in (skill_zh if HAS_ZH else "")
+chk("文档交叉一致: 架构层级计数对齐（skill.json 12-layer；正文含 L12）",
+    "12-layer" in _skj and (_l12_in_map or not HAS_ZH),
+    f"skj_ok={'12-layer' in _skj} l12={_l12_in_map}")
 _zh_probe = skill_zh if HAS_ZH else ""
 _readme_t = (ROOT / "README.md").read_text(encoding="utf-8") if (ROOT / "README.md").is_file() else ""
 chk("文档交叉一致: AUROC 1.0 旧口径零残留（skill.json/SKILL_ZH/README 三处）",
@@ -164,10 +176,22 @@ if _cur.is_file():
     _arch = list((ROOT / "eval" / "results" / "archive").glob("*.json"))
     chk("口径导航: archive/ 物理分层在位（历史文件已移入）",
         len(_arch) >= 25, f"archive={len(_arch)}")
+    # v7.5.0: archive/README 口径纪律——禁旧"可复现基线"声明（10-31/11-04 两届评监委点名），必指 CURRENT.md
+    _ar = ROOT / "eval" / "results" / "archive" / "README.md"
+    if _ar.is_file():
+        _ar_t = _ar.read_text(encoding="utf-8")
+        chk("口径导航: archive/README 无旧口径声明且指向 CURRENT.md",
+            "可复现基线" not in _ar_t and "CURRENT.md" in _ar_t
+            and "不可作为现行口径引用" in _ar_t,
+            f"has_old={'可复现基线' in _ar_t} has_pointer={'CURRENT.md' in _ar_t}")
+    else:
+        chk("口径导航: archive/README 在位", False, "缺失")
 else:
     chk("口径导航: CURRENT.md 在位", False, "eval/results/CURRENT.md 缺失")
 _auroc_md = "0.9998" in skill_md
 _readme_t = (ROOT / "README.md").read_text(encoding="utf-8") if (ROOT / "README.md").is_file() else ""
+# v7.5.0 形态自检：打包副本里 HAS_ZH 恒 False（两种形态都没有独立 SKILL_ZH.md），
+# 按 SKILL.md 语言判形态（sh=中文版作 SKILL.md / ch=英文版），供内容断言形态感知。
 chk("文档交叉一致: AUROC 声明锚定指纹绑定口径（0.9998 现行；README 禁裸 1.0）",
     _auroc_md and "0.9998" in _readme_t and "AUROC 1.0（作者侧实测）" not in _readme_t,
     f"md={_auroc_md} readme_ok={'0.9998' in _readme_t}")
@@ -195,19 +219,24 @@ chk("文档交叉一致: README 不硬编码测试计数（计数随版本增长
     not _bad_counts, f"hits={_bad_counts[:3]}")
 chk("触发词含 AI率 词位" + ("（双语）" if HAS_ZH else "［CH 英文包］"),
     "AI率" in skill_md and (not HAS_ZH or "查AI率" in skill_zh))
-chk("相关工具节在位" + ("（双语）" if HAS_ZH else "［CH 英文包］"),
-    "## Related tools" in skill_md and (not HAS_ZH or "## 相关工具" in skill_zh))
+chk("相关工具节在位" + ("（双语）" if HAS_ZH else f"［{FORM.upper()} 形态］"),
+    (("## Related tools" in skill_md) if not IS_SH
+     else ("## 相关工具" in skill_md))
+    and (not HAS_ZH or "## 相关工具" in skill_zh))
 _ADTALK = ["全家桶", "搜招牌名直达", "五件套", "论文工具家族", "Paper Toolbox family"]
 _adtalk_hits = [w for w in _ADTALK if w in skill_md or w in skill_zh]
 chk("导流叫卖词零残留(家族/全家桶/搜招牌名/五件套)", not _adtalk_hits, "; ".join(_adtalk_hits))
 # v6.3.0: FAQ 独立成档——SKILL 保留高频三条+链接，完整分组与「具体技术问题」节在 references/faq.md
-chk("FAQ 独立档案在位(SKILL 三条+faq.md 完整版" + ("（双语）" if HAS_ZH else "［CH 英文包］"),
-    "## FAQ (top 3" in skill_md
+chk("FAQ 独立档案在位(SKILL 三条+faq.md 完整版" + ("（双语）" if HAS_ZH else f"［{FORM.upper()} 形态］"),
+    (("## FAQ (top 3" in skill_md) if not IS_SH
+     else ("## 常见问题（高频三条" in skill_md))
     and (not HAS_ZH or "## 常见问题（高频三条" in skill_zh)
     and (ROOT / "references" / "faq.md").is_file()
     and "具体技术问题" in (ROOT / "references" / "faq.md").read_text(encoding="utf-8"))
-chk("脚本速查表在位(评测C维驱动" + ("（双语）" if HAS_ZH else "［CH 英文包］"),
-    "Script cheat sheet" in skill_md and (not HAS_ZH or "各脚本速查" in skill_zh))
+chk("脚本速查表在位(评测C维驱动" + ("（双语）" if HAS_ZH else f"［{FORM.upper()} 形态］"),
+    (("Script cheat sheet" in skill_md) if not IS_SH
+     else ("各脚本速查" in skill_md))
+    and (not HAS_ZH or "各脚本速查" in skill_zh))
 chk("FAQ 覆盖高频问法" + ("（双语）" if HAS_ZH else "［CH 英文包］"),
     "degraded_mode" in skill_md and (not HAS_ZH or ("知网" in skill_zh and "100 字" in skill_zh)))
 for ref in set(re.findall(r"`?(\w+\.(?:py|json))`?", skill_md)):
@@ -315,8 +344,10 @@ try:
             chk(f"YAML 解析: {_nm} frontmatter 可解析且 description 有效", False, str(_e)[:80])
 except ImportError:
     chk("YAML 解析(pyyaml 未装, 跳过)", True)
-chk("安全与行为声明节在位" + ("（双语）" if HAS_ZH else "［CH 英文包］"),
-    "Safety and behavior statement" in skill_md and (not HAS_ZH or "安全与行为声明" in skill_zh))
+chk("安全与行为声明节在位" + ("（双语）" if HAS_ZH else f"［{FORM.upper()} 形态］"),
+    (("Safety and behavior statement" in skill_md) if not IS_SH
+     else ("安全与行为声明" in skill_md))
+    and (not HAS_ZH or "安全与行为声明" in skill_zh))
 
 
 rc1, r1, _ = detect_json(ZH_HUMAN)
@@ -775,8 +806,9 @@ try:
                          cwd=str(ROOT), timeout=_ut_timeout, env=_ut_env)
     _m = _re2.search(r"Ran (\d+) tests", _ut.stderr + _ut.stdout)
     _ntests = int(_m.group(1)) if _m else 0
+    _failnames = _re.findall(r"^(?:FAIL|ERROR): .*$", (_ut.stderr or "") + (_ut.stdout or ""), _re.M)
     chk("包内单测全绿", _ut.returncode == 0 and _ntests >= 40,
-        f"rc={_ut.returncode} ran={_ntests}")
+        f"rc={_ut.returncode} ran={_ntests} names={_failnames[:3]}")
 except Exception as _e:
     chk("包内单测全绿", False, f"exception: {_e}")
 
@@ -951,8 +983,9 @@ finally:
 # J5. 文档面（评监委 10-12 双靶点）：子功能适用域矩阵 + FAQ 分组
 _skill_md = (ROOT / "SKILL.md").read_text(encoding="utf-8")
 _skill_zh = skill_zh  # v7.0.0: 复用双语自适应读取（CH 包缺 ZH 时为空串）
-chk("文档: 子功能适用域矩阵在位" + ("(双语)" if HAS_ZH else "［CH 英文包］"),
-    "Sub-tool scope matrix" in _skill_md
+chk("文档: 子功能适用域矩阵在位" + ("(双语)" if HAS_ZH else f"［{FORM.upper()} 形态］"),
+    (("Sub-tool scope matrix" in _skill_md) if not IS_SH
+     else ("子功能适用域矩阵" in _skill_md))
     and (not HAS_ZH or "子功能适用域矩阵" in _skill_zh)
     and "translation_smell_check" in _skill_md)
 # v6.3.0: 分组细节随 FAQ 迁 references/faq.md——断言改查 faq.md 分组与 SKILL 指针
@@ -1023,24 +1056,33 @@ if HAS_ZH:
 else:
     chk("desc 需求词断言［CH 英文包：ZH 断言自适应跳过］", True)
 # L2. Skip when 负触发器（模块 3.4，置换式在位）
-chk("desc Skip-when 负触发器" + ("（双语）" if HAS_ZH else "［CH 英文包］"),
-    "Not for:" in (re.search(r"description: >-?\n((?:  .+\n)+)",
-     (ROOT / "SKILL.md").read_text(encoding="utf-8")).group(1))
+chk("desc Skip-when 负触发器" + ("（双语）" if HAS_ZH else f"［{FORM.upper()} 形态］"),
+    (("Not for:" in (re.search(r"description: >-?\n((?:  .+\n)+)",
+     (ROOT / "SKILL.md").read_text(encoding="utf-8")).group(1))) if not IS_SH
+     else ("不适用" in (re.search(r"description: >-?\n((?:  .+\n)+)",
+     (ROOT / "SKILL.md").read_text(encoding="utf-8")).group(1))))
     and (not HAS_ZH or "不适用" in _zh_desc))
 # L3. 反模式替代方案 + 重试纪律（模块 3.3，双语）
-chk("反模式每条带替代方案" + ("（双语）" if HAS_ZH else "［CH 英文包］"),
-    "✅ Instead" in _skill_md and (not HAS_ZH or "✅ 替代" in _skill_zh2))
-chk("重试纪律反模式在位" + ("（双语）" if HAS_ZH else "［CH 英文包］"),
-    "repeat the same analysis" in _skill_md and (not HAS_ZH or "重复同一分析" in _skill_zh2))
+chk("反模式每条带替代方案" + ("（双语）" if HAS_ZH else f"［{FORM.upper()} 形态］"),
+    (("✅ Instead" in _skill_md) if not IS_SH
+     else ("✅ 替代" in _skill_md))
+    and (not HAS_ZH or "✅ 替代" in _skill_zh2))
+chk("重试纪律反模式在位" + ("（双语）" if HAS_ZH else f"［{FORM.upper()} 形态］"),
+    (("repeat the same analysis" in _skill_md) if not IS_SH
+     else ("重复同一分析" in _skill_md))
+    and (not HAS_ZH or "重复同一分析" in _skill_zh2))
 # L4. 30 秒任务路由 + 深文档指针（模块 3.2）
-chk("30 秒任务路由表" + ("（双语）" if HAS_ZH else "［CH 英文包］"),
-    "30-second task routing" in _skill_md and (not HAS_ZH or "30 秒任务路由" in _skill_zh2))
+chk("30 秒任务路由表" + ("（双语）" if HAS_ZH else f"［{FORM.upper()} 形态］"),
+    (("30-second task routing" in _skill_md) if FORM == "ch"
+     else ("30 秒任务路由" in _skill_md))
+    and (not HAS_ZH or "30 秒任务路由" in _skill_zh2))
 chk("article-review-workflow.md 入口指针",
     "何时读我" in (ROOT / "references" / "article-review-workflow.md").read_text(encoding="utf-8"))
 # L5. 子功能矩阵补全（boundary 自查发现）
-chk("子功能矩阵含 quality_report/docx_text/batch 行",
+chk("子功能矩阵含 quality_report/docx_text/batch 行" + ("（双语）" if HAS_ZH else f"［{FORM.upper()} 形态］"),
     "quality_report" in _skill_md and "docx_text" in _skill_md
-    and "5 MB skipped by design" in _skill_md)
+    and (("5 MB skipped by design" in _skill_md) if FORM == "ch"
+         else ("按设计跳过" in _skill_md)))
 # L6. workflow findings ledger（模块 3.5）
 try:
     _flw = _API.workflow(_DEMO_AI)

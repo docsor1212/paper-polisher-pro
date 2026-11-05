@@ -31,8 +31,12 @@ class TestProgressiveDeclutter(unittest.TestCase):
         self.assertIn("单一来源", t) or self.assertIn("single source", t)
 
     def test_skill_history_slimmed(self):
+        import sys as _s
+        _s.path.insert(0, str(PKG / "tests"))
+        import _docs
         t = (PKG / "SKILL.md").read_text(encoding="utf-8")
-        self.assertIn("see `CHANGELOG.md`", t)
+        self.assertTrue("see `CHANGELOG.md`" in t or "完整历史在 `CHANGELOG.md`" in t,
+                        "版本历史收敛指针缺失（双语任一）")
         self.assertNotIn("- **v5.4.1 (2026-10-14)**", t)  # 旧版本条目已收敛
 
 

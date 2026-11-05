@@ -136,8 +136,9 @@ class TestDocs(unittest.TestCase):
     """文档收敛：限制前置 / 残留清理 / 版本一致性 / 新命令入册。"""
 
     def test_top3_limits_callout(self):
-        self.assertIn("The three limits that matter most",
-                      (PKG / "SKILL.md").read_text(encoding="utf-8"))
+        _sk = (PKG / "SKILL.md").read_text(encoding="utf-8")
+        self.assertTrue("The three limits that matter most" in _sk
+                        or "三条最重要的限制" in _sk)
         self.assertIn("三条最重要的限制",
                       _docs.zh_text())
 

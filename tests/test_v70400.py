@@ -34,7 +34,8 @@ class TestPhysicalSeparation(unittest.TestCase):
 
     def test_version_era_pointer(self):
         sk = (PKG / "SKILL.md").read_text(encoding="utf-8")
-        self.assertIn("Caliber navigation", sk)
+        self.assertTrue("Caliber navigation" in sk or "口径导航" in sk,
+                        "现行口径指针缺失（双语任一）")
         self.assertIn("CURRENT.md", sk)
 
 

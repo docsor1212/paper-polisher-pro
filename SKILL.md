@@ -1,6 +1,6 @@
 ---
 name: paper-polisher
-version: 7.4.0
+version: 7.5.0
 author: DoctorQ Lab
 description: >-
   AI-rate self-check and polish guidance for academic writing: sentence-level rewrite
@@ -275,6 +275,7 @@ Docs & site: **docsor.cn**
 
 ## Version history (condensed)
 
+- **v7.5.0 (2026-11-06)** — dual-form acceptance parity (`verify_forms.py --form sh|ch|both`, package-copy harness); archive/README caliber discipline rewritten with a gate; skill.json layer count aligned to the L12 map.
 - **v7.4.0 (2026-11-05)** — physical caliber separation (29 historical result files archived; top level = CURRENT.md + 3 baselines + cache, gated); version-era pointer in the measured table; pp_api SDK gains fix_suggest/evidence_sections/term_project/scenarios.
 - **v7.3.0 (2026-11-03)** — MCP three-primitive parity (3 resources + 3 workflow prompts alongside 8 tools); SKILL_ZH title fossil removed + bilingual-title gate; requirements declares regex with a requirements-vs-docs gate; SH package form stated in the doc header.
 - **v7.2.0 (2026-10-31)** — MCP HTTP transport (loopback-only, /mcp + /health); server version single-sourced from skill.json; AUROC caliber cleanup in skill.json/SKILL_ZH with a zero-residue gate; eval/results caliber navigation (CURRENT.md) with reconciliation gates.

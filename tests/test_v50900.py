@@ -127,11 +127,13 @@ class TestProgressiveNav(unittest.TestCase):
     """FAQ 分组导航前置（渐进披露）。"""
 
     def test_faq_nav_lines(self):
-        self.assertIn("five parts", (PKG / "SKILL.md").read_text(encoding="utf-8"))
+        _sk = (PKG / "SKILL.md").read_text(encoding="utf-8")
+        self.assertTrue("five parts" in _sk or "分五组" in _sk)
         self.assertIn("分五组", _docs.zh_text())
 
     def test_architecture_read_on_demand(self):
-        self.assertIn("read on demand", (PKG / "SKILL.md").read_text(encoding="utf-8"))
+        _sk = (PKG / "SKILL.md").read_text(encoding="utf-8")
+        self.assertTrue("read on demand" in _sk or "按需查阅" in _sk or "按需阅读" in _sk)
         self.assertIn("按需阅读", _docs.zh_text())
 
 

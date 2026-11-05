@@ -3,6 +3,12 @@
 > **只想快速上手？** 回 `SKILL.md` § TL;DR（30 秒任务路由表）——本文件仅是完整版本历史，新用户无需阅读。
 > Historical release notes. Newest first. SKILL.md § Version history keeps only the last three releases; everything older lives here (single source, no duplication).
 
+## What's new in v7.5.0
+
+- **Dual-form acceptance parity (`eval/verify_forms.py`)**: the two shipped forms now have a single, symmetric acceptance runner — `--form sh` builds a package copy where SKILL_ZH.md is published AS SKILL.md (the SkillHub convention), `--form ch` builds one without SKILL_ZH.md, both sharing the package-copy harness (copy-isolated, O_EXCL lock, canonical read-only trunk) and running the full smoke. `--form both` runs the pair serially; the release chain exercises it before every release so a form regression can never ship unnoticed (the 10-31 review's "form-related doc/test mismatch" class closes structurally).
+- **archive/README caliber discipline**: the archived-results README still called historical files "reproducible baselines" (v480/v500 etc.) — exactly what two consecutive reviews flagged. It now states the archive boundary up front (nothing here is citable) and points at CURRENT.md as the only caliber authority, with a gate rejecting the old claim's return.
+- **Layer-count alignment**: skill.json said "11-layer" while the docs map already ships the L12 discourse layer — aligned to 12-layer with a gate tying the count to the map.
+
 ## What's new in v7.4.0
 
 - **Physical caliber separation**: v7.3.0's CURRENT.md declared which result files are citable, but the directory still physically mixed 29 historical/voided files among them. All history is now `git mv`-ed into `eval/results/archive/` — the top level holds only `CURRENT.md`, the three citable baselines and the runtime cache — with two gates: top-level `*.json` must all appear in the CURRENT.md table, and the archive layer must exist. The review's "lots of historical files, hard to tell the valid caliber" is closed structurally, not by convention.
@@ -297,6 +303,12 @@
 # 更新日志（中文）
 
 > v4.6.0 起历史更新说明移出 SKILL_ZH.md（新用户更快触达工作流）。最新在前。各版本摘要亦见 SKILL_ZH.md § 版本历史。
+
+## v7.5.0 更新内容
+
+- **双形态验收对偶（`eval/verify_forms.py`）**：两种随包形态共用一个对称验收器——`--form sh` 构造「SKILL_ZH.md 以 SKILL.md 名义发布」的副本（SkillHub 约定），`--form ch` 构造无 SKILL_ZH.md 的副本，共用包副本骨架（副本隔离+O_EXCL 锁+正本只读）并跑全量 smoke；`--form both` 串行跑双形态，发布链接入——形态回归从此不可能无声上船（10-31 评审的「形态相关文档/测试不匹配」类结构性关闭）。
+- **archive/README 口径纪律**：历史结果 README 仍把 v480/v500 等历史文件称作「可复现基线」——连续两届评审点名。现开头即声明目录边界（本目录任何文件不可引用）并指向 CURRENT.md 为唯一口径权威，加闸拒绝旧声明回潮。
+- **层级计数对齐**：skill.json 写 "11-layer" 而文档结构图已有 L12 篇章层——对齐为 12-layer 并加闸把计数与结构图绑定。
 
 ## v7.4.0 更新内容
 

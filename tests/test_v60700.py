@@ -91,7 +91,8 @@ class TestQuickStartScenarioFirst(unittest.TestCase):
             t = (PKG / f).read_text(encoding="utf-8")
             self.assertIn("scenarios", t)
             # 快速开始块内至少 8 条场景注解注释（# 开头）
-            qs = t[t.index("Quick start" if f == "SKILL.md" else "快速开始"):]
+            _anchor = ("Quick start" if ("Quick start" in t) else "快速开始")
+            qs = t[t.index(_anchor):]
             block = qs[:qs.index("```", qs.index("```") + 3) if "```" in qs else 4000]
             comments = [x for x in block.split("\n") if x.strip().startswith("#")]
             self.assertGreaterEqual(len(comments), 8, f"{f} 快速开始注解不足")
