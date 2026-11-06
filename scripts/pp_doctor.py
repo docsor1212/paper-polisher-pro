@@ -81,6 +81,39 @@ def main():
         except ImportError:
             chk(f"可选依赖 {mod}", False, "未安装（纯标准库路径可跑，监督层需要它）", required=False)
 
+    # 4a-2. 安装完整性深检（v7.6.0 --deep）：清单逐文件 SHA256+解析双重核对。
+    # 背景：评监委 11-05 实测报告「JSON 数据文件尾部截断」——三方本地副本不可复现
+    # （trunk/SH 包/CH 包逐字节一致），属下发链路或评者端问题。机制层根治：包内
+    # 带 SHA256 清单，用户侧 --deep 一条命令即可自证收到的文件与作者签发一致；
+    # 若平台下发截断，此处给出精确到文件与期望/实际哈希的证据。
+    if "--deep" in sys.argv[1:]:
+        try:
+            mf = json.load(open(ROOT / "data" / "INTEGRITY_MANIFEST.json", encoding="utf-8"))
+            import hashlib as _hl
+            bad, n_ok = [], 0
+            for rel, want in sorted(mf.get("files", {}).items()):
+                fp = ROOT / rel
+                if not fp.is_file():
+                    bad.append(f"{rel}: 文件缺失")
+                    continue
+                b = fp.read_bytes()
+                got = _hl.sha256(b).hexdigest()
+                if got != want.get("sha256"):
+                    bad.append(f"{rel}: 哈希不符（期望 {want.get('sha256','')[:12]}… 实际 {got[:12]}…，"
+                               f"{want.get('bytes','?')}B→{len(b)}B）")
+                    continue
+                try:
+                    json.loads(b.decode("utf-8"))
+                    n_ok += 1
+                except Exception as e:
+                    bad.append(f"{rel}: JSON 解析失败 {e}")
+            chk(f"完整性深检 --deep（{len(mf.get('files', {}))} 文件哈希+解析）",
+                not bad and n_ok == len(mf.get("files", {})),
+                "; ".join(bad[:3]) or "全部一致",
+                required=False)
+        except Exception as e:
+            chk("完整性深检 --deep", False, f"清单读取失败: {e}", required=False)
+
     # 4b. 指纹库新鲜度（用户可见: 参考模型是否过时）
     try:
         reg = json.load(open(ROOT / "references" / "model_fingerprints.json", encoding="utf-8"))

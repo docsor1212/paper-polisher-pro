@@ -1,6 +1,6 @@
 ---
 name: paper-polisher
-version: 7.5.0
+version: 7.6.0
 author: DoctorQ Lab
 description: >-
   AI-rate self-check and polish guidance for academic writing: sentence-level rewrite
@@ -115,6 +115,7 @@ This tool is for **authors self-reviewing and improving their own writing qualit
 
 - **100% local**: every feature runs on-device. The codebase makes zero outbound network calls — no network client libraries, no network utilities. The single listener-capable component is the optional MCP HTTP form (`--transport http`), which binds 127.0.0.1 loopback only (binding asserted by the AST verifier's allowlist rule); the AST scan treats any listener without a loopback bind as a violation. Verify structurally: `python3 scripts/pp_verify.py` (AST-level scan; exit 0 = zero network calls, all scripts compile). Legacy text grep `grep -rEin "urllib|requests|socket|import http" scripts/` may show a few URL *strings* in report footers — those are data in string constants, not network code; the AST verifier distinguishes the two.
 - **No upload, no credentials**: reads and transmits no credentials, keys, or personal data; the only two environment variables are `PP_NO_SUP` (skip the supervised layer) and `PP_LANG` (`en` switches the `pp.py` entry surface to English) — both local behavior toggles.
+- **Install integrity self-check**: `data/INTEGRITY_MANIFEST.json` records the SHA256 of every data/wordlist JSON; `python3 scripts/pp_doctor.py --deep` verifies each file's hash and parse — if a distribution path truncates a file, this names the exact file and expected/actual hash.
 - **No persistence**: creates no scheduled tasks, autostart entries, or system config changes; temp files (inter-layer JSON, probe text) are deleted after use.
 - **No remote code**: loads no remote models or scripts; the optional supervised model is placed by the user at a local path.
 - **Data boundary**: reads/writes only user-specified files, the system temp dir, and its own package data directories (calibration/freshness artifacts); reports go only where the user points them.
@@ -275,6 +276,7 @@ Docs & site: **docsor.cn**
 
 ## Version history (condensed)
 
+- **v7.6.0 (2026-11-07)** — install integrity self-check: `data/INTEGRITY_MANIFEST.json` (SHA256 per data/wordlist JSON) + `pp_doctor --deep` (hash+parse per file) + trunk/package manifest gates; `eval/gen_integrity_manifest.py`.
 - **v7.5.0 (2026-11-06)** — dual-form acceptance parity (`verify_forms.py --form sh|ch|both`, package-copy harness); archive/README caliber discipline rewritten with a gate; skill.json layer count aligned to the L12 map.
 - **v7.4.0 (2026-11-05)** — physical caliber separation (29 historical result files archived; top level = CURRENT.md + 3 baselines + cache, gated); version-era pointer in the measured table; pp_api SDK gains fix_suggest/evidence_sections/term_project/scenarios.
 - **v7.3.0 (2026-11-03)** — MCP three-primitive parity (3 resources + 3 workflow prompts alongside 8 tools); SKILL_ZH title fossil removed + bilingual-title gate; requirements declares regex with a requirements-vs-docs gate; SH package form stated in the doc header.

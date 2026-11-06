@@ -98,7 +98,7 @@ class TestQuickStartScenarioFirst(unittest.TestCase):
             self.assertGreaterEqual(len(comments), 8, f"{f} 快速开始注解不足")
 
     def test_slimmed(self):
-        for f, cap in zip(_docs.DOCS, (301, 300) if _docs.HAS_ZH else (301,)):  # v7.4.0 口径指针行  # v7.2~7.4 文档节累积放宽
+        for f, cap in zip(_docs.DOCS, (303, 302) if _docs.HAS_ZH else (303,)):  # v7.6.0 完整性自证行  # v7.4.0 口径指针行  # v7.2~7.4 文档节累积放宽
             n = len((PKG / f).read_text(encoding="utf-8").split("\n"))
             self.assertLessEqual(n, cap, f"{f} 仍偏重（{n} 行 > {cap}）")
 

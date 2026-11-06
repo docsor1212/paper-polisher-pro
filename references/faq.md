@@ -214,6 +214,9 @@ read on demand. Scenario-level how-to advice lives in [`references/best-practice
 **Q: 批量时某个文件把整个任务弄崩了怎么办？**
 不会了。v6.8.0 起批量默认子进程隔离（`--isolate auto`：装了监督模型即开启——崩溃源是模型原生层）：每个文件在独立 worker 里检测，硬崩溃只损失该文件、批处理继续，错误行如实标注；输入类错误（如损坏 docx）直接透传友好提示。纯规则档默认进程内快路径，`--isolate on` 可显式开启。
 
+**Q: 怎么确认我下载的包没被截断/篡改？**
+`python3 scripts/pp_doctor.py --deep`：包内 `data/INTEGRITY_MANIFEST.json` 记录全部数据与词表 JSON 的 SHA256 与字节数，--deep 逐文件核对哈希+解析（v7.6.0）。若某文件哈希不符，输出会给出文件名与期望/实际哈希——那是分发链路问题，请带着该输出提 issue。
+
 **Q: MCP server 有 HTTP 形态吗？**
 有（v7.2.0）：`python3 scripts/pp_mcp_server.py --transport http --port 8815`——仅监听 127.0.0.1 回环（与零网络立场一致，跨机访问不在支持范围也未加鉴权，勿端口转发暴露）；`POST /mcp` 收单条 JSON-RPC，`GET /health` 探活；适合同机多个客户端复用一个 server。
 

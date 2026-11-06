@@ -3,6 +3,11 @@
 > **只想快速上手？** 回 `SKILL.md` § TL;DR（30 秒任务路由表）——本文件仅是完整版本历史，新用户无需阅读。
 > Historical release notes. Newest first. SKILL.md § Version history keeps only the last three releases; everything older lives here (single source, no duplication).
 
+## What's new in v7.6.0
+
+- **Install integrity self-check (`pp_doctor.py --deep`)**: the 11-05 review reported "JSON data files truncated at the tail" — not reproducible on any of our copies (trunk/SH package/CH package all byte-identical and parsing). The mechanism-level answer works regardless of where the corruption happens: the package now ships `data/INTEGRITY_MANIFEST.json` (SHA256 + size for every data and wordlist JSON), `pp_doctor --deep` verifies each file's hash AND parse against it, and two release gates reconcile the manifest against trunk and against both packaged copies. If a distribution path ever truncates a file, users get the exact file name plus expected/actual hash — machine evidence, not a guess.
+- **`eval/gen_integrity_manifest.py`**: regenerate the manifest after any data/wordlist change; a stale manifest fails the deep check by design (hash drift is exactly what it must catch).
+
 ## What's new in v7.5.0
 
 - **Dual-form acceptance parity (`eval/verify_forms.py`)**: the two shipped forms now have a single, symmetric acceptance runner — `--form sh` builds a package copy where SKILL_ZH.md is published AS SKILL.md (the SkillHub convention), `--form ch` builds one without SKILL_ZH.md, both sharing the package-copy harness (copy-isolated, O_EXCL lock, canonical read-only trunk) and running the full smoke. `--form both` runs the pair serially; the release chain exercises it before every release so a form regression can never ship unnoticed (the 10-31 review's "form-related doc/test mismatch" class closes structurally).
@@ -303,6 +308,11 @@
 # 更新日志（中文）
 
 > v4.6.0 起历史更新说明移出 SKILL_ZH.md（新用户更快触达工作流）。最新在前。各版本摘要亦见 SKILL_ZH.md § 版本历史。
+
+## v7.6.0 更新内容
+
+- **安装完整性自证（`pp_doctor.py --deep`）**：11-05 评审报告「JSON 数据文件尾部截断」——在我们三方副本（trunk/SkillHub 包/ClawHub 包）均不可复现（逐字节一致且全部解析通过）。无论损坏发生在哪一环，机制层答案：包内随附 `data/INTEGRITY_MANIFEST.json`（全部数据与词表 JSON 的 SHA256+字节数），`pp_doctor --deep` 对每文件核对哈希与解析，两道发布闸把清单对 trunk 与两份打包副本各对账一次。若分发链路真截断文件，用户拿到精确到文件名与期望/实际哈希的证据——机器证据而非猜测。
+- **`eval/gen_integrity_manifest.py`**：任何数据/词表变更后重新生成清单；过期清单会故意让深检 FAIL（哈希漂移正是它必须抓的东西）。
 
 ## v7.5.0 更新内容
 

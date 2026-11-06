@@ -176,6 +176,22 @@ if _cur.is_file():
     _arch = list((ROOT / "eval" / "results" / "archive").glob("*.json"))
     chk("口径导航: archive/ 物理分层在位（历史文件已移入）",
         len(_arch) >= 25, f"archive={len(_arch)}")
+    # v7.6.0 完整性清单闸：trunk 文件 vs INTEGRITY_MANIFEST 逐哈希对账
+    _mf = ROOT / "data" / "INTEGRITY_MANIFEST.json"
+    if _mf.is_file():
+        import hashlib as _hlib
+        _mfd = json.loads(_mf.read_text(encoding="utf-8"))
+        _mm = []
+        for _rel, _want in sorted(_mfd.get("files", {}).items()):
+            _fp = ROOT / _rel
+            if not _fp.is_file():
+                _mm.append(f"{_rel}: 缺失")
+            elif _hlib.sha256(_fp.read_bytes()).hexdigest() != _want.get("sha256"):
+                _mm.append(f"{_rel}: 哈希漂移（清单过期？跑 eval/gen_integrity_manifest.py）")
+        chk("完整性清单: trunk 与 INTEGRITY_MANIFEST 对账", not _mm,
+            f"mismatch={_mm[:3]}")
+    else:
+        chk("完整性清单: INTEGRITY_MANIFEST 在位", False, "缺失")
     # v7.5.0: archive/README 口径纪律——禁旧"可复现基线"声明（10-31/11-04 两届评监委点名），必指 CURRENT.md
     _ar = ROOT / "eval" / "results" / "archive" / "README.md"
     if _ar.is_file():

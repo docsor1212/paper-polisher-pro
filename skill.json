@@ -1,8 +1,8 @@
 {
   "name": "paper-polisher-pro",
-  "version": "7.5.0",
+  "version": "7.6.0",
   "description": "AI writing detector (author self-check) + academic polishing guidance + terminology protection, 100% local. 12-layer recalibrated rule engine (L1-L12, discourse layer included) + token-spectrum layer + length-routed fusion + optional supervised Qwen3-0.6B ONNX layer (AUROC 0.9998 fingerprint-bound held-out) + LLM fingerprint attribution (GLM/DeepSeek/Qwen/Kimi/MiniMax/GPT/Claude/Gemini) + journal precheck + AIGC compliance label check + paragraph attribution + sentence-level rewrite suggestions (guidance, never auto-rewrite). Eval-driven: base-engine numbers reproduce via the bundled held-out evaluation; supervised-layer figures are author-side held-out measurements.",
   "author": "DoctorQ Lab",
-  "changelog": "v7.5.0: dual-form acceptance parity — verify_forms.py unifies the shipped-form acceptance runners (--form sh: SKILL_ZH.md published AS SKILL.md; --form ch: no SKILL_ZH.md) on one package-copy harness, wired into the release chain so BOTH shipped forms are exercised before every release; archive/README rewritten (the old paragraph still called archived v480/v500 files \"reproducible baselines\" — now points at CURRENT.md as the only caliber authority, with a gate); skill.json layer count aligned to the L12 discourse layer the docs map already ships (11→12). No engine scoring changes. 零新增依赖。",
+  "changelog": "v7.6.0: install integrity self-check — data/INTEGRITY_MANIFEST.json (SHA256+size for every data/wordlist JSON), pp_doctor --deep verifies hash+parse per file, two release gates reconcile the manifest against trunk and both packaged copies, eval/gen_integrity_manifest.py regenerates it. Answers the 11-05 review's unreproducible \"truncated JSON\" report with machine evidence instead of guesswork. No engine scoring changes. 零新增依赖。",
   "license": "MIT-0"
 }

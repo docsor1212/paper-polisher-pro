@@ -1,0 +1,62 @@
+{
+ "_meta": "安装完整性清单（v7.6.0）：data/ 与 references/ 全部 JSON 的 SHA256 与字节数。pp_doctor --deep 逐文件核对（哈希+解析双重验证）；发布链打包后对打包副本再核对一次。",
+ "generated": "7.6.0",
+ "files": {
+  "data/terminology.json": {
+   "sha256": "7a74257feec3187d3b95c96586350ad079ad825e1ed0068849b5d847e150e924",
+   "bytes": 285091
+  },
+  "references/ai_patterns_en.json": {
+   "sha256": "07fe42147eefede44bcd753f48f379ff43996c286d00ad3966029fe6cf0e7489",
+   "bytes": 13858
+  },
+  "references/ai_patterns_zh.json": {
+   "sha256": "b0e0e83f59b9bd84ad874a46c1c16391a4414509118bc4b0a8bcc58b4359d3ee",
+   "bytes": 7537
+  },
+  "references/fusion_config.json": {
+   "sha256": "39c7f8f0f756bcc40381672574db657b61ec043fc85d1e41e67eff270758f488",
+   "bytes": 1083
+  },
+  "references/model_fingerprints.json": {
+   "sha256": "9e9c4ec9c9c7366e1b9b40f8b302b92e31e13bae1f52428d672db34b39ee8ddb",
+   "bytes": 11185
+  },
+  "references/para_thresholds.json": {
+   "sha256": "0ae6810954d8346f4292d81dbb8f4a8dd3e4d197064cf4a756b7acfa7bc13e03",
+   "bytes": 1767
+  },
+  "references/scenarios.json": {
+   "sha256": "bc17412d72302a59a55035ef3ddf92f724195a08c654744aba4eb14141a9ac28",
+   "bytes": 11411
+  },
+  "references/sentence_patterns_zh.json": {
+   "sha256": "32d7d0e2217242658d34550654871718282f1f68b3e9f0022976b5b29a8a5e9f",
+   "bytes": 10269
+  },
+  "references/style_guard_cases.json": {
+   "sha256": "bf2c8d729790fa8e7e657044deff6fa288b4d450aa89ec052180d5b3715d97f2",
+   "bytes": 2581
+  },
+  "references/supervised_models.json": {
+   "sha256": "ecfa1bad60c71352c90ce0eda6630a76ff237665b61c83c692df6799d03f48e3",
+   "bytes": 636
+  },
+  "references/synonyms_general.json": {
+   "sha256": "c71c4c17ab0b7b6c289b98a175e6088e15be1a9807fbde99f0f31784f072bd5a",
+   "bytes": 58842
+  },
+  "references/term_variants.json": {
+   "sha256": "b30b344b33afe9783d970796e6ae6f57417a73d20b4e0651ee377120db36f3db",
+   "bytes": 3472
+  },
+  "references/token_spectrum_v2.json": {
+   "sha256": "9a2f4b68bfa8d3dad09ec6f87283a4c73443ea294948bcdc8f77a018ba54b0b6",
+   "bytes": 184509
+  },
+  "references/token_spectrum_zh.json": {
+   "sha256": "5d1fc8bcc40100f2ea659b6aab92db1d016158691b226f60e70723ea77e4d4a4",
+   "bytes": 194373
+  }
+ }
+}
