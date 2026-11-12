@@ -1,6 +1,6 @@
 ---
 name: paper-polisher
-version: 7.6.0
+version: 7.7.0
 author: DoctorQ Lab
 description: >-
   AI-rate self-check and polish guidance for academic writing: sentence-level rewrite
@@ -205,6 +205,10 @@ print(r["overall_ai_score"], r["overall_risk"], r["degraded_mode"])
 
 `detect_text` runs in-process (no subprocess) and returns the same JSON structure as the CLI. Every function returns JSON-able dicts and raises on bad input — no silent failures. Zero network, stdlib-only.
 
+### Output contract schemas (v7.7.0)
+
+The four core outputs (detect / fix_suggest / workflow / term_report) ship JSON-Schema contracts (`schemas/*.schema.json`, draft-2020-12 subset). Self-check: `python3 scripts/pp.py schema --selfcheck` runs real engine outputs against every contract — contract/implementation drift surfaces immediately (top-level required keys and types are the compatibility promise: additive keys never break it; removals/type changes are declared in CHANGELOG). Integrators can validate what they received via `pp_api.schema_selfcheck()`.
+
 ### MCP server (direct agent-client integration, v6.5.0)
 
 Zero-dependency MCP stdio server (JSON-RPC in pure stdlib — nothing to pip install), eight tools sharing the CLI engine and semantics:
@@ -276,6 +280,7 @@ Docs & site: **docsor.cn**
 
 ## Version history (condensed)
 
+- **v7.7.0 (2026-11-12)** — output contract schemas (`schemas/*.schema.json` + zero-dep validator `pp.py schema --selfcheck`, real-output-validated); manifest generator single-sourced (generated reads skill.json, --check byte-compare, gated); pp_api parity completed (trend_data / schema_selfcheck).
 - **v7.6.0 (2026-11-07)** — install integrity self-check: `data/INTEGRITY_MANIFEST.json` (SHA256 per data/wordlist JSON) + `pp_doctor --deep` (hash+parse per file) + trunk/package manifest gates; `eval/gen_integrity_manifest.py`.
 - **v7.5.0 (2026-11-06)** — dual-form acceptance parity (`verify_forms.py --form sh|ch|both`, package-copy harness); archive/README caliber discipline rewritten with a gate; skill.json layer count aligned to the L12 map.
 - **v7.4.0 (2026-11-05)** — physical caliber separation (29 historical result files archived; top level = CURRENT.md + 3 baselines + cache, gated); version-era pointer in the measured table; pp_api SDK gains fix_suggest/evidence_sections/term_project/scenarios.

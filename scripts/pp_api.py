@@ -35,6 +35,7 @@ __all__ = [
     "gate_text", "term_report", "smell_report", "style_report",
     "quality_report_file", "attribution", "doctor_summary", "workflow",
     "fix_suggest", "evidence_sections", "term_project", "scenarios",
+    "trend_data", "schema_selfcheck",
 ]
 
 
@@ -362,3 +363,39 @@ def scenarios(query: str = None) -> list:
             hit.append((hits, s))
     hit.sort(key=lambda x: -x[0])
     return [s for _, s in hit]
+
+
+def trend_data(inputs) -> list:
+    """多轮趋势数据（v7.7.0 SDK 化）：多份 workflow JSON/目录 → 按时间排序的轨迹数据。
+
+    与 pp_trend.py collect 同源；渲染版（HTML 仪表盘）见 pp_trend.py / pp.py trend。
+    inputs: 路径列表（workflow JSON 文件或含 *.workflow.json 的目录）。"""
+    from pathlib import Path as _Path
+    if not inputs:
+        raise ValueError("inputs 必须是非空路径列表")
+    import pp_trend
+    try:
+        return pp_trend.collect([str(_Path(x)) for x in inputs])
+    except Exception as e:
+        raise RuntimeError("trend_data 失败: %s（恢复建议: 确认输入为 workflow JSON 文件"
+                           "或含 *.workflow.json 的目录）" % e) from e
+
+
+def schema_selfcheck() -> dict:
+    """输出契约自证（v7.7.0 SDK 化）：真引擎输出逐一过 schemas/*.schema.json。
+
+    返回 {ok, results}——results 为 {name: PASS/FAIL 详情}；编程集成方可据此
+    验证自己拿到的输出结构是否符合随包契约。"""
+    import io as _io
+    import contextlib as _cl
+    import pp_schema
+    buf_out, buf_err = _io.StringIO(), _io.StringIO()
+    with _cl.redirect_stdout(buf_out), _cl.redirect_stderr(buf_err):
+        rc = pp_schema.selfcheck()
+    results = {}
+    for ln in buf_out.getvalue().splitlines():
+        if ln.startswith("[PASS] "):
+            results[ln.split()[1]] = "PASS"
+        elif ln.startswith("[FAIL] "):
+            results[ln.split()[1]] = "FAIL: " + ln
+    return {"ok": rc == 0, "results": results}

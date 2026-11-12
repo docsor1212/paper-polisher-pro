@@ -96,7 +96,7 @@ GROUPS = (
 )
 
 # 内建子命令（非透传，本文件内实现）
-BUILTIN = ("quickstart", "tour", "scenarios", "test", "api", "recommend", "faq")
+BUILTIN = ("quickstart", "tour", "scenarios", "schema", "test", "api", "recommend", "faq")
 
 _QUICKSTART_SAMPLE = (
     "值得注意的是，随着人工智能技术的快速发展，其在医疗领域的应用日益受到关注。"
@@ -147,6 +147,9 @@ _RECOMMEND_RULES = (
     (("质量", "可读性", "quality"), "quality", "综合质量报告", "pp.py quality draft.txt"),
     (("编程", "集成", "api", "sdk", "python"), "api",
      "Python SDK 提示（import pp_api，无 CLI）", "import pp_api  # 见 SKILL.md § Python API"),
+    (("schema", "契约", "输出结构", "集成校验"), "schema",
+     "输出契约自证：四大输出过 JSON Schema（v7.7.0）",
+     "pp.py schema --selfcheck"),
     (("什么时候用", "哪个命令", "场景", "scenario"), "scenarios",
      "场景目录：什么时候用哪个命令（带产出说明，v6.7.0）",
      "pp.py scenarios 批量"),
@@ -475,6 +478,7 @@ def _print_help():
     print("  %-*s  %s" % (width, "recommend", "自然语言场景路由（描述需求 → 推荐命令）"))
     print("  %-*s  %s" % (width, "faq", "FAQ 关键词检索（v6.3.0：pp.py faq 医学 / PDF / 退出码）"))
     print("  %-*s  %s" % (width, "scenarios", "场景目录：什么时候用哪个命令（v6.7.0：pp.py scenarios 测AI率/批量/投稿…）"))
+    print("  %-*s  %s" % (width, "schema", "输出契约自证（v7.7.0：pp.py schema --selfcheck 四大输出过 JSON Schema）"))
     print("\nPython SDK: import pp_api（无 CLI；编程接口见 SKILL.md § Python API）")
     print("提示：各子命令的参数同原脚本，例如 pp.py detect draft.txt --format json；"
           "英文入口面：PP_LANG=en pp.py")
@@ -502,6 +506,8 @@ def main():
         return _run_faq(" ".join(args[1:]))
     if cmd == "scenarios":
         return _run_scenarios(" ".join(args[1:]))
+    if cmd == "schema":
+        return subprocess.run([sys.executable, str(HERE / "pp_schema.py")] + args[1:]).returncode
     if cmd not in COMMANDS:
         if _LANG.startswith("en"):
             print("Unknown subcommand: %s (available: %s %s)"

@@ -1,6 +1,6 @@
 {
- "_meta": "安装完整性清单（v7.6.0）：data/ 与 references/ 全部 JSON 的 SHA256 与字节数。pp_doctor --deep 逐文件核对（哈希+解析双重验证）；发布链打包后对打包副本再核对一次。",
- "generated": "7.6.0",
+ "_meta": "安装完整性清单：data/ 与 references/ 全部 JSON 的 SHA256 与字节数。pp_doctor --deep 逐文件核对（哈希+解析双重验证）；发布链打包后对打包副本再核对一次。由 eval/gen_integrity_manifest.py 生成（单一来源；generated 随 skill.json 版本）。",
+ "generated": "7.7.0",
  "files": {
   "data/terminology.json": {
    "sha256": "7a74257feec3187d3b95c96586350ad079ad825e1ed0068849b5d847e150e924",

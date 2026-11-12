@@ -3,6 +3,12 @@
 > **只想快速上手？** 回 `SKILL.md` § TL;DR（30 秒任务路由表）——本文件仅是完整版本历史，新用户无需阅读。
 > Historical release notes. Newest first. SKILL.md § Version history keeps only the last three releases; everything older lives here (single source, no duplication).
 
+## What's new in v7.7.0
+
+- **Output contract schemas (`schemas/*.schema.json`, `pp.py schema --selfcheck`)**: the four core outputs (detect / fix_suggest / workflow / term_report) now ship JSON-Schema contracts (draft-2020-12 subset), and a zero-dependency minimal validator (`scripts/pp_schema.py`) runs real engine outputs against all four on every self-check. First run caught a real drift (mixed_document is an object, not the boolean the draft assumed) — the validator's purpose in one line. Top-level required keys and types are the compatibility promise: additive keys never break the contract; removals/type changes get declared in CHANGELOG. Integrators validate their received structures via `pp_api.schema_selfcheck()`.
+- **Manifest reproducibility closure**: the review flagged the integrity manifest's structure vs its generator; a byte-diff proved them identical on our side, but the generator's hardcoded "generated" version was a real single-source violation — it now reads skill.json, gained a `--check` mode (byte-compare without writing), and a release gate asserts generator output == shipped manifest byte-for-byte.
+- **pp_api parity completed**: `trend_data` (trajectory data from workflow JSONs/directories) and `schema_selfcheck` — the Python SDK now covers the full CLI surface.
+
 ## What's new in v7.6.0
 
 - **Install integrity self-check (`pp_doctor.py --deep`)**: the 11-05 review reported "JSON data files truncated at the tail" — not reproducible on any of our copies (trunk/SH package/CH package all byte-identical and parsing). The mechanism-level answer works regardless of where the corruption happens: the package now ships `data/INTEGRITY_MANIFEST.json` (SHA256 + size for every data and wordlist JSON), `pp_doctor --deep` verifies each file's hash AND parse against it, and two release gates reconcile the manifest against trunk and against both packaged copies. If a distribution path ever truncates a file, users get the exact file name plus expected/actual hash — machine evidence, not a guess.
@@ -308,6 +314,12 @@
 # 更新日志（中文）
 
 > v4.6.0 起历史更新说明移出 SKILL_ZH.md（新用户更快触达工作流）。最新在前。各版本摘要亦见 SKILL_ZH.md § 版本历史。
+
+## v7.7.0 更新内容
+
+- **输出契约 Schema 化（`schemas/*.schema.json`，`pp.py schema --selfcheck`）**：四大核心输出（detect / fix_suggest / workflow / term_report）随包 JSON Schema 契约（draft-2020-12 子集），零依赖最小验证器（`scripts/pp_schema.py`）在每次自证时用真引擎输出逐一过四契约。首跑即抓真漂移（mixed_document 是对象而非草稿臆断的布尔）——一句话说明这个验证器存在的意义。顶层必填键与类型是兼容性承诺：新增键不破坏契约；删除/改型在 CHANGELOG 声明。集成方用 `pp_api.schema_selfcheck()` 验证自己拿到的结构。
+- **清单可复现性闭环**：评审点名完整性清单的结构与生成器逻辑；字节 diff 证明我方一致，但生成器硬编码 "generated" 版本串是真实的单一来源违规——现改为读 skill.json，新增 `--check` 模式（不落盘、字节级比对），发布闸断言生成器输出与随包清单逐字节一致。
+- **pp_api 对齐收官**：`trend_data`（workflow JSON/目录 → 轨迹数据）与 `schema_selfcheck`——Python SDK 覆盖 CLI 全部能力面。
 
 ## v7.6.0 更新内容
 

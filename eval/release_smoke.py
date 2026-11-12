@@ -196,6 +196,18 @@ if _cur.is_file():
     _ar = ROOT / "eval" / "results" / "archive" / "README.md"
     if _ar.is_file():
         _ar_t = _ar.read_text(encoding="utf-8")
+        # v7.7.0 可复现性闭环闸：生成器 --check（随包清单与生成器输出逐字节一致）
+    _gen = ROOT / "eval" / "gen_integrity_manifest.py"
+    if _gen.is_file() and _mf.is_file():
+        _gc = subprocess.run([sys.executable, str(_gen), "--check"],
+                             capture_output=True, text=True, timeout=60, cwd=str(ROOT))
+        chk("可复现性闭环: gen_integrity_manifest --check 逐字节一致",
+            _gc.returncode == 0, (_gc.stderr or _gc.stdout)[-160:])
+    else:
+        chk("可复现性闭环: 生成器在位", False, "eval/gen_integrity_manifest.py 缺失")
+    _ar = ROOT / "eval" / "results" / "archive" / "README.md"
+    if _ar.is_file():
+        _ar_t = _ar.read_text(encoding="utf-8")
         chk("口径导航: archive/README 无旧口径声明且指向 CURRENT.md",
             "可复现基线" not in _ar_t and "CURRENT.md" in _ar_t
             and "不可作为现行口径引用" in _ar_t,
