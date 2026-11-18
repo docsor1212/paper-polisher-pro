@@ -1,6 +1,6 @@
 ---
 name: paper-polisher
-version: 7.8.0
+version: 7.9.0
 author: DoctorQ Lab
 description: >-
   AI-rate self-check and polish guidance for academic writing: sentence-level rewrite
@@ -116,7 +116,7 @@ This tool is for **authors self-reviewing and improving their own writing qualit
 
 - **100% local**: every feature runs on-device. The codebase makes zero outbound network calls — no network client libraries, no network utilities. The single listener-capable component is the optional MCP HTTP form (`--transport http`), which binds 127.0.0.1 loopback only (binding asserted by the AST verifier's allowlist rule); the AST scan treats any listener without a loopback bind as a violation. Verify structurally: `python3 scripts/pp_verify.py` (AST-level scan; exit 0 = zero network calls, all scripts compile). Legacy text grep `grep -rEin "urllib|requests|socket|import http" scripts/` may show a few URL *strings* in report footers — those are data in string constants, not network code; the AST verifier distinguishes the two.
 - **No upload, no credentials**: reads and transmits no credentials, keys, or personal data; the only two environment variables are `PP_NO_SUP` (skip the supervised layer) and `PP_LANG` (`en` switches the `pp.py` entry surface to English) — both local behavior toggles.
-- **Install integrity self-check**: `data/INTEGRITY_MANIFEST.json` records the SHA256 of every data/wordlist JSON; `python3 scripts/pp_doctor.py --deep` verifies each file's hash and parse — if a distribution path truncates a file, this names the exact file and expected/actual hash.
+- **Install integrity self-check (two manifests)**: `data/INTEGRITY_MANIFEST.json` records the SHA256 of every data/wordlist JSON; `data/PACKAGE_MANIFEST.json` (written at packaging) covers every other shipped file. `python3 scripts/pp_doctor.py --deep` verifies both when present, file by file — if a distribution path truncates or tampers with a file, this names the exact file and expected/actual hash.
 - **No persistence**: creates no scheduled tasks, autostart entries, or system config changes; temp files (inter-layer JSON, probe text) are deleted after use.
 - **No remote code**: loads no remote models or scripts; the optional supervised model is placed by the user at a local path.
 - **Data boundary**: reads/writes only user-specified files, the system temp dir, and its own package data directories (calibration/freshness artifacts); reports go only where the user points them.
@@ -288,7 +288,7 @@ Docs & site: **docsor.cn**
 
 ## Version history (condensed)
 
+- **v7.9.0 (2026-11-19)** — manifest single-sourcing: packaging writes `data/PACKAGE_MANIFEST.json` (every shipped file outside data/, sha256+bytes) instead of overwriting the data-file `INTEGRITY_MANIFEST.json` — two manifests, one semantics each; `pp_doctor --deep` verifies BOTH (package-receipt acceptance names the exact file + expected/actual hash on drift); pkg gates assert manifest semantics and complementarity; release-ledger --record idempotent.
 - **v7.8.0 (2026-11-18)** — documentation-facts contract (`eval/doc_facts.py`, five gates: file references incl. archive/ discipline · bilingual number parity · unified-entry ↔ registry parity · metric anchors traced to eval JSONs · version coherence incl. schema $id), wired into release smoke; freshness baseline reconciliation archive-aware + honest missing reporting; `explain` in grouped help; version history cut to the three-entry policy.
 - **v7.7.0 (2026-11-12)** — output contract schemas (`schemas/*.schema.json` + zero-dep validator `pp.py schema --selfcheck`, real-output-validated); manifest generator single-sourced (generated reads skill.json, --check byte-compare, gated); pp_api parity completed (trend_data / schema_selfcheck).
-- **v7.6.0 (2026-11-07)** — install integrity self-check: `data/INTEGRITY_MANIFEST.json` (SHA256 per data/wordlist JSON) + `pp_doctor --deep` (hash+parse per file) + trunk/package manifest gates; `eval/gen_integrity_manifest.py`.
 - Releases **v5.4.1 and earlier**: see `CHANGELOG.md` (single source of history).

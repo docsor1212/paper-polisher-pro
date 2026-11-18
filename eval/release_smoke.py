@@ -558,6 +558,8 @@ for f in ROOT.rglob("*"):
         rel = f.relative_to(ROOT).as_posix()
         if "__pycache__" in rel or ".bak" in rel or rel.startswith(".git/") or rel == ".gitignore":
             continue
+        if rel == ".gh-sync-exclude":  # v7.9.0: gh 同步排除清单（仓库元数据，打包已排除）
+            continue
         if not f.suffix:
             bad.append(f"无扩展名: {rel}")
         if f.name == "_meta.json":
